@@ -84,15 +84,17 @@ class gencode_annotation_track(track):
                 
                 n = rows[transcript_interval]
     
-                x0 = transcript_interval.start - self.interval.start
-                x1 = transcript_interval.end - transcript_interval.start + x0
+                x0 = transcript_interval.start #- self.interval.start
+                x1 = transcript_interval.end  #- transcript_interval.start + x0
                 y = n
+
+                over_left = x0 < self.interval.start #0
+                over_right = x1 > self.interval.end #len(self.interval)
+                start_visible = False
+                
+
                 
                 ax.plot([x0, x1], [y, y], color = 'grey', lw = 2, zorder = 0)
-
-                over_left = x0 < 0
-                over_right = x1 > len(self.interval)
-                start_visible = False
 
                 if transcript_interval.strand == '+':
                 
@@ -110,7 +112,7 @@ class gencode_annotation_track(track):
 
                     else:
 
-                        label_xcoord = -label_xoffset
+                        label_xcoord = self.interval.start - label_xoffset
                         label_ycoord = y
                         ha = "right"
 
@@ -130,7 +132,8 @@ class gencode_annotation_track(track):
 
                     else:
 
-                        label_xcoord = len(self.interval) + label_xoffset
+                        #label_xcoord = len(self.interval) + label_xoffset
+                        label_xcoord = self.interval.end + label_xoffset
                         label_ycoord = y
                         ha = "left"
 
@@ -138,30 +141,31 @@ class gencode_annotation_track(track):
                     ax.plot(label_arrow_xcoords, label_arrow_ycoords, color = 'black')
                     ax.plot(label_arrow_xcoords[-1], label_arrow_ycoords[-1], marker = ma, color = 'black')
 
-                ax.text(label_xcoord,  label_ycoord, gene_name, style = 'italic', verticalalignment = 'center', horizontalalignment = ha)
+                ax.text(label_xcoord, label_ycoord, gene_name, style = 'italic', verticalalignment = 'center', horizontalalignment = ha)
 
+                
                 if over_left:
-                    ax.plot(0, y, marker = ma, clip_on = False, color = 'grey')
+                    ax.plot(self.interval.start, y, marker = ma, clip_on = False, color = 'grey')
                 if over_right:
-                    ax.plot(len(self.interval), y, marker = ma, clip_on = False, color = 'grey')
+                    ax.plot(self.interval.end, y, marker = ma, clip_on = False, color = 'grey')
                     
                 # Loop through exons
                 for (exon, exon_interval) in self.exons.get(transcript, []):
 
                     for (utr, utr_interval) in self.utrs.get(exon, []):
                         
-                        p = Rectangle((utr_interval.start - self.interval.start, -0.1+n), utr_interval.end - utr_interval.start, 0.2, edgecolor = 'none', facecolor = 'goldenrod', zorder = 1)
+                        p = Rectangle((utr_interval.start, -0.1+n), utr_interval.end-utr_interval.start, 0.2, edgecolor = 'none', facecolor = 'goldenrod', zorder = 1)
                         ax.add_patch(p)
 
                     for (cds, cds_interval) in self.cds.get(exon, []):
                         
-                        p = Rectangle((cds_interval.start - self.interval.start, -0.15+n), cds_interval.end - cds_interval.start, 0.3, edgecolor = 'none', facecolor = 'goldenrod', zorder = 2)
+                        p = Rectangle((cds_interval.start, -0.15+n), cds_interval.end-cds_interval.start, 0.3, edgecolor = 'none', facecolor = 'goldenrod', zorder = 2)
                         ax.add_patch(p)
 
-
+                
                 #n = n + 0.5
 
-        ax.set_ylim(bottom = 0.5, top = nrows + 1)
+        ax.set_ylim(bottom = 0.5, top = nrows + 1.5)
 
         #self.set_xaxis(ax)
         
