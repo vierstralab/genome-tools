@@ -2,6 +2,9 @@
 
 # Draw an ideogram; one can download the ideogram files from the UCSC genome browser
 
+from ..helpers import is_gzip
+import gzip
+
 from matplotlib.collections import BrokenBarHCollection
 from matplotlib.patches import Polygon
 
@@ -32,21 +35,28 @@ class ideogram(object):
         xranges={}
         colors={}
         centromeres={}
-        with open(filepath) as f:
-            last_chrom=None
-            xr=[]
-            for line in f:
-                chrom, start, stop, label, stain = line.strip().split('\t')
-                start = int(start)
-                stop = int(stop)
-                width = stop - start
-            
-                if stain=="acen":
-                    centromeres[chrom] = centromeres.get(chrom, []) + [(start, width)]
-                    continue
-            
-                xranges[chrom] = xranges.get(chrom, []) + [(start, width)]
-                colors[chrom] = colors.get(chrom, []) + [(color_lookup[stain])]
+
+        if is_gzip(filepath):
+            f = gzip.open(filepath)
+        else:
+            f = open(filepath)
+
+        last_chrom=None
+        xr=[]
+        for line in f:
+            chrom, start, stop, label, stain = line.strip().split('\t')
+            start = int(start)
+            stop = int(stop)
+            width = stop - start
+        
+            if stain=="acen":
+                centromeres[chrom] = centromeres.get(chrom, []) + [(start, width)]
+                continue
+        
+            xranges[chrom] = xranges.get(chrom, []) + [(start, width)]
+            colors[chrom] = colors.get(chrom, []) + [(color_lookup[stain])]
+
+        f.close()
 
         self.xranges = xranges
         self.colors = colors

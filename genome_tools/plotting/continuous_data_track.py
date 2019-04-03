@@ -93,9 +93,10 @@ class continuous_data_track(track):
 			ax.plot(xs, ys)
 
 		# change to linecollection
-		if 'clip_bar' in self.options:
-			trans = blended_transform_factory(ax.transData, ax.transAxes)
-			for x0, x1 in segment(self.data, ytop):
-				ax.plot([x0 + self.interval.start, x1 + self.interval.start], [1, 1], color = self.options['clip_bar']['color'], lw = self.options['clip_bar']['lw'], transform = trans, clip_on = False)
+		#if 'clip_bar' in self.options:
+		#	trans = blended_transform_factory(ax.transData, ax.transAxes)
+		#	for x0, x1 in segment(self.data, ytop):
+		#		ax.plot([x0 + self.interval.start, x1 + self.interval.start], [1, 1], color = self.options['clip_bar']['color'], lw = self.options['clip_bar']['lw'], transform = trans, clip_on = False)
 
+		super(continuous_data_track, self).render(ax)
 

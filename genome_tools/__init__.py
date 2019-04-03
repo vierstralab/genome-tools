@@ -1,4 +1,4 @@
-__all__ = ["bed", "genomic_interval"]
+__all__ = ["bed", "genomic_interval", "helpers"]
 
 from genomic_interval import *
 
@@ -54,3 +54,4 @@ def load_segmented_data(filepath, interval):
 	tabix.close()
 
 	return res
+

@@ -3,6 +3,7 @@
 import sys
 
 from matplotlib.ticker import MaxNLocator, FuncFormatter
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 class track(object):
     """Base level track object"""
@@ -11,7 +12,9 @@ class track(object):
         self.orientation = 'horizontal'
         self.options = {
             'edgecolor': 'none',
-            'lw': 1
+            'lw': 1,
+            'scale_bar': None,
+            'scale_bar_loc': 1
         }
 
         self.options.update(kwargs)
@@ -46,8 +49,15 @@ class track(object):
         ax.xaxis.set(visible = False)
         ax.yaxis.set(visible = False)
 
-    def render(self, ax):    
-         pass
+    def render(self, ax):
+        if self.options['scale_bar'] is not None:
+            bar = AnchoredSizeBar(ax.transData,
+                self.options['scale_bar'], 
+                label="%d nt" % self.options['scale_bar'], 
+                loc=self.options['scale_bar_loc'],
+                frameon=False)
+            ax.add_artist(bar)
+        pass
 
     def load_data(self, filepath):
         pass
