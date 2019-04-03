@@ -18,8 +18,20 @@ class genomic_interval(object):
 	def __str__(self):
 		return '\t'.join( [ str(x) for x in [self.chrom, self.start, self.end] ] )
 
-	def widen(self, w):
-		return genomic_interval(self.chrom, self.start - w, self.end + w, self.name, self.strand)
+	def widen(self, x, inplace=False):
+		if inplace:
+			self.start-=x
+			self.end+=x
+			return self
+		return genomic_interval(self.chrom, self.start-x, self.end+x, self.name, self.strand)
+
+	def shift(self, x, inplace=False):
+		if inplace:
+			self.start+=x
+			self.end+=x
+			return self
+		else:	
+			return genomic_interval(self.chrom, self.start+x, self.end+x, self.name, self.stand)
 
 class genomic_interval_set(object):
 
@@ -38,11 +50,12 @@ class genomic_interval_set(object):
 	def __getitem__(self, i):
 		return self.intervals[i]
 
-	def __add__(self, other):
+	def __iadd__(self, other):
 		if type(other) == genomic_interval_set:
 			self.intervals.extend(other.intervals)
 		else:
 			self.intervals.append(other)
+		return self
 
 def bin_intervals(intervals, bins):
 	"""Bin genomic intervals by score thresholds
@@ -59,3 +72,5 @@ def bin_intervals(intervals, bins):
 	for i in range(len(intervals)):
 		scores[i] = intervals[i].score
 	return np.digitize(scores, thresh)
+
+

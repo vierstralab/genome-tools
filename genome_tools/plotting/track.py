@@ -7,13 +7,10 @@ from matplotlib.ticker import MaxNLocator, FuncFormatter
 class track(object):
     """Base level track object"""
     def __init__(self, interval, **kwargs):
-    
         self.interval = interval
-
         self.orientation = 'horizontal'
-
         self.options = {
-            'edge_color': 'none',
+            'edgecolor': 'none',
             'lw': 1
         }
 
@@ -26,7 +23,6 @@ class track(object):
         return ax.yaxis if self.orientation == 'horizontal' else ax.xaxis
 
     def format_axis(self, ax):
-        
         [spine.set_color('none') for loc, spine in ax.spines.items()]
 
         ax.ticklabel_format(style='plain', axis = 'both', useOffset=False)
@@ -50,16 +46,18 @@ class track(object):
         ax.xaxis.set(visible = False)
         ax.yaxis.set(visible = False)
 
-    def render(self, ax):
-        
+    def render(self, ax):    
          pass
+
+    def load_data(self, filepath):
+        pass
 
 class row_element(object):
 
-    def __init__(self, interval, prev = None, next = None):
+    def __init__(self, interval, prev = None, next = None, padding = 5):
         self.interval = interval
-        self.start = interval.start - 5
-        self.end = interval.end + 5
+        self.start = interval.start - padding
+        self.end = interval.end + padding
         self.prev = prev
         self.next = next
         
@@ -126,7 +124,7 @@ class row(object):
         
         return False
 
-def pack_rows(intervals):
+def pack_rows(intervals, padding = 5):
     
     rows = []
     row_num = {}
@@ -135,7 +133,7 @@ def pack_rows(intervals):
 
     for interval in intervals:
         #sys.stderr.write("adding feat...\n")
-        re = row_element(interval)
+        re = row_element(interval, padding = padding)
         
         placed = False
         
@@ -151,7 +149,7 @@ def pack_rows(intervals):
             rows.append(r)
             row_num[interval] = r.num
             if not r.add_element(re):
-                raise Exception("could not place element in new row")
+                raise Exception("Could not place element in new row!")
                 
     return nrows, row_num
 

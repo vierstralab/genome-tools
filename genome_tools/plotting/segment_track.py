@@ -2,12 +2,13 @@ import numpy as numpy
 import pysam
 
 from .. import bed
+from .. import genomic_interval
 
 from matplotlib.patches import Rectangle
 from matplotlib.transforms import Affine2D
 
 from track import track, pack_rows
-from .. import genomic_interval
+
 
 class segment_track(track):
 
