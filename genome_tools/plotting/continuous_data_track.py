@@ -62,7 +62,7 @@ class continuous_data_track(track):
 
 	def render(self, ax):
 
-		if not self.data:
+		if self.data is None:
 			raise Exception("No data loaded!")
 
 		self.format_axis(ax)

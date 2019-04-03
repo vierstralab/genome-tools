@@ -134,27 +134,27 @@ class gencode_annotation_track(track):
 						label_ycoord = y
 						ha = "left"
 
-			if start_visible:
-				ax.plot(label_arrow_xcoords, label_arrow_ycoords, color = 'black')
-				ax.plot(label_arrow_xcoords[-1], label_arrow_ycoords[-1], marker = ma, color = 'black', markeredgecolor='none')
+				if start_visible:
+					ax.plot(label_arrow_xcoords, label_arrow_ycoords, color = 'black')
+					ax.plot(label_arrow_xcoords[-1], label_arrow_ycoords[-1], marker = ma, color = 'black', markeredgecolor='none')
 
-			ax.text(label_xcoord, label_ycoord, gene_name, style = 'italic', verticalalignment = 'center', horizontalalignment = ha)
-			
-			if over_left:
-				ax.plot(self.interval.start, y, marker = ma, clip_on = False, color = 'grey', markeredgecolor='none')
-			if over_right:
-				ax.plot(self.interval.end, y, marker = ma, clip_on = False, color = 'grey', markeredgecolor='none')
+				ax.text(label_xcoord, label_ycoord, gene_name, style = 'italic', verticalalignment = 'center', horizontalalignment = ha)
 				
-			# Loop through exons
-			for (exon, exon_interval) in self.exons.get(transcript, []):
+				if over_left:
+					ax.plot(self.interval.start, y, marker = ma, clip_on = False, color = 'grey', markeredgecolor='none')
+				if over_right:
+					ax.plot(self.interval.end, y, marker = ma, clip_on = False, color = 'grey', markeredgecolor='none')
+					
+				# Loop through exons
+				for (exon, exon_interval) in self.exons.get(transcript, []):
 
-				for (utr, utr_interval) in self.utrs.get(exon, []):
-					p = Rectangle((utr_interval.start, -0.1+n), utr_interval.end-utr_interval.start, 0.2, edgecolor = 'none', facecolor = 'goldenrod', zorder = 1)
-					ax.add_patch(p)
+					for (utr, utr_interval) in self.utrs.get(exon, []):
+						p = Rectangle((utr_interval.start, -0.1+n), utr_interval.end-utr_interval.start, 0.2, edgecolor = 'none', facecolor = 'goldenrod', zorder = 1)
+						ax.add_patch(p)
 
-				for (cds, cds_interval) in self.cds.get(exon, []):
-					p = Rectangle((cds_interval.start, -0.15+n), cds_interval.end-cds_interval.start, 0.3, edgecolor = 'none', facecolor = 'goldenrod', zorder = 2)
-					ax.add_patch(p)
+					for (cds, cds_interval) in self.cds.get(exon, []):
+						p = Rectangle((cds_interval.start, -0.15+n), cds_interval.end-cds_interval.start, 0.3, edgecolor = 'none', facecolor = 'goldenrod', zorder = 2)
+						ax.add_patch(p)
 	
 		ax.set_ylim(bottom = 0.5, top = nrows + 1.5)
 		return 0
