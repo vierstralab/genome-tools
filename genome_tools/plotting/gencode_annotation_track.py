@@ -78,7 +78,7 @@ class gencode_annotation_track(track):
 		label_arrow_xoffset = 0
 		label_arrow_yoffset = 0.2
 
-		for gene, gene_name in self.genes.iteritems():
+		for gene, gene_name in self.genes.items():
 		
 			for (transcript, transcript_interval) in self.transcripts[gene]:
 			

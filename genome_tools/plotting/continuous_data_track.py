@@ -57,7 +57,7 @@ class continuous_data_track(track):
 
 		if xaxis and step_interval == 0:
 			step_interval = abs(vals[1] - vals[0]) / 2.0
-		step_vals = np.array(zip(vals - step_interval, vals + step_interval)).ravel()
+		step_vals = np.array(list(zip(vals - step_interval, vals + step_interval))).ravel()
 		return step_vals
 
 	def render(self, ax):
