@@ -6,7 +6,7 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.transforms import blended_transform_factory
 
 from .. import load_data
-from track import track, segment
+from .track import track, segment
 
 class continuous_data_track(track):
 

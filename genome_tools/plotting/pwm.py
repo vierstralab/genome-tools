@@ -98,7 +98,9 @@ class pwm(object):
 
                 h=np.abs(scale)
 
-                t = ax.text(i+xoffset, yshift, base, ha='left', va='baseline', color=color, fontsize=40, family='monospace', fontname="Bitstream Vera Sans Mono", weight='bold', alpha=alpha)
+                t = ax.text(i+xoffset, yshift, base, ha='left', va='baseline', 
+                    color=color, fontsize=40, family='monospace', 
+                    fontname="Bitstream Vera Sans Mono", weight='bold', alpha=alpha)
 
                 if not init:
                     fig.canvas.draw()

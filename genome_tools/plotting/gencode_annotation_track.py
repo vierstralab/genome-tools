@@ -3,8 +3,8 @@ import pysam
 
 from matplotlib.patches import Rectangle
 
-from track import track, pack_rows
 from .. import genomic_interval
+from .track import track, pack_rows
 
 class gencode_annotation_track(track):
 

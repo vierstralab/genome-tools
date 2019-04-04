@@ -69,7 +69,7 @@ class ideogram(object):
             colors = self.colors[chrom]
             centromeres = self.centromeres[chrom]
         except:
-            print "Error: No chromosome named: %s" % chrom
+            print("Error: No chromosome named: {}".format(chrom))
             return
 
         yranges = (0, 0.5)
