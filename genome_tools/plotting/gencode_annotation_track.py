@@ -8,8 +8,8 @@ from .. import genomic_interval
 
 class gencode_annotation_track(track):
 
-	def __init__(self, interval):
-		super(gencode_annotation_track, self).__init__(interval)
+	def __init__(self, interval,  **kwargs):
+		super(gencode_annotation_track, self).__init__(interval, **kwargs)
 
 		self.genes = {}
 		self.transcripts = {}
@@ -157,5 +157,6 @@ class gencode_annotation_track(track):
 						ax.add_patch(p)
 	
 		ax.set_ylim(bottom = 0.5, top = nrows + 1.5)
-		return 0
+		
+		super(gencode_annotation_track, self).render(ax)
 		

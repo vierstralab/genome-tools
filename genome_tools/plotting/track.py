@@ -50,6 +50,8 @@ class track(object):
         ax.yaxis.set(visible = False)
 
     def render(self, ax):
+
+        # Add scale bar -- code is placed here so a scale bar can be drawn on any track instance
         if self.options['scale_bar'] is not None:
             bar = AnchoredSizeBar(ax.transData,
                 self.options['scale_bar'], 
@@ -57,7 +59,8 @@ class track(object):
                 loc=self.options['scale_bar_loc'],
                 frameon=False)
             ax.add_artist(bar)
-        pass
+        
+        ax.patch.set_facecolor('none')
 
     def load_data(self, filepath):
         pass

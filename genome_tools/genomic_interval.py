@@ -3,6 +3,8 @@
 import numpy as np
 
 class genomic_interval(object):
+	"""Class that implements BED-style object
+	"""
 
 	def __init__(self, chrom, start, end, name = '.', score = None, strand = None):
 		self.chrom = str(chrom)
@@ -13,12 +15,26 @@ class genomic_interval(object):
 		self.strand = strand
 		
 	def __len__(self):
+		"""returns length of element
+		"""
+
 		return self.end - self.start
 	
 	def __str__(self):
+		"""returns a string-formated version of the element for printing
+		"""
 		return '\t'.join( [ str(x) for x in [self.chrom, self.start, self.end] ] )
 
 	def widen(self, x, inplace=False):
+		"""expands the coordinates
+
+		:param x: number of nucletides to expand (can also be negative)
+		:param inplace: modify estixing element or return a modified copy
+		:type x: int
+		:type inplace: bool
+		:rtype: genomic_interval
+		"""
+		
 		if inplace:
 			self.start-=x
 			self.end+=x

@@ -1,4 +1,4 @@
-__all__ = ["track", "continuous_data_track", "gencode_annotation_track", "ideogram", "pwm", "callouts"]
+__all__ = ["track", "continuous_data_track", "gencode_annotation_track", "ideogram", "pwm", "connectors"]
 
 from ideogram import ideogram
 from pwm import pwm
