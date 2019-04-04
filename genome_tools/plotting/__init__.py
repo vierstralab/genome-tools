@@ -1,8 +1,5 @@
 __all__ = ["track", "continuous_data_track", "gencode_annotation_track", "ideogram", "pwm", "connectors"]
 
-import matplotlib
-matplotlib.use('agg')
-
 from .ideogram import ideogram
 from .pwm import pwm
 

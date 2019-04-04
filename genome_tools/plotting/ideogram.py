@@ -2,8 +2,8 @@
 
 # Draw an ideogram; one can download the ideogram files from the UCSC genome browser
 
-from ..helpers import is_gzip
-import gzip
+from ..helpers import open_file
+
 
 from matplotlib.collections import BrokenBarHCollection
 from matplotlib.patches import Polygon
@@ -36,10 +36,7 @@ class ideogram(object):
         colors={}
         centromeres={}
 
-        if is_gzip(filepath):
-            f = gzip.open(filepath)
-        else:
-            f = open(filepath)
+        f = open_file(filepath)
 
         last_chrom=None
         xr=[]
