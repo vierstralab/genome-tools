@@ -60,8 +60,9 @@ class pwm(object):
         elif type=='affinity':
             ddg = np.log(self.data+1e-3)
             mat=ddg-np.mean(ddg, axis=0)[np.newaxis,:]
-            ymax=max(np.max(np.ma.array(mat, mask=mat<0).sum(axis=0)), -np.min(np.ma.array(mat, mask=mat>=0).sum(axis=0)))
-            ax.set_ylim(-ymax, ymax)
+            top=np.max(np.ma.sum(np.ma.array(mat,  mask=mat<0), axis=0))
+            bottom=np.min(np.ma.sum(np.ma.array(mat,  mask=mat>=0), axis=0))
+            ax.set_ylim(bottom, top)
         else:
             mat=self.data
             ax.set_ylim(0, 1.05)
@@ -80,11 +81,12 @@ class pwm(object):
 
             heights=mat[:,i]
             order=np.argsort(heights)
+            reorder=np.concatenate([order[heights[order]>0], order[heights[order]<=0]])
 
             yshift_pos = 0
             yshift_neg = np.sum(heights[heights<=0])
 
-            for j, b in enumerate(order):
+            for j, b in enumerate(reorder):
                 base=iupac[(1<<b)]
                 color=iupac_colors[(1<<b)]
                 scale=heights[b]

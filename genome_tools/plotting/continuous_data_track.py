@@ -86,11 +86,16 @@ class continuous_data_track(track):
 		ys[ys < ybot] = ybot
 
 		if 'fill_between' in self.options:
-			ax.fill_between(xs, np.ones(len(xs)) * self.options['fill_between'], ys, 
-				facecolor = self.options.get('facecolor', 'blue'), 
-				edgecolor = self.options['edgecolor'])
+			ax.fill_between(xs, np.ones(len(xs)) * self.options["fill_between"], ys, 
+				facecolor=self.options["facecolor"], 
+				edgecolor=self.options["edgecolor"],
+				linewidth=self.options["lw"],
+				linestyle=self.options["ls"])
 		else:
-			ax.plot(xs, ys)
+			ax.plot(xs, y, 
+				color=self.options["edgecolor"], 				
+				lw=self.options["lw"],
+				ls=self.options["ls"])
 
 		# change to linecollection
 		#if 'clip_bar' in self.options:

@@ -11,8 +11,10 @@ class track(object):
         self.interval = interval
         self.orientation = 'horizontal'
         self.options = {
+            'facecolor': 'b',
             'edgecolor': 'none',
             'lw': 1,
+            'ls': '-',
             'scale_bar': None,
             'scale_bar_loc': 1
         }
