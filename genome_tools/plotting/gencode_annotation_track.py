@@ -64,7 +64,7 @@ class gencode_annotation_track(track):
 	def render(self, ax, padding = 5):
 
 		self.format_axis(ax)
-
+		self.format_spines(ax, remove_spines=['top', 'bottom', 'left', 'right'])
 		# pack transcripts
 
 		trans = self.get_transcript_intervals()
@@ -92,7 +92,7 @@ class gencode_annotation_track(track):
 				over_right = x1 > self.interval.end #len(self.interval)
 				start_visible = False
 			
-				ax.plot([x0, x1], [y, y], color = 'grey', lw = 2, zorder = 0)
+				ax.plot([max(x0, self.interval.start), min(x1, self.interval.end)], [y, y], color = 'grey', lw = 2, zorder = 0)
 
 				if transcript_interval.strand == '+':
 

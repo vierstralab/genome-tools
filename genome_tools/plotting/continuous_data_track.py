@@ -14,23 +14,8 @@ class continuous_data_track(track):
 		super(continuous_data_track, self).__init__(interval, **kwargs)
 		self.data = data
 
-	def format_axis(self, ax):
-		super(continuous_data_track, self).format_axis(ax)
-
-		ax.spines['bottom'].set_color('black')
-		ax.spines['left'].set_color('black')
-
-		locator = MaxNLocator(3, prune = 'upper')
-		ax.yaxis.set(visible = True, major_locator = locator)
-
-		if 'min' in self.options:
-			ax.set_ylim(bottom = self.options['min'])
-
-		if 'max' in self.options:
-			ax.set_ylim(top = self.options['max'])
-
 	def load_data(self, filepath, column=5, dtype=float):
-		self.data = load_data(filepath, interval, [column], dtype)
+		self.data = load_data(filepath, interval, [column], dtype)[:,0]
 
 
 	def density(self, vals, window_size = 150, step_size = 20):
@@ -60,12 +45,26 @@ class continuous_data_track(track):
 		step_vals = np.array(list(zip(vals - step_interval, vals + step_interval))).ravel()
 		return step_vals
 
+	def format_axis(self, ax):
+		super(continuous_data_track, self).format_axis(ax)
+
+		locator = MaxNLocator(3, prune = 'upper')
+		ax.yaxis.set(visible = True, major_locator = locator)
+
+		if 'min' in self.options:
+			ax.set_ylim(bottom = self.options['min'])
+
+		if 'max' in self.options:
+			ax.set_ylim(top = self.options['max'])
+
+
 	def render(self, ax):
 
 		if self.data is None:
 			raise Exception("No data loaded!")
 
 		self.format_axis(ax)
+		self.format_spines(ax, remove_spines=['top', 'right'])
 
 		if 'density' in self.options:
 			xx, yy = self.density(self.data)

@@ -5,6 +5,8 @@ import sys
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
+
+
 class track(object):
     """Base level track object"""
     def __init__(self, interval, **kwargs):
@@ -21,37 +23,44 @@ class track(object):
 
         self.options.update(kwargs)
 
-    def get_xaxis(self, ax):
-        return ax.xaxis if self.orientation == 'horizontal' else ax.yaxis
-
-    def get_yaxis(self, ax):
-        return ax.yaxis if self.orientation == 'horizontal' else ax.xaxis
-
     def format_axis(self, ax):
-        [spine.set_color('none') for loc, spine in ax.spines.items()]
 
+        # set defaults
         ax.ticklabel_format(style='plain', axis = 'both', useOffset=False)
-        
+                
+        # tick direction out
         ax.xaxis.set_tick_params(direction = 'out')
         ax.yaxis.set_tick_params(direction = 'out')
-
-        # set and format xlim
-        if self.orientation == 'horizontal':
-            ax.set_xlim(left = self.interval.start, right = self.interval.end)
-        else:
-            ax.set_ylim(bottom = self.interval.start, top = self.interval.end)
         
-        #formatter = FuncFormatter(lambda x, pos: int(x + self.interval.start))
-        #ax.xaxis.set(major_formatter = formatter)
+        # set x limits to interval
+        ax.set_xlim(left=self.interval.start, right=self.interval.end)
         
+        # x-axis choose ~3 tick positions
         locator = MaxNLocator(3, prune = 'both')
-        #ax.xaxis.set(major_locator = locator)
-        self.get_xaxis(ax).set(major_locator = locator)
-
+        ax.xaxis.set(major_locator = locator)
+        
+        # hide both x and y axis
         ax.xaxis.set(visible = False)
         ax.yaxis.set(visible = False)
 
+
+    def format_spines(self, ax, remove_spines):
+        all_spines = ['top', 'bottom', 'left', 'right']
+        for spine in remove_spines:
+            try:
+                ax.spines[spine].set_visible(False)
+            except KeyError:
+                pass
+
+        for spine in set(all_spines).difference(set(remove_spines)):
+            try:
+                ax.spines[spine].set_linewidth(0.5)
+            except:
+                pass
+
     def render(self, ax):
+        # Remove the white patch behind each axes
+        ax.patch.set_facecolor('none')
 
         # Add scale bar -- code is placed here so a scale bar can be drawn on any track instance
         if self.options['scale_bar'] is not None:
@@ -61,8 +70,6 @@ class track(object):
                 loc=self.options['scale_bar_loc'],
                 frameon=False)
             ax.add_artist(bar)
-        
-        ax.patch.set_facecolor('none')
 
     def load_data(self, filepath):
         pass
