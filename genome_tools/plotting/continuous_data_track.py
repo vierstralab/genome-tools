@@ -67,7 +67,7 @@ class continuous_data_track(track):
 		self.format_spines(ax, remove_spines=['top', 'right'])
 
 		if 'density' in self.options:
-			xx, yy = self.density(self.data)
+			xx, yy = self.density(self.data, window_size = self.options['density'])
 			xs = self.step(xx, xaxis = True)
 			ys = self.step(yy)
 		else:
