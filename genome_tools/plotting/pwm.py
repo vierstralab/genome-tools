@@ -52,7 +52,7 @@ class pwm(object):
             res += np.log(self.data[i, j]/bg[j])
         return res
 
-    def render(self, fig, ax, pad=0, xoffset=0, type='default', bg=None, rc=False):
+    def render(self, fig, ax, pad=None, xoffset=0, xlim=None, type='default', bg=None, rc=False):
 
         if type=='ic':
             mat=self.rel_info_content(bg=bg).T
@@ -72,7 +72,10 @@ class pwm(object):
             
 
         w = mat.shape[1]
-        ax.set_xlim(xoffset-pad, xoffset+w+pad)
+        if xlim:
+            ax.set_xlim(xlim[0], xlim[1])
+        else:
+            ax.set_xlim(xoffset-pad, xoffset+w+pad)
         
         wscale=1
         init = False
