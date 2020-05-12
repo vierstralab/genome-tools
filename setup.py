@@ -5,14 +5,14 @@ import sys
 
 from setuptools import find_packages, setup
 
-__version__ = "1.0"
+__version__ = "1.0.1"
 
 install_requires = ["numpy>1.10", "scipy", "pysam>=0.8.2", "matplotlib"] 
 
 setup(
 	name = "genome_tools",
 	version = __version__,
-		license = "GPL-3.0-or-later",
+	license = "GPL-3.0-or-later",
 	description = "A toolkit for processing and plotting genomic datasets.",
 	long_description = "",
 	author = "Jeff Vierstra",
@@ -20,7 +20,7 @@ setup(
 	zip_safe = False,
 	packages =  find_packages(),
     install_requires = install_requires,
-    download_url = "https://github.com/jvierstra/genome-tools/archive/1.0.tar.gz",
+    download_url = "https://github.com/jvierstra/genome-tools/archive/v1.0.1.tar.gz",
     classifiers=[
 	    'Development Status :: 5 - Production/Stable',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
 	    'Intended Audience :: Developers',      # Define that your audience are developers
