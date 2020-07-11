@@ -5,7 +5,7 @@ import sys
 
 from setuptools import find_packages, setup
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 install_requires = ["numpy>1.10", "scipy", "pysam>=0.8.2", "matplotlib"] 
 
@@ -20,14 +20,13 @@ setup(
 	zip_safe = False,
 	packages =  find_packages(),
     install_requires = install_requires,
-    download_url = "https://github.com/jvierstra/genome-tools/archive/v1.0.1.tar.gz",
+    download_url = "https://github.com/jvierstra/genome-tools/archive/v1.0.2.tar.gz",
     classifiers=[
-	    'Development Status :: 5 - Production/Stable',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
-	    'Intended Audience :: Developers',      # Define that your audience are developers
-	    'Topic :: Software Development :: Build Tools',
+	    'Development Status :: 5 - Production/Stable', 
+	    'Intended Audience :: Science/Research', 
+	    'Topic :: Scientific/Engineering :: Bio-Informatics',
 	    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-	    'Programming Language :: Python :: 2.7',     #Specify which pyhton versions that you want to support
+	    'Programming Language :: Python :: 2.7',
 	    'Programming Language :: Python :: 3',
-	    'Programming Language :: Python :: 3.5', 
-    ],
+],
 )

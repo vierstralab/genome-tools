@@ -27,16 +27,6 @@ class continuous_data_track(track):
 			s[i] = np.sum(vals[j:j+window_size])
 		return pos + (window_size/2) + self.interval.start, s
 
-	def simplify(self, step = 100):
-		"""Simplify data points for fast plotting -- there is probably a better way of doing this..."""
-		
-		xx = []
-		yy = []
-		for i in range(step, len(self.data)-step, step):
-			xx.append(self.interval.start + i)
-			yy.append(np.amax(self.data[i-step:i+step]))
-		return np.array(xx), np.array(yy)
-
 	def step(self, vals, xaxis = False, step_interval = 0):
 		"""Creates a step-style plot"""
 
@@ -73,12 +63,6 @@ class continuous_data_track(track):
 		else:
 			xs = self.step(np.arange(self.interval.start, self.interval.end), xaxis = True)
 			ys = self.step(self.data)
-
-
-		if 'simplify' in self.options:
-			xx, yy = self.simplify(step = self.options['simplify'])
-			xs = self.step(xx, xaxis = True)
-			ys = self.step(yy, xaxis = False)
 
 		(ybot, ytop) = ax.get_ylim()
 		ys[ys > ytop] = ytop

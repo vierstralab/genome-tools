@@ -5,8 +5,6 @@ import sys
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
-
-
 class track(object):
     """Base level track object"""
     def __init__(self, interval, **kwargs):

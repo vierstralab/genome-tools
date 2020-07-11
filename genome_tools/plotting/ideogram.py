@@ -23,7 +23,7 @@ color_lookup = {
 
 class ideogram(object):
 
-    def __init__(self, filepath="/home/jvierstra/data/genomes/hg38/cytoBandIdeo.txt"):
+    def __init__(self, filepath):
         self.xranges = None
         self.colors = None
         self.centromeres = None

@@ -19,7 +19,7 @@ class segment_track(track):
 
 	def load_data(self, filepath, filterfunc=None):
 		segments = load_segmented_data(filepath, self.interval)
-		self.segments = filter(filterfunc, segments) if filterfunc else segments
+		self.segments = list(filter(filterfunc, segments)) if filterfunc else segments
 
 	def format_axis(self, ax):
 		super(segment_track, self).format_axis(ax)
@@ -30,6 +30,7 @@ class segment_track(track):
 	def render(self, ax, pack = True, labels = False):
 
 		self.format_axis(ax)
+		self.format_spines(ax, remove_spines=['top', 'right'])
 
 		nrows, rows = pack_rows(self.segments)
 		
@@ -58,5 +59,6 @@ class segment_track(track):
 				ax.text(label_x, label_y, segment.name, rotation=label_rot, ha='left', va='bottom')
 
 		ax.set_ylim(bottom=0.5, top=(nrows if pack else 1) + 1.5)
+		ax.invert_yaxis()
 
 		super(segment_track, self).render(ax)
