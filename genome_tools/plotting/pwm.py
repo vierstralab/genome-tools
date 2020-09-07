@@ -53,19 +53,20 @@ class pwm(object):
         return res
 
     def render(self, fig, ax, pad=0, xoffset=0, xlim=None, type='default', bg=None, rc=False):
+        extra_space=1.05
 
         if type=='ic':
             mat=self.rel_info_content(bg=bg).T
-            ax.set_ylim(0, 2.1)
+            ax.set_ylim(0, 2*extra_space)
         elif type=='affinity':
             ddg = np.log(self.data+1e-3)
             mat=ddg-np.mean(ddg, axis=0)[np.newaxis,:]
             top=np.max(np.ma.sum(np.ma.array(mat,  mask=mat<0), axis=0))
             bottom=np.min(np.ma.sum(np.ma.array(mat,  mask=mat>=0), axis=0))
-            ax.set_ylim(bottom, top)
+            ax.set_ylim(bottom*extra_space, top*extra_space)
         else:
             mat=self.data
-            ax.set_ylim(0, 1.05)
+            ax.set_ylim(0, mat.sum(axis=0).max()*extra_space)
         
         if rc:
             mat = mat[::-1,:][:,::-1]

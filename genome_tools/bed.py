@@ -2,15 +2,14 @@
 
 from . import genomic_interval
 
-def bed3_iterator(file_handle):
+def bed3_iterator(filehandle):
 	"""
 	Generator that parses BED3 format from a string iterator
 
 	Returns:
 		genomic_interval
 	"""
-
-	for line in file_handle:
+	for line in filehandle:
 		
 		fields = line.strip().split()
 		
@@ -20,7 +19,7 @@ def bed3_iterator(file_handle):
 
 		yield genomic_interval(chrom, start, end)
 
-def bed5_iterator(file_handle):
+def bed5_iterator(filehandle):
 	"""
 	Generator that parses BED5 format from a string iterator
 	
@@ -28,7 +27,7 @@ def bed5_iterator(file_handle):
 		genomic_interval
 	"""
 
-	for line in file_handle:
+	for line in filehandle:
 		
 		fields = line.strip().split()
 		
@@ -41,7 +40,7 @@ def bed5_iterator(file_handle):
 		yield genomic_interval(chrom, start, end, name, score)
 
 
-def bed6_iterator(file_handle):
+def bed6_iterator(filehandle):
 	"""
 	Generator that parses BED6 format from a string iterator
 	
@@ -49,7 +48,7 @@ def bed6_iterator(file_handle):
 		genomic_interval
 	"""
 
-	for line in file_handle:
+	for line in filehandle:
 		
 		fields = line.strip().split()
 		
