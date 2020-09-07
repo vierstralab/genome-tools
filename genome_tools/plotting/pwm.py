@@ -66,7 +66,7 @@ class pwm(object):
             ax.set_ylim(bottom*extra_space, top*extra_space)
         else:
             mat=self.data
-            ax.set_ylim(0, mat.sum(axis=0).max()*extra_space)
+            ax.set_ylim(mat.min()*extra_space, mat.max()*extra_space)
         
         if rc:
             mat = mat[::-1,:][:,::-1]
