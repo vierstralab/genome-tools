@@ -1,6 +1,51 @@
 # Copyright 2016 Jeff Vierstra
 
-import sys
+import matplotlib.pyplot as plt
+import matplotlib.axes as maxes
+import matplotlib.ticker as mticker
+from numpy import asmatrix
+
+class base_track(object):
+    def __init__(self, ax=None):
+        if ax is None:
+            self.ax = plt.gca()
+        self.ax = ax
+
+    def format_spines(self):
+        raise NotImplementedError
+    
+    def format_axes(self):
+        raise NotImplementedError
+
+    def render(self):
+        self.format_spines()
+        self.format_axis()
+
+class genome_track(base_track):
+    def __init__(self, ax=None):
+        
+        self.data_loader = None
+        
+        super(genome_track, self).__init(ax)
+
+    def __render__(self, interval):
+        raise NotImplementedError
+
+    def format_spines(self, remove=['top', 'left']):
+        """Remove spines"""
+        for spine in remove:
+            self.ax.spines[spine].set_color('none')
+            self.ax.spines[spine].set_visible('none')
+
+    def format_axes(self):
+        """Format axis appearance"""
+        self.ax.xaxis.set_tick_params(direction='out')
+        self.ax.yaxis.set_tick_params(direction='out')
+
+        locator = mticker.MaxNLocator(3, prune = 'both')
+        self.ax.xaxis.set(major_locator = locator)
+
+class 
 
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
