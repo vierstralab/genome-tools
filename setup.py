@@ -5,7 +5,7 @@ import sys
 
 from setuptools import find_packages, setup
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 install_requires = ["numpy", "scipy", "pysam", "pyBigWig", "matplotlib"] 
 
@@ -20,7 +20,7 @@ setup(
 	zip_safe = False,
 	packages =  find_packages(),
     install_requires = install_requires,
-    download_url = "https://github.com/jvierstra/genome-tools/archive/v1.0.2.tar.gz",
+    download_url = "https://github.com/jvierstra/genome-tools/archive/v1.0.3.tar.gz",
     classifiers=[
 	    'Development Status :: 5 - Production/Stable', 
 	    'Intended Audience :: Science/Research', 
