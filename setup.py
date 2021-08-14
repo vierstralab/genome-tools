@@ -7,7 +7,7 @@ from setuptools import find_packages, setup
 
 __version__ = "1.0.2"
 
-install_requires = ["numpy>1.10", "scipy", "pysam>=0.8.2", "matplotlib"] 
+install_requires = ["numpy", "scipy", "pysam", "pyBigWig", "matplotlib"] 
 
 setup(
 	name = "genome_tools",
@@ -26,7 +26,10 @@ setup(
 	    'Intended Audience :: Science/Research', 
 	    'Topic :: Scientific/Engineering :: Bio-Informatics',
 	    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-	    'Programming Language :: Python :: 2.7',
 	    'Programming Language :: Python :: 3',
+		'Programming Language :: Python :: 3.6',
+		'Programming Language :: Python :: 3.7',
+		'Programming Language :: Python :: 3.8',
+		'Programming Language :: Python :: 3.9',
 ],
 )
