@@ -3,35 +3,71 @@
 import matplotlib.pyplot as plt
 import matplotlib.axes as maxes
 import matplotlib.ticker as mticker
-from numpy import asmatrix
+import matplotlib.patches as mpatches
+
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+
+from genome_tools.plotting import scale_lightness, cycle_cmap
+from genome_tools.plotting.annotation import annotate, annotate_span
+from genome_tools.plotting.sequence import add_letter_to_axis, letter_polygons, VOCABS
+
+import numpy as np
+
+
+def get_coord_formatter(interval):
+    if len(interval) > 1e5:
+        fmt='{:0.2f} mb'
+        denom=1e6
+    elif len(interval) > 1e3:
+        fmt='{:0.2f} kb'
+        denom=1e3
+    else:
+        fmt='{:,.0f}'
+        denom=1
+
+    def tick_format_func(x, pos):
+        return fmt.format(x/denom) 
+    
+    return tick_format_func
 
 class base_track(object):
-    def __init__(self, ax=None):
+    def __init__(self, interval, ax=None):
         if ax is None:
             self.ax = plt.gca()
-        self.ax = ax
+        else:
+            self.ax = ax
 
-    def format_spines(self):
-        raise NotImplementedError
-    
-    def format_axes(self):
-        raise NotImplementedError
+        self.interval = interval
+        self.data = []
+        self.data_kwargs = []
 
-    def render(self):
-        self.format_spines()
-        self.format_axis()
-
-class genome_track(base_track):
-    def __init__(self, ax=None):
+    def transform_pts(self, data, downsample=0, win_fn=np.mean, **kwargs):
+        """"""
+        fig = self.ax.get_figure()
         
-        self.data_loader = None
-        
-        super(genome_track, self).__init(ax)
+        w, h = fig.get_size_inches()
+        dpi = fig.get_dpi()
+        N = len(self.interval)
 
-    def __render__(self, interval):
-        raise NotImplementedError
+        total_pts = dpi*w / (2**downsample) if downsample is not None else N
+        stride = int(N//total_pts)
+ 
+        # Up- or downsample data
+        idx = np.linspace(0, len(data)-1, N).astype(int)
+        x = np.arange(self.interval.start, self.interval.end)
+        y = data[idx]
 
-    def format_spines(self, remove=['top', 'left']):
+        if downsample:
+            nx = x[::stride]
+            ny = [win_fn(y[i:i+stride]) for i in np.arange(N)[::stride]]
+        else:
+            nx, ny = x, y
+
+        assert len(nx) == len(ny)
+
+        return nx, ny
+
+    def format_spines(self, remove=['top', 'right']):
         """Remove spines"""
         for spine in remove:
             self.ax.spines[spine].set_color('none')
@@ -42,201 +78,146 @@ class genome_track(base_track):
         self.ax.xaxis.set_tick_params(direction='out')
         self.ax.yaxis.set_tick_params(direction='out')
 
-        locator = mticker.MaxNLocator(3, prune = 'both')
-        self.ax.xaxis.set(major_locator = locator)
+        self.ax.xaxis.set(
+            major_locator = mticker.MaxNLocator(3, prune = 'both'),
+            major_formatter = mticker.FuncFormatter(get_coord_formatter(self.interval)),
+            minor_locator=mticker.AutoMinorLocator(4))
 
-class 
+        self.ax.set_xlim(self.interval.start, self.interval.end)
+    
+    def show_grid(self, axis='both'):
+        self.ax.grid(axis)
+        return self
 
-from matplotlib.ticker import MaxNLocator, FuncFormatter
-from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
-
-class track(object):
-    """Base level track object"""
-    def __init__(self, interval, **kwargs):
-        self.interval = interval
-        self.orientation = 'horizontal'
-        self.options = {
-            'facecolor': 'b',
-            'edgecolor': 'none',
-            'lw': 1,
-            'ls': '-',
-            'scale_bar': None,
-            'scale_bar_loc': 1
-        }
-
-        self.options.update(kwargs)
-
-    def format_axis(self, ax):
-
-        # set defaults
-        ax.ticklabel_format(style='plain', axis = 'both', useOffset=False)
-                
-        # tick direction out
-        ax.xaxis.set_tick_params(direction = 'out')
-        ax.yaxis.set_tick_params(direction = 'out')
-        
-        # set x limits to interval
-        ax.set_xlim(left=self.interval.start, right=self.interval.end)
-        
-        # x-axis choose ~3 tick positions
-        locator = MaxNLocator(3, prune = 'both')
-        ax.xaxis.set(major_locator = locator)
-        
-        # hide both x and y axis
-        ax.xaxis.set(visible = False)
-        ax.yaxis.set(visible = False)
-
-
-    def format_spines(self, ax, remove_spines):
-        all_spines = ['top', 'bottom', 'left', 'right']
-        for spine in remove_spines:
-            try:
-                ax.spines[spine].set_visible(False)
-            except KeyError:
-                pass
-
-        for spine in set(all_spines).difference(set(remove_spines)):
-            try:
-                ax.spines[spine].set_linewidth(0.5)
-            except:
-                pass
-
-    def render(self, ax):
-        # Remove the white patch behind each axes
-        ax.patch.set_facecolor('none')
-
-        # Add scale bar -- code is placed here so a scale bar can be drawn on any track instance
-        if self.options['scale_bar'] is not None:
-            bar = AnchoredSizeBar(ax.transData,
-                self.options['scale_bar'], 
-                label="%d nt" % self.options['scale_bar'], 
-                loc=self.options['scale_bar_loc'],
+    def show_legend(self, **kwargs):
+        self.ax.legend(**kwargs)
+        return self
+    
+    def show_scale_bar(self, **kwargs):
+        scale=100
+        bar = AnchoredSizeBar(self.ax.transData,
+                scale, 
+                label=f"{scale}nt",
+                loc=2,
                 frameon=False)
-            ax.add_artist(bar)
+        self.ax.add_artist(bar)
+        return self
 
-    def load_data(self, filepath):
+    def add_annotation(self, data_xy, labels, **kwargs):
+        annotate(self.ax, labels, data_xy, **kwargs)
+        return self
+
+    def add_annotation_span(self, intervals, **kwargs):
+        annotate_span(self.ax, intervals, **kwargs)
+        return self
+
+    def render(self, **kwargs):
+        self.format_spines()
+        self.format_axes()
+
+        self.ax.patch.set_color('none')
+
+        if 'ylim' in kwargs:
+            self.ax.set_ylim(kwargs.pop('ylim'))
+
+        return self
+
+class genome_track(base_track):
+    """
+    """
+    def __init__(self, interval, ax=None):
+        super(genome_track, self).__init__(interval, ax=ax)
+
+    def add_data(self, dataset, **kwargs):
+        self.data.append(dataset)
+        self.data_kwargs.append(kwargs)
+        return self
+
+    def render(self, **kwargs):
+        super(genome_track, self).render(**kwargs)
+
+        for d, k in zip(self.data[::-1], self.data_kwargs[::-1]):
+            x, y = self.transform_pts(d, **kwargs)
+        
+            
+            fb = self.ax.fill_between(x, 0, y, step='mid', **k)
+            
+            #darken_col = scale_lightness(fb.get_facecolor()[0][:-1], 0.4)
+            #self.ax.step(x, y, color=darken_col, lw=0.5)
+
+        return self
+
+class segment_track(base_track):
+    def __init__(self, interval, ax=None, **kwargs):
+        super(segment_track, self).__init__(interval, ax=ax, **kwargs)
+
+    def add_data(self, dataset, **kwargs):
+        self.data.append(dataset)
+        self.data_kwargs.append(kwargs)
+        return self
+
+    def render(self, **kwargs):
+        super(segment_track, self).render()
+
+        if 'cmap' in kwargs:
+            cmap = kwargs.pop('cmap', None)
+            cycle_cmap(len(self.data), cmap=cmap, ax=self.ax)
+
+        prop_cycler = self.ax._get_lines.prop_cycler
+
+        for i, segments in enumerate(self.data[::-1]):
+            self.ax.broken_barh(
+                [(s.start, len(s)) for s in segments['data']],
+                (i-0.4, 0.8), fc=next(prop_cycler)['color'],
+                **kwargs)
+        
+        self.ax.yaxis.set_ticks(range(len(self.data)))
+        self.ax.yaxis.set_ticklabels([s['name'] for s in self.data[::-1]])
+        for label in self.ax.get_yticklabels():
+            label.set_fontweight('bold')
+                
+        return self
+
+class heatmap_track(base_track):
+    def __init__(self, interval, data, ax=None, **kwargs):
+        super(heatmap_track, self).__init__(interval, data, ax=ax, **kwargs)
+
+    def render(self):
         pass
 
-class row_element(object):
+class seq_track(base_track):
+    def __init__(self, interval, ax=None):
+        super(seq_track, self).__init__(interval, ax=ax)
 
-    def __init__(self, interval, prev = None, next = None, padding = 5):
-        self.interval = interval
-        self.start = interval.start - padding
-        self.end = interval.end + padding
-        self.prev = prev
-        self.next = next
+    def render(self, letter_heights, vocab='DNA'):
         
-class row(object):
-    """ """
-    def __init__(self, num):
-        self.num = num
-        self.elements = []
-        self.first = None
-        self.last = None
-        
-    def add_element(self, elem):
-        
-        if self.first is None:
-            #sys.stderr.write("added feat %d-%d as only element of row %d\n" %
-            #                (elem.start, elem.end, self.num))
-            elem.prev = None
-            elem.next = None
-            self.first = self.last = elem
-            return True
-        
-        cur = self.first
-        while (cur and cur.start < elem.start):
-            cur = cur.next
-            
-        if cur is None:
-            if self.last.end < elem.start:
-                #sys.stderr.write("added feat %d-%d to end of row %d\n" %
-                #                 (elem.start, elem.end, self.num))
-                elem.prev = self.last
-                elem.next = None
-                self.last.next = elem
-                self.last = elem
-                return True
-            else:
-                return False
-        
-        prev = cur.prev
-        if prev is None:
-            if elem.end < cur.start:
-                #sys.stderr.write("added feat %d-%d to start of row %d "
-                #                 "(before %d-%d)\n" %
-                #                 (elem.start, elem.end, self.num,
-                #                 cur.start, cur.end))
-                elem.prev = None
-                elem.next = cur
-                cur.prev = elem
-                self.first = elem
-                return True
-            else:
-                return False
-        
-        if prev.end < elem.start and cur.start > elem.end:
-            #sys.stderr.write("added feat %d-%d between %d-%d and %d-%d "
-            #                 "in row %d\n" %
-            #                 (elem.start, elem.end,
-            #                  prev.start, prev.end,
-            #                  cur.start, cur.end, self.num))
-            elem.prev = prev
-            elem.next = cur
-            prev.next = elem
-            cur.prev = elem
-            return True
-        
-        return False
+        assert letter_heights.shape[1] == len(VOCABS[vocab])
+        x_range = [1, letter_heights.shape[0]]
+        pos_heights = np.copy(letter_heights)
+        pos_heights[letter_heights < 0] = 0
+        neg_heights = np.copy(letter_heights)
+        neg_heights[letter_heights > 0] = 0
 
-def pack_rows(intervals, padding = 5):
-    
-    rows = []
-    row_num = {}
-    
-    nrows = 0
-
-    for interval in intervals:
-        #sys.stderr.write("adding feat...\n")
-        re = row_element(interval, padding = padding)
-        
-        placed = False
-        
-        for r in rows:
-            if(r.add_element(re)):
-                placed = True
-                row_num[interval] = r.num
-                break
-        
-        if not placed:
-            nrows = nrows + 1
-            r = row(num = nrows)
-            rows.append(r)
-            row_num[interval] = r.num
-            if not r.add_element(re):
-                raise Exception("Could not place element in new row!")
-                
-    return nrows, row_num
-
-def segment(x, threshold, w = 0, decreasing = False):
-    """Segment an array into continuous elements passing a threshhold
-
-    :returns: [(int, int), ...]: start and end points to regions that pass a threshold
-    """
-    dir = -1 if decreasing else 1
-
-    ret = []
-    curr_start = -1
-    
-    for i in range(x.shape[0]):
-        if curr_start < 0:
-            if dir*x[i] >= dir*threshold:
-                curr_start = i-w+1
-        else:
-            if dir*x[i] < dir*threshold:
-                if len(ret) > 0 and curr_start <= ret[-1][1]:
-                    ret[-1][1] = i-1+w
+        for x_pos, heights in enumerate(letter_heights):
+            letters_and_heights = sorted(zip(heights, list(VOCABS[vocab].keys())))
+            y_pos_pos = 0.0
+            y_neg_pos = 0.0
+            for height, letter in letters_and_heights:
+                color = VOCABS[vocab][letter]
+                polygons = letter_polygons[letter]
+                if height > 0:
+                    add_letter_to_axis(self.ax, polygons, color, 0.5 + x_pos, y_pos_pos, height)
+                    y_pos_pos += height
                 else:
-                    ret.append( [curr_start, i-1+w] )
-                curr_start = -1
-    return ret
+                    add_letter_to_axis(self.ax, polygons, color, 0.5 + x_pos, y_neg_pos, height)
+                    y_neg_pos += height
+
+        # if add_hline:
+        #     ax.axhline(color="black", linewidth=1)
+        self.ax.set_xlim(x_range[0] - 1, x_range[1] + 1)
+        self.ax.grid(False)
+        self.ax.set_xticks(list(range(*x_range)) + [x_range[-1]])
+        self.ax.set_aspect(aspect='auto', adjustable='box')
+        self.ax.autoscale_view()
+
+        

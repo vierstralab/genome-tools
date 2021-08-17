@@ -6,7 +6,7 @@ using multiprocessing.
 """
 import numpy as np
 import pysam
-import pyBigWig as pbg
+import pyBigWig as pbw
 
 class base_extractor(object):
     def __init__(self, filename, **kwargs):
@@ -16,7 +16,7 @@ class base_extractor(object):
         raise NotImplementedError 
 
 class fasta_extractor(base_extractor):
-    def __init__(self, filename, *kwargs):
+    def __init__(self, filename, **kwargs):
         """
         """
         super(fasta_extractor, self).__init__(filename, **kwargs)
@@ -71,7 +71,7 @@ class bigwig_extractor(base_extractor):
         self.bw = pbw.open(filename)
 
     def __getitem__(self, interval):
-        out = self.bw.values(interval.chrom, interval.start, interval.end)
+        out = self.bw.values(interval.chrom, interval.start, interval.end, numpy=True)
         return out
 
     def __del__(self):

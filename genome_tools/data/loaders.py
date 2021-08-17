@@ -40,7 +40,20 @@ def _worker_loop(process, index_queue, data_queue, collate_fn):
         process.cleanup()
 
 class data_loader_iter(object):
+    """Iterable data loader class
+    
+    Attributes
+    ----------
+
+
+    """
     def __init__(self, loader):
+        """
+        
+
+        Parameters
+        ----------
+        """
         self.process = loader.process
         self.collate_fn = loader.collate_fn
         self.batch_sampler = loader.batch_sampler

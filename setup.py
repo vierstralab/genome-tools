@@ -7,7 +7,13 @@ from setuptools import find_packages, setup
 
 __version__ = "1.0.3"
 
-install_requires = ["numpy", "scipy", "pysam", "pyBigWig", "matplotlib"] 
+install_requires = ["numpy",
+					"scipy",
+					"pysam",
+					"pyBigWig",
+					"matplotlib",
+					"decartes",
+					"shapley"] 
 
 setup(
 	name = "genome_tools",
