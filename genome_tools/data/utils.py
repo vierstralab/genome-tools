@@ -2,6 +2,8 @@ import numpy as np
 import collections
 import itertools
 
+# ------------------------
+
 string_classes = (str, bytes)
 
 def _list_collate(stack_fn=list):
@@ -57,3 +59,11 @@ numpy_collate.__doc__ = __name__ + '.numpy_collate'
 
 numpy_collate_concat = _numpy_collate(np.concatenate)
 numpy_collate_concat.__doc__ = __name__ + '.numpy_collate_concat'
+
+# ------------------------
+
+def check_input_dimensions(intervals):
+    """Checks that each interval is of the same width"""
+    sizes = list(map(len, intervals))
+    if len(np.unique(sizes)) != 1:
+        raise IndexError('Inputs are not of same length!')

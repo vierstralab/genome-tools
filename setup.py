@@ -10,6 +10,7 @@ __version__ = "1.0.3"
 install_requires = ["numpy",
 					"scipy",
 					"pysam",
+					"openpyxl"
 					"pyBigWig",
 					"matplotlib",
 					"decartes",

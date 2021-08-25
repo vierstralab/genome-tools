@@ -4,3 +4,5 @@ pyBigWig
 matplotlib
 descartes
 shapley
+pysam
+openpyxl
