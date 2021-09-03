@@ -45,6 +45,19 @@ def mpl_cmap_palette(cmap, n_colors, as_cmap=False):
     else:
         return _ColorPalette(colors)
 
+def discrete_cmap(cmap, n_colors):
+    """Create an N-bin discrete colormap from the specified input map"""
+
+    # Note that if base_cmap is a string or None, you can simply do
+    #    return plt.cm.get_cmap(base_cmap, N)
+    # The following works for string, None, or a colormap instance:
+
+    if isinstance(cmap, str):
+        cmap = mcm.get_cmap(cmap)
+        
+    color_list = mpl_cmap_palette(cmap, n_colors, as_cmap=False)
+    return mcolors.ListedColormap(color_list)
+
 def color_palette(palette=None, n_colors=None, as_cmap=False):
 
     if palette is None:

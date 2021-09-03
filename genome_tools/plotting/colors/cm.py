@@ -3,8 +3,6 @@ import matplotlib.cm as mcm
 
 from collections.abc import Iterable
 
-from .palettes import mpl_cmap_palette
-
 __all__ = ["COLOR_MAPS", "VOCAB_COLOR_MAPS", "get_vocab_color", "map_vocab_color", "discrete_cmap"]
 
 VOCAB_COLOR_MAPS = dict(
@@ -109,16 +107,3 @@ for _name, _palette in COLOR_MAPS.items():
 
     mcm.register_cmap(_name, _cmap)
     mcm.register_cmap(_name + '_r', _cmap_r)
-
-def discrete_cmap(cmap, n_colors):
-    """Create an N-bin discrete colormap from the specified input map"""
-
-    # Note that if base_cmap is a string or None, you can simply do
-    #    return plt.cm.get_cmap(base_cmap, N)
-    # The following works for string, None, or a colormap instance:
-
-    if isinstance(cmap, str):
-        cmap = mcm.get_cmap(cmap)
-        
-    color_list = mpl_cmap_palette(cmap, n_colors, as_cmap=False)
-    return mcolors.ListedColormap(color_list)
