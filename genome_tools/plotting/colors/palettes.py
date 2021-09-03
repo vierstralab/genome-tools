@@ -7,7 +7,7 @@ from itertools import cycle
 
 import numpy as np
 
-from .cm import COLOR_MAPS
+from .cm import *
 
 __all__ = ["get_color_cycle", "set_palette", "color_palette"]
 
