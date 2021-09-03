@@ -1,9 +1,7 @@
-__all__ =["track"]
-
-import colorsys
-
 import numpy as np
 import pandas as pd
+
+from collections.abc import Iterable, Sequence, Mapping
 
 from matplotlib.projections import register_projection
 
@@ -19,86 +17,11 @@ import matplotlib.ticker as mticker
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes, InsetPosition
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
-from genome_tools.helpers import open_file
-
-def scale_lightness(rgb, scale_l):
-    # convert rgb to hls
-    h, l, s = colorsys.rgb_to_hls(*rgb)
-    # manipulate h, l, s values and return as rgb
-    return colorsys.hls_to_rgb(h, min(1, l * scale_l), s = s)
-
-def colors_from_cmap(length=50, cmap=None, start=None, stop=None):
-    """Return color cycle from a given colormap.
-    Parameters
-    ----------
-    length : int
-        The number of colors in the cycle. When `length` is large (> ~10), it
-        is difficult to distinguish between successive lines because successive
-        colors are very similar.
-    cmap : str
-        Name of a matplotlib colormap (see matplotlib.pyplot.cm).
-    start, stop: 0 <= float <= 1
-        Limit colormap to this range (start < stop 1). You should limit the
-        range of colormaps with light values (assuming a white background).
-        Some colors have default start/stop values (see `CMAP_RANGE`).
-    Returns
-    -------
-    colors : list
-        List of RGBA colors.
-    See Also
-    --------
-    cycle_cmap
-    """
-    if cmap is None:
-        cmap = 'viridis'
-    if isinstance(cmap, str):
-        cmap = getattr(plt.cm, cmap)
-
-    crange = (0, 1) #list(CMAP_RANGE.get(cmap.name, (0, 1)))
-    if start is not None:
-        crange[0] = start
-    if stop is not None:
-        crange[1] = stop
-
-    assert 0 <= crange[0] <= 1
-    assert 0 <= crange[1] <= 1
-
-    idx = np.linspace(crange[0], crange[1], num=length)
-    return cmap(idx)
-
-def cycle_cmap(length=50, cmap=None, start=None, stop=None, ax=None):
-    """Set default color cycle of matplotlib based on colormap.
-    Note that the default color cycle is **not changed** if `ax` parameter
-    is set; only the axes's color cycle will be changed.
-    Parameters
-    ----------
-    length : int
-        The number of colors in the cycle. When `length` is large (> ~10), it
-        is difficult to distinguish between successive lines because successive
-        colors are very similar.
-    cmap : str
-        Name of a matplotlib colormap (see matplotlib.pyplot.cm).
-    start, stop: 0 <= float <= 1
-        Limit colormap to this range (start < stop 1). You should limit the
-        range of colormaps with light values (assuming a white background).
-        Some colors have default start/stop values (see `CMAP_RANGE`).
-    ax : matplotlib axes
-        If ax is not None, then change the axes's color cycle instead of the
-        default color cycle.
-    See Also
-    --------
-    colors_from_cmap, color_mapper
-    """
-    color_cycle = colors_from_cmap(length, cmap, start, stop)
-    ax.set_prop_cycle(color=color_cycle)
-
-
-# ------------------------
-
-
-
-
-# ------------------------
+# registers custom colormaps
+# from .colors import cm
+from .utils import (rescale_data, 
+                    format_axes_to_interval,
+                    clear_spines)
 
 class AxisAnnotation(mtext.Annotation):
     def __init__(self, text, xy, xytext, xycoords, **kwargs):
@@ -192,6 +115,29 @@ class AxisAnnotatedRepositionable(object):
     def add_annotation(self, text, pos, offset, loc, **kwargs):
         raise NotImplementedError
 
+    def get_annotations(self):
+        return self.annotations
+
+    def get_children(self):
+        return super().get_children() + [*self.annotations]
+
+    def get_tightbbox(self, renderer, *, for_layout_only=False):
+        
+        bboxes = [a.get_window_extent(renderer) for a in self.annotations]
+        parent_bboxes = super().get_tightbbox(renderer, for_layout_only=for_layout_only)
+
+        if parent_bboxes:
+            bboxes.append(parent_bboxes)
+
+        if bboxes:
+            return mtransforms.Bbox.union(bboxes)
+        else:
+            return None
+
+        def _get_annotation_bboxes(self, renderer):
+            return [a.get_window_extent(renderer) for a in self.annotations if a.get_visible()]
+
+
     def _reposition_axis_annotations(self, renderer):
         
         order = [x for x,y in sorted(enumerate(self.annotations), key=lambda z: z[1].xy[0])]
@@ -240,6 +186,22 @@ class AxisAnnotatedRepositionable(object):
                 current_artist.update_bbox_position_size(renderer)
 
             seen_bboxes.append(current_artist.get_text_window_extent(renderer))
+    
+    def draw(self, renderer, *args, **kwargs):
+        super().draw(renderer, *args, **kwargs)
+
+        for a in self.annotations:
+            a.update_positions(renderer)
+            a.update_bbox_position_size(renderer)
+                
+        self._reposition_axis_annotations(renderer)
+
+        renderer.open_group(__name__, gid=self.get_gid())
+
+        for a in self.annotations:
+            a.draw(renderer)
+
+        renderer.close_group(__name__)
 
 # ------------------------
 
@@ -259,7 +221,7 @@ class XAxisAnnotated(maxis.XAxis, AxisAnnotatedRepositionable):
             y = 0
             offset = -offset
         else:
-            raise ValueError('loc argument must be either top or bottom')
+            raise ValueError('`loc` argument must be either top or bottom')
 
         va = kwargs.pop('va', 'bottom' if loc == 'top' else 'top')
         ha = kwargs.pop('ha', 'center')
@@ -279,41 +241,6 @@ class XAxisAnnotated(maxis.XAxis, AxisAnnotatedRepositionable):
         t.set_figure(self.axes.figure)
         self.annotations.append(t)
 
-    def get_annotations(self):
-        return self.annotations
-
-    def get_children(self):
-        return super().get_children() + [*self.annotations]
-
-    def get_tightbbox(self, renderer, *, for_layout_only=False):
-        
-        bboxes = [a.get_window_extent(renderer) for a in self.annotations]
-        parent_bboxes = super().get_tightbbox(renderer, for_layout_only=for_layout_only)
-
-        if parent_bboxes:
-            bboxes.append(parent_bboxes)
-
-        if bboxes:
-            return mtransforms.Bbox.union(bboxes)
-        else:
-            return None
-
-    def draw(self, renderer, *args, **kwargs):
-        super().draw(renderer, *args, **kwargs)
-
-        for a in self.annotations:
-            a.update_positions(renderer)
-            a.update_bbox_position_size(renderer)
-                
-        self._reposition_axis_annotations(renderer)
-
-        renderer.open_group(__name__, gid=self.get_gid())
-
-        for a in self.annotations:
-            a.draw(renderer)
-
-        renderer.close_group(__name__)
-
 # ------------------------
 
 class YAxisAnnotated(maxis.YAxis, AxisAnnotatedRepositionable):
@@ -332,7 +259,7 @@ class YAxisAnnotated(maxis.YAxis, AxisAnnotatedRepositionable):
         elif loc == 'right':
             x = 1
         else:
-            raise ValueError('loc argument must be either left or right')
+            raise ValueError('`loc` argument must be either left or right')
 
         va = kwargs.pop('va', 'center')
         ha = kwargs.pop('ha', 'right' if loc == 'left' else 'left')
@@ -352,45 +279,6 @@ class YAxisAnnotated(maxis.YAxis, AxisAnnotatedRepositionable):
         t.set_figure(self.axes.figure)
         self.annotations.append(t)
 
-    def get_annotations(self):
-        return self.annotations
-
-    def _get_annotation_bboxes(self, renderer):
-            return [a.get_window_extent(renderer) for a in self.annotations if a.get_visible()]
-
-    def get_ticklabel_extents(self, renderer):
-        return super().get_ticklabel_extents(renderer)
-
-    def get_children(self):
-        return super().get_children() + [*self.annotations]
-
-    def get_tightbbox(self, renderer, *, for_layout_only=False):
-        
-        bboxes = [a.get_window_extent(renderer) for a in self.annotations]
-        parent_bboxes = super().get_tightbbox(renderer, for_layout_only=for_layout_only)
-
-        if parent_bboxes:
-            bboxes.append(parent_bboxes)
-
-        if bboxes:
-            return mtransforms.Bbox.union(bboxes)
-        else:
-            return None
-    
-    def draw(self, renderer, *args, **kwargs):
-        super().draw(renderer, *args, **kwargs)
-
-        for a in self.annotations:
-            a.update_positions(renderer)
-            a.update_bbox_position_size(renderer)
-
-        self._reposition_axis_annotations(renderer)
-
-        for a in self.annotations:
-            a.draw(renderer)
-
-        renderer.close_group(__name__)
-
 # ------------------------
 
 class GenomeAxes(plt.Axes):
@@ -405,123 +293,186 @@ class GenomeAxes(plt.Axes):
         self.spines.right.register_axis(self.yaxis)
         self._update_transScale()
 
-    def set_interval(self, interval):
-        self.set_xlim(interval.start, interval.end)
-
-
-    def signal(self, data, type='overlay', **kwargs):
-        raise NotImplementedError
-
-    def segments(self, intervals, **kwargs):
-        raise NotImplementedError
-
-    def seqplot(self):
-        raise NotImplemented
-
-    def heatmap(self):
-        raise NotImplementedError
-
-    def draw(self, renderer):
-        super().draw(renderer)
-
-
 register_projection(GenomeAxes)
 GenomeAxesSubplot = maxes.subplot_class_factory(GenomeAxes)
 GenomeAxesSubplot.__module__ = GenomeAxes.__module__
 
 # ------------------------
 
-def clear_spines(ax):
-    for loc, spine in ax.spines.items():
-        spine.set_visible(False)
+class PlotData:
 
-def get_coord_formatter(interval):
-    if len(interval) > 1e5:
-        fmt='{:0.2f} mb'
-        denom=1e6
-    elif len(interval) > 1e3:
-        fmt='{:0.2f} kb'
-        denom=1e3
-    else:
-        fmt='{:,.0f}'
-        denom=1
+    semantics = "x", "y", "hue", "style"
+    flat_structure = {"x": "@index", "y": "@values"}
+    wide_structure = {
+        "x": "@index", "y": "@values", "hue": "@columns", "style": "@columns",
+    }
 
-    def tick_format_func(x, pos):
-        return fmt.format(x/denom) 
-    
-    return tick_format_func
+    def __init__(self, data=None, variables={}):
+        self.assign_variables(data, variables)
 
-def format_axes_to_interval(ax, interval, xaxis='bottom', yaxis='left', **kwargs):
-    """Format axis appearance"""
+    @classmethod
+    def get_semantics(cls, kwargs, semantics=None):
+        if semantics is None:
+            semantics = cls.semantics
+        variables = {}
+        for key, val in kwargs.items():
+            if key in semantics and val is not None:
+                variables[key] = val
+        return variables
+         
+    def assign_variables(self, data=None, variables={}):
+        x = variables.get('x', None)
+        y = variables.get('y', None)
 
-    ax.set_xlim(interval.start, interval.end)
+    def _assign_variables_wideform(self, data=None, **kwargs):
+        assigned = [k for k, v in kwargs.items() if v is not None]
+        if any(assigned):
+            raise ValueError('')
 
-    if xaxis:
-        ax.xaxis.set_tick_params(direction='out')
+        empty = data is None or not len(data)
 
-        ax.xaxis.set(
-            major_locator = mticker.MaxNLocator(3, prune = 'both'),
-            major_formatter = mticker.FuncFormatter(get_coord_formatter(interval)),
-            minor_locator=mticker.AutoMinorLocator(4))
+        if isinstance(data, dict):
+            values = data.values()
+        else:
+            values = np.atleast_1d(np.asarray(data, dtype=object))
+        flat = not any(
+            isinstance(v, Iterable) and not isinstance(v, (str, bytes))
+            for v in values)
 
-        if xaxis == 'top':
-            ax.xaxis.tick_top()
-        elif xaxis == 'bottom':
-            ax.xaxis.tick_bottom()
-    else:
-        ax.xaxis.set_ticks([])
-        ax.xaxis.set_ticklabels([])
+        if empty:
+            plot_data = pd.DataFrame()
+            variables = {}
 
-    if yaxis:
-        ax.yaxis.set_tick_params(direction='out')
+        elif flat:
+            flat_data = pd.Series(data).copy()
+            names = {
+                '@values': flat_data.name,
+                '@index': flat_data.index.name
+            }
+
+            plot_data = {}
+            variables = {}
+
+            for var in ['x', 'y']:
+                if var in self.flat_structure:
+                    attr = self.flat_structure[var]
+                    plot_data[var] = getattr(flat_data, attr[1:])
+                    variables = names[self.flat_structure[var]]
+
+            plot_data = pd.DataFrame(plot_data)
+        else:
+            if isinstance(data, Sequence):
+                data_dict = {}
+                for i, var in enumerate(data):
+                    key = getattr(var, 'name', i)
+                    data_dict[key] = pd.Series(var)
+                data = data_dict
+
+            if isinstance(data, Mapping):
+                data = {key: pd.Series(val) for key, val in data.items()}
+
+            wide_data = pd.DataFrame(data, copy=True)
+
+            melt_kws = {'var_name': '@columns', 'value_name': '@values'}
+            use_index = '@index' in self.wide_structure.values()
+            if use_index:
+                melt_kws['id_vars'] = '@index'
+                try:
+                    orig_categories = wide_data.columns.categories
+                    orig_ordered = wide_data.columns.ordered
+                    wide_data.columns = wide_data.columns.add_categories('@index')
+                except AttributeError:
+                    category_columns = False
+                else:
+                    category_columns = True
+
+                wide_data['@index'] = wide_data.index.to_series()
+            
+            plot_data = wide_data.melt(**melt_kws)
+
+            print(plot_data)
+
+            if use_index and category_columns:
+                plot_data['@columns'] = pd.Categorical(plot_data['@columns'],
+                                                        orig_categories,
+                                                        orig_ordered)
+            
+            for var, attr in self.wide_structure.items():
+                plot_data[var] = plot_data[attr]
+
+            variables = {}
+            for var, attr in self.wide_structure.items():
+                obj = getattr(wide_data, attr[1:])
+                variables[var] = getattr(obj, 'name', None)
+
+            plot_data = plot_data[list(variables)]
+
+        return plot_data, variables
         
-        if yaxis == 'left':
-            ax.yaxis.tick_left()
-        elif yaxis == 'right':
-            ax.yaxis.tick_right()
-    else:
-        ax.yaxis.set_ticks([])
-        ax.yaxis.set_ticklabels([])
 
+    def _assign_variables_longform(self, data=None, **kwargs):
+      
+        plot_data = {}
+        variables = {}
 
-def transform_pts(interval, data, ax, downsample=0, win_fn=np.mean, **kwargs):
-    """
-    Stretch and downsample data points for plotting
+        if data is None:
+            data = {}
 
-    Paramters
-    ---------
-    interval : genomic_interval
-        Region to plot
-    data : numpy.ndarray
-        Data for cooresponing region
-    ax : matplotlib.axes.Axes
-        Plotting axes
-    downsample : float
-        Amount of points to downsample
-    win_fun: callable
-        Function to apply to down/upsampled windows
-    """
-    fig = ax.figure
-    
-    w, h = fig.get_size_inches()
-    l = len(interval)
+        try:
+            index = data.index.to_frame()
+        except AttributeError:
+            index = {}
 
-    total_pts = (72. / fig.get_dpi()) * w / (2**downsample) if downsample is not None else l
-    stride = int(l//total_pts)
+        for key, val in kwargs.items():
 
-    # Up- or downsample data
-    idx = np.linspace(0, len(data)-1, l).astype(int)
-    x = np.arange(interval.start, interval.end)
-    y = data[idx]
+            try:
+                val_as_data_key = (
+                    val in data
+                    or (isinstance(val, (str, bytes)) and val in index)
+                )
+            except (KeyError, TypeError):
+                val_as_data_key = False
 
-    if downsample:
-        nx = x[::stride]
-        ny = [win_fn(y[i:i+stride]) for i in np.arange(l)[::stride]]
-    else:
-        nx, ny = x, y
+            if val_as_data_key:
 
-    assert len(nx) == len(ny)
-    return nx, ny
+                if val in data:
+                    plot_data[key] = data[val]
+                elif val in index:
+                    plot_data[key] = index[val]
+                variables[key] = val
+
+            elif isinstance(val, (str, bytes)):
+                raise ValueError(f'Could not interpret value `{val}` for parameter `{key}`')
+
+            else:
+
+                if isinstance(data, pd.DataFrame) and not isinstance(val, pd.Series):
+                    if np.ndim(val) and len(data) != len(val):
+                        val_cls = val.__class__.__name__
+                        raise ValueError( 
+                            f'Length of {val_cls} vectors must match length of `data`'
+                            f' when both are used, but `data` has length {len(data)}'
+                            f' and the vector passed to `{key}` has length {len(val)}.')
+
+                plot_data[key] = val
+
+                # Try to infer the name of the variable
+                variables[key] = getattr(val, "name", None)
+
+        # Construct a tidy plot DataFrame. This will convert a number of
+        # types automatically, aligning on index in case of pandas objects
+        plot_data = pd.DataFrame(plot_data)
+
+        # Reduce the variables dictionary to fields with valid data
+        variables = {
+            var: name
+            for var, name in variables.items()
+            if plot_data[var].notnull().any()
+        }
+
+        return plot_data, variables
+# ------------------------
+
 
 def add_scale_bar(ax):
     scale=100
@@ -543,115 +494,23 @@ def add_scale_bar(ax):
 
 # ------------------------
 
-ideogram_color_lookup = {
-                  'gneg': (1., 1., 1.),
-                'gpos25': (.6, .6, .6),
-                'gpos50': (.4, .4, .4),
-                'gpos75': (.2, .2, .2),
-               'gpos100': (0., 0., 0.),
-                  'acen': (.8, .4, .4),
-                  'gvar': (.8, .8, .8),
-                 'stalk': (.9, .9, .9),
-               }
-
-def read_ideogram(filepath):
-    
-    xranges={}
-    colors={}
-    centromeres={}
-
-    f = open_file(filepath)
-
-    last_chrom=None
-    xr=[]
-    for line in f:
-        chrom, start, stop, label, stain = line.strip().split('\t')
-        start = int(start)
-        stop = int(stop)
-        width = stop - start
-    
-        if stain=="acen":
-            centromeres[chrom] = centromeres.get(chrom, []) + [(start, width)]
-            continue
-    
-        xranges[chrom] = xranges.get(chrom, []) + [(start, width)]
-        colors[chrom] = colors.get(chrom, []) + [(ideogram_color_lookup[stain])]
-
-    f.close()
-
-    xranges = xranges
-    colors = colors
-    centromeres = centromeres
-
-    return xranges, colors, centromeres
-
-def ideogram_plot(data, chrom, pos=None, ax=None, **kwargs):
-
-    if not ax:
-        ax = plt.gca()
-    fig = ax.figure
-
-    try:
-        xranges = data[0][chrom]
-        colors = data[1][chrom]
-        centromeres = data[2][chrom]
-    except:
-        print("Error: No chromosome named: {}".format(chrom))
-        return
-
-    yranges = (0, 0.5)
-
-    coll = mcollections.BrokenBarHCollection(xranges, yranges, facecolors=colors, edgecolors='black', linewidths=0.5)    
-    ax.add_collection(coll)
-
-    if pos:
-        ax.axvline(pos, color='red', lw=4)
-    w = xranges[-1][0]+xranges[-1][1]
-
-    pad=w*0.05
-
-    ax.set_xlim(0-pad, xranges[-1][0]+xranges[-1][1]+pad)
-    ax.xaxis.set_visible(False)
-
-    center = yranges[0] + yranges[1]/2.
-
-    x0, y0 = centromeres[0][0], yranges[0]
-    x1, y1 = centromeres[0][0], yranges[1]
-    x2, y2 = centromeres[0][0]+centromeres[0][1], center
-    cent = mpatches.Polygon(np.array([[x0, y0], [x1, y1], [x2, y2]]), closed=True, 
-                    fc=ideogram_color_lookup['acen'], ec='black', linewidth=0.5)
-    ax.add_patch(cent)
-
-    x0, y0 = centromeres[1][0], center
-    x1, y1 = centromeres[1][0]+centromeres[1][1], yranges[1]
-    x2, y2 = centromeres[1][0]+centromeres[1][1], yranges[0]
-
-    cent = mpatches.Polygon(np.array([[x0, y0], [x1, y1], [x2, y2]]), closed=True,
-                    fc=ideogram_color_lookup['acen'], ec='black', linewidth=0.5)
-    ax.add_patch(cent)
-
-    ax.set_yticks([center])
-    ax.set_yticklabels([chrom])
-    ax.set_ylim(-0.2, 0.7)
-
-    clear_spines(ax)
-# ------------------------
-
-def signal_plot(interval, data, ax=None, **kwargs):
+def signal_plot(interval, 
+                data, 
+                ax=None, 
+                **kwargs):
     
     if not ax:
         ax = plt.gca()
     fig = ax.get_figure
 
-    xaxis = kwargs.pop('xaxis', 'bottom')
-    yaxis = kwargs.pop('yaxis', 'left')
-    
-    x, y = transform_pts(interval, data, ax)
+
+    x, y = rescale_data(interval, data, ax, downsample=kwargs.pop('downsample', 0))
+
     ax.fill_between(x, 0, y, step='mid', **kwargs)
 
     ax.set_ylim(bottom=0)
     
-    format_axes_to_interval(ax, interval, xaxis=xaxis, yaxis=yaxis)
+    format_axes_to_interval(ax, interval)
 
     return ax
 # ------------------------
@@ -660,7 +519,8 @@ def grouped_heatmap_plot(interval,
                          data, 
                          group_level=None, 
                          sort_col=None, 
-                         hspace=0.01, 
+                         hspace=0.01,
+                         cmap='wolfgang_extra',
                          ax=None, 
                          cb_loc='bottom', 
                          cb_label='',
@@ -669,9 +529,6 @@ def grouped_heatmap_plot(interval,
     if not ax:
         ax = plt.gca()
     fig = ax.figure
-
-    xaxis = kwargs.pop('xaxis', 'bottom')
-    yaxis = kwargs.pop('yaxis', 'left')
 
     if sort_col is not None:
         df = data.sort_values(by=sort_col)
@@ -708,7 +565,7 @@ def grouped_heatmap_plot(interval,
         ip = InsetPosition(ax, [0, axes_pos, 1, height_ratios[group]]) #posx, posy, width, height
         inset_ax.set_axes_locator(ip)
         
-        hm = inset_ax.pcolormesh(group_df)
+        hm = inset_ax.pcolormesh(group_df, cmap=cmap)
 
         inset_ax.xaxis.set_visible(False)
         inset_ax.yaxis.set_visible(False)    
@@ -876,42 +733,3 @@ def segment_plot(interval, segments, pad_points=1, ax=None, **kwargs):
     return ax
 
 # ------------------------
-
-
-from .sequence import VOCABS, letter_polygons
-from .sequence import add_letter_to_axis
-
-def seq_plot(interval, letter_heights, ax=None, vocab='DNA', **kwargs):
-
-    if not ax:
-        ax = plt.gca()
-    fig = ax.figure
-
-    xaxis = kwargs.pop('xaxis', 'bottom')
-    yaxis = kwargs.pop('yaxis', 'left')
-
-    assert letter_heights.shape[1] == len(VOCABS[vocab])
-    x_range = [1, letter_heights.shape[0]]
-    pos_heights = np.copy(letter_heights)
-    pos_heights[letter_heights < 0] = 0
-    neg_heights = np.copy(letter_heights)
-    neg_heights[letter_heights > 0] = 0
-
-    for x_pos, heights in enumerate(letter_heights):
-        letters_and_heights = sorted(zip(heights, list(VOCABS[vocab].keys())))
-        y_pos_pos = 0.0
-        y_neg_pos = 0.0
-        x_pos += interval.start
-        for height, letter in letters_and_heights:
-            color = VOCABS[vocab][letter]
-            polygons = letter_polygons[letter]
-            if height > 0:
-                add_letter_to_axis(ax, polygons, color, 0.5 + x_pos, y_pos_pos, height)
-                y_pos_pos += height
-            else:
-                add_letter_to_axis(ax, polygons, color, 0.5 + x_pos, y_neg_pos, height)
-                y_neg_pos += height
-    
-    ax.set_ylim(bottom=np.min(letter_heights), top=np.max(letter_heights))
-    
-    format_axes_to_interval(ax, interval, xaxis=xaxis, yaxis=yaxis)

@@ -1,5 +1,4 @@
 import re
-from collections import OrderedDict
 
 import numpy as np
 
@@ -7,6 +6,10 @@ from descartes.patch import PolygonPatch
 
 from shapely.wkt import loads as load_wkt
 from shapely import affinity
+
+import matplotlib.pyplot as plt
+
+from .colors import VOCAB_COLOR_MAPS
 
 # -----------------------------------------------------------------------
 #
@@ -101,7 +104,6 @@ P = """MULTIPOLYGON (
 ((19.4844 64.7969, 19.4844 37.4062, 30.9062 37.4062, 34.1396 37.6318, 36.9961 38.3086, 39.4756 39.4365, 41.5781 41.0156, 43.2529 43.001, 44.4492 45.3477, 45.167 48.0557, 45.4062 51.125, 45.1685 54.1929, 44.4551 56.8965, 43.2661 59.2358, 41.6016 61.2109, 39.5063 62.7798, 37.0254 63.9004, 34.1587 64.5728, 30.9062 64.7969, 19.4844 64.7969))
 )"""
 
-
 Q = """MULTIPOLYGON (
 ((31.9844 -1.3125, 31.0078 -1.3672, 29.9844 -1.4219, 27.03 -1.2754, 24.2686 -0.8359, 21.7 -0.1035, 19.3242 0.9219, 17.1414 2.2402, 15.1514 3.8516, 13.3542 5.7559, 11.75 7.9531, 10.3364 10.448, 9.1113 13.2451, 8.0747 16.3445, 7.2266 19.7461, 6.0957 27.4561, 5.7188 36.375, 6.0957 45.3145, 7.2266 53.0391, 8.0747 56.4458, 9.1113 59.5488, 10.3364 62.3481, 11.75 64.8438, 13.3557 67.041, 15.1572 68.9453, 17.1545 70.5566, 19.3477 71.875, 21.7366 72.9004, 24.3213 73.6328, 27.1018 74.0723, 30.0781 74.2188, 33.0691 74.0723, 35.8623 73.6328, 38.4578 72.9004, 40.8555 71.875, 43.0554 70.5566, 45.0576 68.9453, 46.8621 67.041, 48.4688 64.8438, 49.8823 62.3481, 51.1074 59.5488, 52.144 56.4458, 52.9922 53.0391, 54.123 45.3145, 54.5 36.375, 54.2905 29.5454, 53.6621 23.416, 52.6147 17.9868, 51.1484 13.2578, 49.2583 9.2065, 46.9395 5.8105, 44.1919 3.0698, 41.0156 0.9844, 50.7812 -8.2969, 43.4062 -13.1875, 31.9844 -1.3125)), 
   ((44.1875 36.375, 43.9814 43.833, 43.3633 50.1445, 42.333 55.3096, 40.8906 59.3281, 38.9785 62.3428, 36.5391 64.4961, 35.1216 65.2498, 33.5723 65.7881, 30.0781 66.2188, 26.6045 65.7881, 23.6523 64.4961, 21.2217 62.3428, 19.3125 59.3281, 17.8701 55.3096, 16.8398 50.1445, 16.2217 43.833, 16.0156 36.375, 16.2217 28.938, 16.8398 22.6426, 17.8701 17.4888, 19.3125 13.4766, 21.2217 10.4653, 23.6523 8.3145, 26.6045 7.0239, 30.0781 6.5938, 33.5723 7.0225, 36.5391 8.3086, 38.9785 10.4521, 40.8906 13.4531, 42.333 17.458, 43.3633 22.6133, 43.9814 28.9189, 44.1875 36.375)))"""
@@ -129,57 +131,8 @@ Z = """POLYGON ((8.6875 72.9062, 56 72.9062, 56 65.375, 17.9219 8.2969, 57.0781 
 
 all_letters = {l: globals()[l] for l in string.ascii_uppercase}
 
-# ----------------------
-
-DNA = ["A", "C", "G", "T"]
-RNA = ["A", "C", "G", "U"]
-AMINO_ACIDS = ["A", "R", "N", "D", "B", "C", "E", "Q", "Z", "G", "H",
-               "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V"]
-
 letter_polygons = {k: standardize_polygons_str(v) for k, v in all_letters.items()}
 
-VOCABS = {"DNA": OrderedDict([("A", "green"),
-                              ("C", "blue"),
-                              ("G", "orange"),
-                              ("T", "red")]),
-          "RNA": OrderedDict([("A", "green"),
-                              ("C", "blue"),
-                              ("G", "orange"),
-                              ("U", "red")]),
-          "AA": OrderedDict([('A', '#CCFF00'),
-                             ('B', "orange"),
-                             ('C', '#FFFF00'),
-                             ('D', '#FF0000'),
-                             ('E', '#FF0066'),
-                             ('F', '#00FF66'),
-                             ('G', '#FF9900'),
-                             ('H', '#0066FF'),
-                             ('I', '#66FF00'),
-                             ('K', '#6600FF'),
-                             ('L', '#33FF00'),
-                             ('M', '#00FF00'),
-                             ('N', '#CC00FF'),
-                             ('P', '#FFCC00'),
-                             ('Q', '#FF00CC'),
-                             ('R', '#0000FF'),
-                             ('S', '#FF3300'),
-                             ('T', '#FF6600'),
-                             ('V', '#99FF00'),
-                             ('W', '#00CCFF'),
-                             ('Y', '#00FFCC'),
-                             ('Z', 'blue')]),
-          "RNAStruct": OrderedDict([("P", "red"),
-                                    ("H", "green"),
-                                    ("I", "blue"),
-                                    ("M", "orange"),
-                                    ("E", "violet")]),
-          }
-# make sure things are in order
-VOCABS["AA"] = OrderedDict((k, VOCABS["AA"][k]) for k in AMINO_ACIDS)
-VOCABS["DNA"] = OrderedDict((k, VOCABS["DNA"][k]) for k in DNA)
-VOCABS["RNA"] = OrderedDict((k, VOCABS["RNA"][k]) for k in RNA)
-
-# ------------------------
 
 def add_letter_to_axis(ax, let, col, x, y, height):
     """Add 'let' with position x,y and height height to matplotlib axis 'ax'.
@@ -200,3 +153,35 @@ def add_letter_to_axis(ax, let, col, x, y, height):
             new_polygon, edgecolor=color, facecolor=color)
         ax.add_patch(patch)
     return
+
+
+def seq_plot(letter_heights, ax=None, vocab='dna', **kwargs):
+
+    if not ax:
+        ax = plt.gca()
+    fig = ax.figure
+
+    assert letter_heights.shape[1] == len(VOCAB_COLOR_MAPS[vocab])
+    x_range = [1, letter_heights.shape[0]]
+    pos_heights = np.copy(letter_heights)
+    pos_heights[letter_heights < 0] = 0
+    neg_heights = np.copy(letter_heights)
+    neg_heights[letter_heights > 0] = 0
+
+    for x_pos, heights in enumerate(letter_heights):
+        letters_and_heights = sorted(zip(heights, list(VOCAB_COLOR_MAPS[vocab].keys())))
+        y_pos_pos = 0.0
+        y_neg_pos = 0.0
+        #x_pos += interval.start
+        for height, letter in letters_and_heights:
+            color = VOCAB_COLOR_MAPS[vocab][letter]
+            polygons = letter_polygons[letter]
+            if height > 0:
+                add_letter_to_axis(ax, polygons, color, 0.5 + x_pos, y_pos_pos, height)
+                y_pos_pos += height
+            else:
+                add_letter_to_axis(ax, polygons, color, 0.5 + x_pos, y_neg_pos, height)
+                y_neg_pos += height
+    
+    ax.set_xlim(left=0, right=len(letter_heights))
+    ax.set_ylim(bottom=np.min(letter_heights), top=np.max(letter_heights))
