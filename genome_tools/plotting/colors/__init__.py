@@ -1,2 +1,1 @@
-from .cm import *
-from .palettes import *
+__all__ = ["cm", "palettes"]
