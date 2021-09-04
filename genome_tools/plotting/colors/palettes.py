@@ -75,7 +75,7 @@ def color_palette(palette=None, n_colors=None, as_cmap=False):
             n_colors = QUAL_PALETTES_SIZES.get(palette, 6)
 
         if palette in QUAL_PALETTES:
-            palette = QUAL_PALETTES[palette]
+            palette = COLOR_MAPS[palette]
         else:
             try:
                 pass
