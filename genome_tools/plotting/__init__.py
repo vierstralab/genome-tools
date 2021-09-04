@@ -506,13 +506,13 @@ def signal_plot(interval,
 
     x, y = rescale_data(interval, data, ax, downsample=kwargs.pop('downsample', 0))
 
-    ax.fill_between(x, 0, y, step='mid', **kwargs)
+    p = ax.fill_between(x, 0, y, step='mid', **kwargs)
 
     ax.set_ylim(bottom=0)
     
     format_axes_to_interval(ax, interval)
 
-    return ax
+    return p, ax
 # ------------------------
 
 def grouped_heatmap_plot(interval, 
