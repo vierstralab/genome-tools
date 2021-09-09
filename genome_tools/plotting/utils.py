@@ -76,3 +76,90 @@ def rescale_data(interval, data, ax, downsample=0, win_fn=np.mean, **kwargs):
     assert len(x) == len(y)
     
     return x, y
+
+
+
+class row_element:
+    def __init__(self, interval, prev=None, next=None, pad=0):
+        self.interval = interval
+        self.start = interval.start - pad
+        self.end = interval.end + pad
+        self.prev = prev
+        self.next = next
+
+class row:
+    def __init__(self, i):
+        self.i = i
+        self.first = None
+        self.last = None
+
+    def add(self, e):
+
+        if self.first is None:
+            e.prev = None
+            e.next = None
+            self.first = self.last = e
+            return 1
+
+        curr = self.first
+        while curr and curr.start < e.start:
+            curr = curr.next
+
+        if curr is None:
+            if self.last.end < e.start:
+                e.prev = self.last
+                e.next = None
+                self.last.next = e
+                self.last = e
+                return 1
+            else:
+                return 0
+
+        prev = curr.prev
+        if prev is None:
+            if e.end < curr.start:
+                e.prev = None
+                e.next = curr
+                curr.prev = e
+                self.first = e
+                return 1
+            else:
+                return 0
+
+        if prev.end < e.start and curr.start > e.end:
+            e.prev = prev
+            e.next = curr
+            prev.next = e
+            curr.prev = e
+            return 1
+        
+        return 0
+
+def pack_rows(intervals, pad=5):
+    rows = []
+    row_indices = {}
+    curr_row = -1
+
+    for interval in intervals:
+        
+        e = row_element(interval, pad=pad)
+
+        placed = False 
+
+        for r in rows:
+            if r.add(e):
+                row_indices[e.interval] = r.i
+                placed = True
+                break
+        
+        if placed:
+            continue
+
+        curr_row += 1
+        r = row(curr_row)
+        r.add(e)
+        rows.append(r)
+        row_indices[e.interval] = r.i
+
+    assert len(row_indices) == len(intervals)
+    return row_indices

@@ -21,7 +21,9 @@ from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 # from .colors import cm
 from .utils import (rescale_data, 
                     format_axes_to_interval,
-                    clear_spines)
+                    clear_spines, pack_rows)
+
+from .gene_annotation import gene_annotation_plot
 
 class AxisAnnotation(mtext.Annotation):
     def __init__(self, text, xy, xytext, xycoords, **kwargs):
@@ -501,18 +503,17 @@ def signal_plot(interval,
     
     if not ax:
         ax = plt.gca()
-    fig = ax.get_figure
-
+    fig = ax.get_figure()
 
     x, y = rescale_data(interval, data, ax, downsample=kwargs.pop('downsample', 0))
 
-    p = ax.fill_between(x, 0, y, step='mid', **kwargs)
+    ax.fill_between(x, 0, y, step='mid', **kwargs)
 
     ax.set_ylim(bottom=0)
     
     format_axes_to_interval(ax, interval)
 
-    return p, ax
+    return ax
 # ------------------------
 
 def grouped_heatmap_plot(interval, 
@@ -528,7 +529,7 @@ def grouped_heatmap_plot(interval,
 
     if not ax:
         ax = plt.gca()
-    fig = ax.figure
+    fig = ax.get_figure()
 
     if sort_col is not None:
         df = data.sort_values(by=sort_col)
@@ -604,92 +605,6 @@ def grouped_heatmap_plot(interval,
 
 # ------------------------
 
-class row_element:
-    def __init__(self, interval, prev=None, next=None, pad=0):
-        self.interval = interval
-        self.start = interval.start - pad
-        self.end = interval.end + pad
-        self.prev = prev
-        self.next = next
-
-class row:
-    def __init__(self, i):
-        self.i = i
-        self.first = None
-        self.last = None
-
-    def add(self, e):
-
-        if self.first is None:
-            e.prev = None
-            e.next = None
-            self.first = self.last = e
-            return 1
-
-        curr = self.first
-        while curr and curr.start < e.start:
-            curr = curr.next
-
-        if curr is None:
-            if self.last.end < e.start:
-                e.prev = self.last
-                e.next = None
-                self.last.next = e
-                self.last = e
-                return 1
-            else:
-                return 0
-
-        prev = curr.prev
-        if prev is None:
-            if e.end < curr.start:
-                e.prev = None
-                e.next = curr
-                curr.prev = e
-                self.first = e
-                return 1
-            else:
-                return 0
-
-        if prev.end < e.start and curr.start > e.end:
-            e.prev = prev
-            e.next = curr
-            prev.next = e
-            curr.prev = e
-            return 1
-        
-        return 0
-
-def pack_rows(intervals, pad=5):
-    rows = []
-    row_idx = []
-    curr_row = -1
-
-    for interval in intervals:
-        
-        e = row_element(interval, pad=pad)
-
-        placed = False 
-
-        for r in rows:
-            if r.add(e):
-                row_idx.append(r.i)
-                placed = True
-                break
-        
-        if placed:
-            continue
-
-        curr_row += 1
-        r = row(curr_row)
-        r.add(e)
-        rows.append(r)
-        row_idx.append(r.i)
-
-    assert len(row_idx) == len(intervals)
-    return row_idx
-
-
 def segment_plot(interval, segments, pad_points=1, ax=None, **kwargs):
     
     if not ax:
@@ -713,16 +628,16 @@ def segment_plot(interval, segments, pad_points=1, ax=None, **kwargs):
     x1 = ax.transData.inverted().transform(trans_right.transform((interval.start, 0)))[0]
 
     pad_bp = (x1-x0)//2
-    row_idxs = pack_rows(segments, pad=pad_bp)
+    row_indices = pack_rows(segments, pad=pad_bp)
 
     patches = []
-    for i, row_idx in zip(segments, row_idxs):
-        patches.append(mpatches.Rectangle((i.start, row_idx+0.3), i.end-i.start, 0.4, **rectprops))
+    for i, row_index in row_indices.items():
+        patches.append(mpatches.Rectangle((i.start, row_index+0.3), i.end-i.start, 0.4, **rectprops))
 
     pc = mcollections.PatchCollection(patches, match_original=True)
     ax.add_collection(pc)
 
-    ax.set_ylim(min(row_idxs), max(row_idxs)+1)
+    ax.set_ylim(min(row_indices.values()), max(row_indices.values())+1)
     ax.invert_yaxis()
 
     #ax.yaxis.set_ticks(np.array(list(set(row_idxs)))+0.5)

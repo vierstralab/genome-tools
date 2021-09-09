@@ -78,7 +78,7 @@ def color_palette(palette=None, n_colors=None, as_cmap=False):
             palette = COLOR_MAPS[palette]
         else:
             try:
-                pass
+                palette = mpl_cmap_palette(palette, n_colors, as_cmap=as_cmap)
             except:
                 raise ValueError(f'{palette} is not a valid palette name.')
 

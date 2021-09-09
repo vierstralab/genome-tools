@@ -42,6 +42,7 @@ VOCAB_COLOR_MAPS = dict(
             'Y': '#00FFCC',
             'Z': 'blue',
         },
+
         ideogram = {
             'gneg': (1., 1., 1.),
             'gpos25': (.6, .6, .6),
@@ -51,7 +52,33 @@ VOCAB_COLOR_MAPS = dict(
             'acen': (.8, .4, .4),
             'gvar': (.8, .8, .8),
             'stalk': (.9, .9, .9),
+        },
+
+        gene_annotation = {
+            'exon': 'gold',
+            'utr': 'black',
+            'cds': 'black',
         }
+
+        # DHS component annotations from Meuleman et al., 2020 Nature
+        # meuleman2020 = {
+        #     '': '#FFE500',
+        #     '': '#FE8102',
+        #     '': '#FF0000',
+        #     '': '#07AF00',
+        #     '': '#4C7D14',
+        #     '': '#414613',
+        #     '': '#05C1D9',
+        #     '': '#0467FD',
+        #     '': '#009588',
+        #     '': '#BB2DD4',
+        #     '': '#7A00FF',
+        #     '': '#4A6876',
+        #     '': '#08245B',
+        #     '': '#B9461D',
+        #     '': '#692108',
+        #     '': '#C3C3C3',
+        # },
 )
 
 def map_vocab_color(x, vocab, default='black'):
@@ -82,6 +109,7 @@ COLOR_MAPS = dict(
                      '#DC494C', '#F88D51', '#FAD510', '#FFFF5F','#88CFA4',
                      '#238B45', '#02401B', '#0AD7D3', 'dodgerblue', '#046C9A',
                      '#273046', '#A2A475', '#354823', '#595959', '#1E1E1E'],
+    
     # wes anderson palettes
     chevalier =     ['#446455', '#FDD262', '#D3DDDC', '#C7B19C'],
     zissou =        ['#3B9AB2', '#78B7C5', '#EBCC2A', '#E1AF00', '#F21A00'],
