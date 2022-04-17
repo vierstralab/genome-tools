@@ -6,14 +6,15 @@ class genomic_interval(object):
 	"""Class that implements BED-style object
 	"""
 
-	def __init__(self, chrom, start, end, name = '.', score = None, strand = None):
+	def __init__(self, chrom, start, end, name='.', score=None, strand=None, extra=None):
 		self.chrom = str(chrom)
 		self.start = int(start)
 		self.end = int(end)
 		self.name = str(name)
 		self.score = score
 		self.strand = strand
-		
+		self.extra = extra
+
 	def __len__(self):
 		"""Length of element
 		"""

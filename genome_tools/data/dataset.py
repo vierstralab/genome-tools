@@ -6,10 +6,33 @@ from genome_tools.data.loaders import data_loader
 import logging
 logger = logging.getLogger(__name__)
 
+def iterable_cycle(iterable):
+    """
+    Args:
+      iterable: object with an __iter__ method that can be called multiple times
+    """
+    while True:
+        for x in iterable:
+            yield x
+
 class base_dataset(object):
     def batch_iter(self, **kwargs):
         raise  NotImplementedError
 
+    def batch_train_iter(self, cycle=True, **kwargs):
+        
+        if cycle:
+            return ((x["inputs"], x["targets"])
+                    for x in iterable_cycle(self._batch_iterable(**kwargs)))
+        else:
+            return ((x["inputs"], x["targets"]) 
+                    for x in self.batch_iter(**kwargs))
+        
+    def batch_predict_iter(self, cycle=True, **kwargs):
+        
+        return ((x["inputs"], x["targets"]) 
+                    for x in self.batch_iter(**kwargs))
+        
     def load_all(self, **kwargs):
         """Load an entire dataset"""
         return [x for x in self.batch_iter(**kwargs)]

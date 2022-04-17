@@ -9,7 +9,7 @@ from shapely import affinity
 
 import matplotlib.pyplot as plt
 
-from .colors import VOCAB_COLOR_MAPS
+from .colors.cm import VOCAB_COLOR_MAPS
 
 # -----------------------------------------------------------------------
 #
@@ -155,14 +155,14 @@ def add_letter_to_axis(ax, let, col, x, y, height):
     return
 
 
-def seq_plot(letter_heights, ax=None, vocab='dna', **kwargs):
+def seq_plot(letter_heights, ax=None, vocab='dna', offset=0, **kwargs):
 
     if not ax:
         ax = plt.gca()
     fig = ax.figure
 
     assert letter_heights.shape[1] == len(VOCAB_COLOR_MAPS[vocab])
-    x_range = [1, letter_heights.shape[0]]
+    x_range = [0, letter_heights.shape[0]]
     pos_heights = np.copy(letter_heights)
     pos_heights[letter_heights < 0] = 0
     neg_heights = np.copy(letter_heights)
@@ -177,11 +177,11 @@ def seq_plot(letter_heights, ax=None, vocab='dna', **kwargs):
             color = VOCAB_COLOR_MAPS[vocab][letter]
             polygons = letter_polygons[letter]
             if height > 0:
-                add_letter_to_axis(ax, polygons, color, 0.5 + x_pos, y_pos_pos, height)
+                add_letter_to_axis(ax, polygons, color,  x_pos+offset, y_pos_pos, height)
                 y_pos_pos += height
             else:
-                add_letter_to_axis(ax, polygons, color, 0.5 + x_pos, y_neg_pos, height)
+                add_letter_to_axis(ax, polygons, color, x_pos+offset, y_neg_pos, height)
                 y_neg_pos += height
     
-    ax.set_xlim(left=0, right=len(letter_heights))
+    ax.set_xlim(left=offset, right=len(letter_heights)+offset)
     ax.set_ylim(bottom=np.min(letter_heights), top=np.max(letter_heights))

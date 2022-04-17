@@ -5,7 +5,7 @@ import multiprocessing
 import threading
 import traceback
 
-from genome_tools.data.samplers import sequential_sampler, minibatch_sampler
+from genome_tools.data.samplers import random_sampler, sequential_sampler, minibatch_sampler
 from genome_tools.data.utils import list_collate
 
 import logging
@@ -154,14 +154,26 @@ class data_loader_iter(object):
             self._shutdown_workers()
 
 class data_loader(object):
-    def __init__(self, process, batch_size=1, num_workers=0, collate_fn=default_collate):
+    def __init__(self, process, batch_size=1, shuffle=False, num_workers=0, collate_fn=default_collate, sampler=None, batch_sampler=None, drop_last=False):
         self.process = process
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.collate_fn = collate_fn
-
-        sampler = sequential_sampler(process)
-        batch_sampler = minibatch_sampler(sampler, batch_size)
+        
+        if batch_sampler is not None:
+            if batch_size > 1 or shufffle or sampler is not None or drop_last:
+                raise ValueError('batch_sampler is mutually exclusive with batch_size, shuffle, sampler and drop_last')
+        
+        if sampler is not None and shuffle:
+            raise ValueError('sampler is mutually exclusive with shuffle')
+        
+        if batch_sampler is None:
+            if sampler is None:
+                if shuffle:
+                    sampler = random_sampler(process)
+                else:    
+                    sampler = sequential_sampler(process)
+            batch_sampler = minibatch_sampler(sampler, batch_size, drop_last)
 
         self.sampler = sampler
         self.batch_sampler = batch_sampler

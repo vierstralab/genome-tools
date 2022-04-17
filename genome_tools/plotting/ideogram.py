@@ -1,10 +1,12 @@
+import numpy as np
+
 import matplotlib.pyplot as plt
 import matplotlib.collections as mcollections
 import matplotlib.patches as mpatches
 
 from .utils import clear_spines
-from .colors import get_vocab_color
 
+from genome_tools.plotting.colors.cm import get_vocab_color
 from genome_tools.helpers import open_file
 
 def read_ideogram(filepath):
@@ -74,8 +76,8 @@ def ideogram_plot(data, chrom, pos=None, ax=None, **kwargs):
     ax.add_patch(cent)
 
     x0, y0 = centromeres[1][0], center
-    x1, y1 = centromeres[1][0]+centromeres[1][1], yranges[1]
-    x2, y2 = centromeres[1][0]+centromeres[1][1], yranges[0]
+    x1, y1 = centromeres[1][0] + centromeres[1][1], yranges[1]
+    x2, y2 = centromeres[1][0] + centromeres[1][1], yranges[0]
 
     cent = mpatches.Polygon(np.array([[x0, y0], [x1, y1], [x2, y2]]), closed=True,
                     fc=get_vocab_color('acen', 'ideogram'), ec='black', linewidth=0.5)
