@@ -150,7 +150,7 @@ class data_loader_iter(object):
                 # wait for worker to join?
 
     def __del__(self):
-        if self.num_workers > 0:
+        if self.num_workers > 1:
             self._shutdown_workers()
 
 class data_loader(object):
