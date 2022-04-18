@@ -1,6 +1,12 @@
 import numpy as np
-import collections
 import itertools
+
+# collections.(Mapping,Sequence) were 
+# deprecated in newer version of python
+try:
+    from collections.abc import Mapping, Sequence
+except:
+    from collections import Mapping, Sequence
 
 # ------------------------
 
@@ -8,9 +14,9 @@ string_classes = (str, bytes)
 
 def _list_collate(stack_fn=list):
     def list_collate_fn(batch):
-        if isinstance(batch[0], collections.Mapping):
+        if isinstance(batch[0], Mapping):
             return {key: list_collate_fn([d[key] for d in batch]) for key in batch[0]}
-        elif isinstance(batch[0], collections.Sequence):
+        elif isinstance(batch[0], Sequence):
             transposed = zip(*batch)
             return [list_collate_fn(samples) for samples in transposed]
         else:
@@ -43,9 +49,9 @@ def _numpy_collate(stack_fn=np.stack):
             # Also convert to a numpy array
             return np.asarray(batch)
             # return batch
-        elif isinstance(batch[0], collections.Mapping):
+        elif isinstance(batch[0], Mapping):
             return {key: numpy_collate_fn([d[key] for d in batch]) for key in batch[0]}
-        elif isinstance(batch[0], collections.Sequence):
+        elif isinstance(batch[0], Sequence):
             transposed = zip(*batch)
             return [numpy_collate_fn(samples) for samples in transposed]
 
