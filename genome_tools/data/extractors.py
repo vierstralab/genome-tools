@@ -9,19 +9,22 @@ import pysam
 import pyBigWig as pbw
 import pandas as pd
 
+
 class base_extractor(object):
     def __init__(self, filename, **kwargs):
         self.filename = filename
 
     def __getitem__(self, i):
-        raise NotImplementedError 
+        raise NotImplementedError
+
 
 # ------------------------
+
 
 class fasta_extractor(base_extractor):
     def __init__(self, filename, **kwargs):
         super(fasta_extractor, self).__init__(filename, **kwargs)
-        
+
         self.fasta = pysam.FastaFile(filename)
 
     def __getitem__(self, interval):
@@ -36,32 +39,40 @@ class fasta_extractor(base_extractor):
         if self.fasta and self.fasta.is_open():
             self.fasta.close()
 
+
 # ------------------------
+
 
 class tabix_iter(object):
     """Wraps tabix fetch to return an iterator that can be used with pandas"""
+
     def __init__(self, tabix, interval):
         self.iter = tabix.fetch(interval.chrom, interval.start, interval.end)
+
     def read(self, n=0):
         try:
             return next(self.iter) + "\n"
         except StopIteration:
-            return ''
+            return ""
+
     def __iter__(self):
         return self
+
     def __next__(self):
         return self.read()
 
+
 class tabix_extractor(base_extractor):
     def __init__(self, filename, **kwargs):
-        """
-        """
+        """ """
         super(tabix_extractor, self).__init__(filename, **kwargs)
 
         self.tabix = pysam.TabixFile(filename)
 
     def __getitem__(self, interval):
-        ret = pd.read_table(tabix_iter(self.tabix, interval), header=None, index_col=None)
+        ret = pd.read_table(
+            tabix_iter(self.tabix, interval), header=None, index_col=None
+        )
         return ret
 
     def __del__(self):
@@ -70,13 +81,14 @@ class tabix_extractor(base_extractor):
     def close(self):
         if self.tabix and self.tabix.is_open():
             self.tabix.close()
-    
+
+
 # ------------------------
+
 
 class bigwig_extractor(base_extractor):
     def __init__(self, filename, **kwargs):
-        """
-        """
+        """ """
         super(bigwig_extractor, self).__init__(filename, **kwargs)
 
         self.bw = pbw.open(filename)
@@ -92,7 +104,9 @@ class bigwig_extractor(base_extractor):
         if self.bw:
             self.bw.close()
 
+
 # ------------------------
+
 
 class d4_extractor(base_extractor):
     def __init__(self, filename, **kwargs):
@@ -106,5 +120,3 @@ class d4_extractor(base_extractor):
 
     def close(self):
         pass
-
-    

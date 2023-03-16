@@ -2,61 +2,60 @@
 
 from . import genomic_interval
 
+
 def bed3_iterator(filehandle):
-	"""
-	Generator that parses BED3 format from a string iterator
+    """
+    Generator that parses BED3 format from a string iterator
 
-	Returns:
-		genomic_interval
-	"""
-	for line in filehandle:
-		
-		fields = line.strip().split()
-		
-		chrom = fields[0]
-		start = int(fields[1])
-		end = int(fields[2])
+    Returns:
+            genomic_interval
+    """
+    for line in filehandle:
+        fields = line.strip().split()
 
-		yield genomic_interval(chrom, start, end)
+        chrom = fields[0]
+        start = int(fields[1])
+        end = int(fields[2])
+
+        yield genomic_interval(chrom, start, end)
+
 
 def bed5_iterator(filehandle):
-	"""
-	Generator that parses BED5 format from a string iterator
-	
-	Returns:
-		genomic_interval
-	"""
+    """
+    Generator that parses BED5 format from a string iterator
 
-	for line in filehandle:
-		
-		fields = line.strip().split()
-		
-		chrom = fields[0]
-		start = int(fields[1])
-		end = int(fields[2])
-		name = fields[3]
-		score = float(fields[4])
+    Returns:
+            genomic_interval
+    """
 
-		yield genomic_interval(chrom, start, end, name, score)
+    for line in filehandle:
+        fields = line.strip().split()
+
+        chrom = fields[0]
+        start = int(fields[1])
+        end = int(fields[2])
+        name = fields[3]
+        score = float(fields[4])
+
+        yield genomic_interval(chrom, start, end, name, score)
 
 
 def bed6_iterator(filehandle):
-	"""
-	Generator that parses BED6 format from a string iterator
-	
-	Returns:
-		genomic_interval
-	"""
+    """
+    Generator that parses BED6 format from a string iterator
 
-	for line in filehandle:
-		
-		fields = line.strip().split()
-		
-		chrom = fields[0]
-		start = int(fields[1])
-		end = int(fields[2])
-		name = fields[3]
-		score = float(fields[4])
-		strand = fields[5]
+    Returns:
+            genomic_interval
+    """
 
-		yield genomic_interval(chrom, start, end, name, score, strand)
+    for line in filehandle:
+        fields = line.strip().split()
+
+        chrom = fields[0]
+        start = int(fields[1])
+        end = int(fields[2])
+        name = fields[3]
+        score = float(fields[4])
+        strand = fields[5]
+
+        yield genomic_interval(chrom, start, end, name, score, strand)

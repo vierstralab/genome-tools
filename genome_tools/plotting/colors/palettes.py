@@ -12,17 +12,22 @@ from .cm import COLOR_MAPS
 __all__ = ["get_color_cycle", "set_palette", "color_palette"]
 
 QUAL_PALETTES = [
-    "zissou", "darjeeling", "lawhoops",
+    "zissou",
+    "darjeeling",
+    "lawhoops",
 ]
 QUAL_PALETTES_SIZES = {name: len(COLOR_MAPS[name]) for name in QUAL_PALETTES}
 
+
 def get_color_cycle():
     """Returns the current color cycle from matplotlib prop cycler"""
-    cyl = mpl.rcParams['axes.prop_cycler']
-    return cyl.by_key()['color'] if 'color' in cyl.keys else ['k']
+    cyl = mpl.rcParams["axes.prop_cycler"]
+    return cyl.by_key()["color"] if "color" in cyl.keys else ["k"]
+
 
 class _ColorPalette(list):
     """Enables color palette used with `with` command"""
+
     def __enter__(self):
         self.orig_palette = color_palette()
         set_palette(self)
@@ -31,6 +36,7 @@ class _ColorPalette(list):
     def __exit__(self):
         set_palette(self.orig_palette)
 
+
 def mpl_cmap_palette(cmap, n_colors, as_cmap=False):
     """Returns N colors (evenly distributed) from a colormap"""
 
@@ -38,12 +44,13 @@ def mpl_cmap_palette(cmap, n_colors, as_cmap=False):
         cmap = mcm.get_cmap(cmap)
 
     bins = np.linspace(0, 1, int(n_colors) + 2)[1:-1]
-    colors = list(map(tuple, cmap(bins)[:,:3]))
+    colors = list(map(tuple, cmap(bins)[:, :3]))
 
     if as_cmap:
         return cmap
     else:
         return _ColorPalette(colors)
+
 
 def discrete_cmap(cmap, n_colors):
     """Create an N-bin discrete colormap from the specified input map"""
@@ -54,12 +61,12 @@ def discrete_cmap(cmap, n_colors):
 
     if isinstance(cmap, str):
         cmap = mcm.get_cmap(cmap)
-        
+
     color_list = mpl_cmap_palette(cmap, n_colors, as_cmap=False)
     return mcolors.ListedColormap(color_list)
 
-def color_palette(palette=None, n_colors=None, as_cmap=False):
 
+def color_palette(palette=None, n_colors=None, as_cmap=False):
     if palette is None:
         palette = get_color_cycle()
         if n_colors is None:
@@ -69,7 +76,7 @@ def color_palette(palette=None, n_colors=None, as_cmap=False):
         palette = palette
         if n_colors is None:
             n_colors = len(palette)
-    
+
     else:
         if n_colors is None:
             n_colors = QUAL_PALETTES_SIZES.get(palette, 6)
@@ -80,25 +87,27 @@ def color_palette(palette=None, n_colors=None, as_cmap=False):
             try:
                 palette = mpl_cmap_palette(palette, n_colors, as_cmap=as_cmap)
             except:
-                raise ValueError(f'{palette} is not a valid palette name.')
+                raise ValueError(f"{palette} is not a valid palette name.")
 
     if not as_cmap:
-
         palette_cycle = cycle(palette)
-        palette = [next(palette_cycle) for _ in range(n_colors)]   
+        palette = [next(palette_cycle) for _ in range(n_colors)]
 
         try:
             palette = map(mcolors.to_rbg, palette)
             palette = _ColorPalette(palette)
         except ValueError:
-            raise ValueError(f'Could not generate a palette for {palette}. Check color formats')
+            raise ValueError(
+                f"Could not generate a palette for {palette}. Check color formats"
+            )
 
     return palette
+
 
 def set_palette(palette, n_colors):
     """Sets the palette to the default matplotlib prop cycler"""
 
     colors = color_palette(palette, n_colors)
-    cyl = cycler('color', colors)
-    mpl.rcParams['axes.prop_cycle'] = cyl
-    mpl.rcParams['patch.facecolor'] = colors[0]
+    cyl = cycler("color", colors)
+    mpl.rcParams["axes.prop_cycle"] = cyl
+    mpl.rcParams["patch.facecolor"] = colors[0]

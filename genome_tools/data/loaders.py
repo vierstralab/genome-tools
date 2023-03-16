@@ -5,13 +5,19 @@ import multiprocessing
 import threading
 import traceback
 
-from genome_tools.data.samplers import random_sampler, sequential_sampler, minibatch_sampler
+from genome_tools.data.samplers import (
+    random_sampler,
+    sequential_sampler,
+    minibatch_sampler,
+)
 from genome_tools.data.utils import list_collate
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 default_collate = list_collate
+
 
 class exception_wrapper(object):
     """Wraps an exception plus traceback to communicate across threads"""
@@ -19,6 +25,7 @@ class exception_wrapper(object):
     def __init__(self, exc_info):
         self.exc_type = exc_info[0]
         self.exc_msg = "".join(traceback.format_exception(*exc_info))
+
 
 def _worker_loop(process, index_queue, data_queue, collate_fn):
     """Worker loop to load data"""
@@ -36,20 +43,22 @@ def _worker_loop(process, index_queue, data_queue, collate_fn):
             data_queue.put((idx, batch))
 
     # clean up function that closes filehandlers, etc.
-    if hasattr(process, 'cleanup'):
+    if hasattr(process, "cleanup"):
         process.cleanup()
+
 
 class data_loader_iter(object):
     """Iterable data loader class
-    
+
     Attributes
     ----------
 
 
     """
+
     def __init__(self, loader):
         """
-        
+
 
         Parameters
         ----------
@@ -61,9 +70,8 @@ class data_loader_iter(object):
         self.done_event = threading.Event()
 
         self.sample_iter = iter(self.batch_sampler)
-                
-        if self.num_workers > 1:
 
+        if self.num_workers > 1:
             logger.info(f"Using {self.num_workers} threads to process data")
 
             self.index_queue = multiprocessing.SimpleQueue()
@@ -77,7 +85,13 @@ class data_loader_iter(object):
             self.workers = [
                 multiprocessing.Process(
                     target=_worker_loop,
-                    args=(self.process, self.index_queue, self.data_queue, self.collate_fn))
+                    args=(
+                        self.process,
+                        self.index_queue,
+                        self.data_queue,
+                        self.collate_fn,
+                    ),
+                )
                 for _ in range(self.num_workers)
             ]
 
@@ -88,10 +102,8 @@ class data_loader_iter(object):
             for _ in range(2 * self.num_workers):
                 self._put_indices()
         else:
-
             logger.info(f"Using a single threads to process data")
 
-    
     def __len__(self):
         return len(self.batch_sampler)
 
@@ -100,17 +112,17 @@ class data_loader_iter(object):
             indices = next(self.sample_iter)
             batch = self.collate_fn([self.process[i] for i in indices])
             return batch
-        
+
         if self.rcvf_idx in self.reorder_dict:
             batch = self.reorder_dict.pop(self.rcvf_idx)
             return self._process_next_batch(batch)
-        
+
         if self.batches_outstanding == 0:
             self._shutdown_workers()
             raise StopIteration
 
         while True:
-            assert (not self.shutdown and self.batches_outstanding > 0)
+            assert not self.shutdown and self.batches_outstanding > 0
             idx, batch = self.data_queue.get()
             self.batches_outstanding -= 1
             if idx != self.rcvf_idx:
@@ -118,7 +130,7 @@ class data_loader_iter(object):
                 self.reorder_dict[idx] = batch
                 continue
             return self._process_next_batch(batch)
-            
+
     def __iter__(self):
         return self
 
@@ -153,32 +165,47 @@ class data_loader_iter(object):
         if self.num_workers > 1:
             self._shutdown_workers()
 
+
 class data_loader(object):
-    def __init__(self, process, batch_size=1, shuffle=False, num_workers=0, collate_fn=default_collate, sampler=None, batch_sampler=None, drop_last=False):
+    def __init__(
+        self,
+        process,
+        batch_size=1,
+        shuffle=False,
+        num_workers=0,
+        collate_fn=default_collate,
+        sampler=None,
+        batch_sampler=None,
+        drop_last=False,
+    ):
         self.process = process
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.collate_fn = collate_fn
-        
+
         if batch_sampler is not None:
-            if batch_size > 1 or shufffle or sampler is not None or drop_last:
-                raise ValueError('batch_sampler is mutually exclusive with batch_size, shuffle, sampler and drop_last')
-        
+            if batch_size > 1 or shuffle or sampler is not None or drop_last:
+                raise ValueError(
+                    "batch_sampler is mutually exclusive with batch_size, shuffle, sampler and drop_last"
+                )
+
         if sampler is not None and shuffle:
-            raise ValueError('sampler is mutually exclusive with shuffle')
-        
+            raise ValueError("sampler is mutually exclusive with shuffle")
+
         if batch_sampler is None:
             if sampler is None:
                 if shuffle:
                     sampler = random_sampler(process)
-                else:    
+                else:
                     sampler = sequential_sampler(process)
             batch_sampler = minibatch_sampler(sampler, batch_size, drop_last)
 
         self.sampler = sampler
         self.batch_sampler = batch_sampler
 
-        logger.info(f"Processing data with batch_size = {self.batch_size:,} resulting in {len(self):,} batches" )
+        logger.info(
+            f"Processing data with batch_size = {self.batch_size:,} resulting in {len(self):,} batches"
+        )
         logger.info(f"Using '{self.collate_fn.__doc__}' to collate batch chunks")
 
     def __iter__(self):
@@ -186,3 +213,16 @@ class data_loader(object):
 
     def __len__(self):
         return len(self.batch_sampler)
+
+    def on_iter_end(self):
+        """
+        Callback when one loop through dataset is complete.
+        See 'iterable_cycle'. Only used when dataset is in cycle
+        mode.
+        """
+        if hasattr(self.process, "on_iter_end") and callable(
+            getattr(self.process, "on_iter_end")
+        ):
+            self.process.on_iter_end()
+        else:
+            pass

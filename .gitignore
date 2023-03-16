@@ -1,5 +1,11 @@
 *.py[oc]
+.DS_Store
+.vscode
 
-build/
 dist/
+sdist/
+build/
 *.egg-info/
+
+docs/build/
+.ipynb_checkpoints/

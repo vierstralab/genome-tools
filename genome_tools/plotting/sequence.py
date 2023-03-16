@@ -16,6 +16,7 @@ from .colors.cm import VOCAB_COLOR_MAPS
 #
 # Code adoped from https://github.com/kundajelab/dragonn, (c) 2016 Kundaje Lab
 
+
 def standardize_polygons_str(data_str):
     """Given a POLYGON string, standardize the coordinates to a 1x1 grid.
     Input : data_str (taken from above)
@@ -28,23 +29,26 @@ def standardize_polygons_str(data_str):
     # convert the data into a numpy array
     polygons_data = []
     for path_str in path_strs:
-        data = np.array([
-            tuple(map(float, x.split())) for x in path_str.strip().split(",")])
+        data = np.array(
+            [tuple(map(float, x.split())) for x in path_str.strip().split(",")]
+        )
         polygons_data.append(data)
 
     # standardize the coordinates
     min_coords = np.vstack([data.min(0) for data in polygons_data]).min(0)
     max_coords = np.vstack([data.max(0) for data in polygons_data]).max(0)
     for data in polygons_data:
-        data[:, ] -= min_coords
-        data[:, ] /= (max_coords - min_coords)
+        data[:,] -= min_coords
+        data[:,] /= max_coords - min_coords
 
     polygons = []
     for data in polygons_data:
-        polygons.append(load_wkt(
-            "POLYGON((%s))" % ",".join(" ".join(map(str, x)) for x in data)))
+        polygons.append(
+            load_wkt("POLYGON((%s))" % ",".join(" ".join(map(str, x)) for x in data))
+        )
 
     return tuple(polygons)
+
 
 # ------------------------
 
@@ -135,8 +139,7 @@ letter_polygons = {k: standardize_polygons_str(v) for k, v in all_letters.items(
 
 
 def add_letter_to_axis(ax, let, col, x, y, height):
-    """Add 'let' with position x,y and height height to matplotlib axis 'ax'.
-    """
+    """Add 'let' with position x,y and height height to matplotlib axis 'ax'."""
     if len(let) == 2:
         colors = [col, "white"]
     elif len(let) == 1:
@@ -145,18 +148,16 @@ def add_letter_to_axis(ax, let, col, x, y, height):
         raise ValueError("3 or more Polygons are not supported")
 
     for polygon, color in zip(let, colors):
-        new_polygon = affinity.scale(
-            polygon, yfact=height, origin=(0, 0, 0))
-        new_polygon = affinity.translate(
-            new_polygon, xoff=x, yoff=y)
+        new_polygon = affinity.scale(polygon, yfact=height, origin=(0, 0, 0))
+        new_polygon = affinity.translate(new_polygon, xoff=x, yoff=y)
         patch = PolygonPatch(
-            new_polygon, edgecolor=color, facecolor=color)
+            new_polygon.__geo_interface__, edgecolor=color, facecolor=color
+        )  ## shapely 1.8 > 2.0 fix
         ax.add_patch(patch)
     return
 
 
-def seq_plot(letter_heights, ax=None, vocab='dna', offset=0, **kwargs):
-
+def seq_plot(letter_heights, ax=None, vocab="dna", offset=0, **kwargs):
     if not ax:
         ax = plt.gca()
     fig = ax.figure
@@ -172,16 +173,20 @@ def seq_plot(letter_heights, ax=None, vocab='dna', offset=0, **kwargs):
         letters_and_heights = sorted(zip(heights, list(VOCAB_COLOR_MAPS[vocab].keys())))
         y_pos_pos = 0.0
         y_neg_pos = 0.0
-        #x_pos += interval.start
+        # x_pos += interval.start
         for height, letter in letters_and_heights:
             color = VOCAB_COLOR_MAPS[vocab][letter]
             polygons = letter_polygons[letter]
             if height > 0:
-                add_letter_to_axis(ax, polygons, color,  x_pos+offset, y_pos_pos, height)
+                add_letter_to_axis(
+                    ax, polygons, color, x_pos + offset, y_pos_pos, height
+                )
                 y_pos_pos += height
             else:
-                add_letter_to_axis(ax, polygons, color, x_pos+offset, y_neg_pos, height)
+                add_letter_to_axis(
+                    ax, polygons, color, x_pos + offset, y_neg_pos, height
+                )
                 y_neg_pos += height
-    
-    ax.set_xlim(left=offset, right=len(letter_heights)+offset)
+
+    ax.set_xlim(left=offset, right=len(letter_heights) + offset)
     ax.set_ylim(bottom=np.min(letter_heights), top=np.max(letter_heights))
