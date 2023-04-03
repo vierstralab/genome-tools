@@ -138,12 +138,12 @@ class AxisAnnotatedRepositionable(object):
         else:
             return None
 
-        def _get_annotation_bboxes(self, renderer):
-            return [
-                a.get_window_extent(renderer)
-                for a in self.annotations
-                if a.get_visible()
-            ]
+    def _get_annotation_bboxes(self, renderer):
+        return [
+            a.get_window_extent(renderer)
+            for a in self.annotations
+            if a.get_visible()
+        ]
 
     def _reposition_axis_annotations(self, renderer):
         order = [
@@ -318,180 +318,6 @@ GenomeAxesSubplot = maxes.subplot_class_factory(GenomeAxes)
 GenomeAxesSubplot.__module__ = GenomeAxes.__module__
 
 # ------------------------
-
-
-class PlotData:
-    semantics = "x", "y", "hue", "style"
-    flat_structure = {"x": "@index", "y": "@values"}
-    wide_structure = {
-        "x": "@index",
-        "y": "@values",
-        "hue": "@columns",
-        "style": "@columns",
-    }
-
-    def __init__(self, data=None, variables={}):
-        self.assign_variables(data, variables)
-
-    @classmethod
-    def get_semantics(cls, kwargs, semantics=None):
-        if semantics is None:
-            semantics = cls.semantics
-        variables = {}
-        for key, val in kwargs.items():
-            if key in semantics and val is not None:
-                variables[key] = val
-        return variables
-
-    def assign_variables(self, data=None, variables={}):
-        x = variables.get("x", None)
-        y = variables.get("y", None)
-
-    def _assign_variables_wideform(self, data=None, **kwargs):
-        assigned = [k for k, v in kwargs.items() if v is not None]
-        if any(assigned):
-            raise ValueError("")
-
-        empty = data is None or not len(data)
-
-        if isinstance(data, dict):
-            values = data.values()
-        else:
-            values = np.atleast_1d(np.asarray(data, dtype=object))
-        flat = not any(
-            isinstance(v, Iterable) and not isinstance(v, (str, bytes)) for v in values
-        )
-
-        if empty:
-            plot_data = pd.DataFrame()
-            variables = {}
-
-        elif flat:
-            flat_data = pd.Series(data).copy()
-            names = {"@values": flat_data.name, "@index": flat_data.index.name}
-
-            plot_data = {}
-            variables = {}
-
-            for var in ["x", "y"]:
-                if var in self.flat_structure:
-                    attr = self.flat_structure[var]
-                    plot_data[var] = getattr(flat_data, attr[1:])
-                    variables = names[self.flat_structure[var]]
-
-            plot_data = pd.DataFrame(plot_data)
-        else:
-            if isinstance(data, Sequence):
-                data_dict = {}
-                for i, var in enumerate(data):
-                    key = getattr(var, "name", i)
-                    data_dict[key] = pd.Series(var)
-                data = data_dict
-
-            if isinstance(data, Mapping):
-                data = {key: pd.Series(val) for key, val in data.items()}
-
-            wide_data = pd.DataFrame(data, copy=True)
-
-            melt_kws = {"var_name": "@columns", "value_name": "@values"}
-            use_index = "@index" in self.wide_structure.values()
-            if use_index:
-                melt_kws["id_vars"] = "@index"
-                try:
-                    orig_categories = wide_data.columns.categories
-                    orig_ordered = wide_data.columns.ordered
-                    wide_data.columns = wide_data.columns.add_categories("@index")
-                except AttributeError:
-                    category_columns = False
-                else:
-                    category_columns = True
-
-                wide_data["@index"] = wide_data.index.to_series()
-
-            plot_data = wide_data.melt(**melt_kws)
-
-            print(plot_data)
-
-            if use_index and category_columns:
-                plot_data["@columns"] = pd.Categorical(
-                    plot_data["@columns"], orig_categories, orig_ordered
-                )
-
-            for var, attr in self.wide_structure.items():
-                plot_data[var] = plot_data[attr]
-
-            variables = {}
-            for var, attr in self.wide_structure.items():
-                obj = getattr(wide_data, attr[1:])
-                variables[var] = getattr(obj, "name", None)
-
-            plot_data = plot_data[list(variables)]
-
-        return plot_data, variables
-
-    def _assign_variables_longform(self, data=None, **kwargs):
-        plot_data = {}
-        variables = {}
-
-        if data is None:
-            data = {}
-
-        try:
-            index = data.index.to_frame()
-        except AttributeError:
-            index = {}
-
-        for key, val in kwargs.items():
-            try:
-                val_as_data_key = val in data or (
-                    isinstance(val, (str, bytes)) and val in index
-                )
-            except (KeyError, TypeError):
-                val_as_data_key = False
-
-            if val_as_data_key:
-                if val in data:
-                    plot_data[key] = data[val]
-                elif val in index:
-                    plot_data[key] = index[val]
-                variables[key] = val
-
-            elif isinstance(val, (str, bytes)):
-                raise ValueError(
-                    f"Could not interpret value `{val}` for parameter `{key}`"
-                )
-
-            else:
-                if isinstance(data, pd.DataFrame) and not isinstance(val, pd.Series):
-                    if np.ndim(val) and len(data) != len(val):
-                        val_cls = val.__class__.__name__
-                        raise ValueError(
-                            f"Length of {val_cls} vectors must match length of `data`"
-                            f" when both are used, but `data` has length {len(data)}"
-                            f" and the vector passed to `{key}` has length {len(val)}."
-                        )
-
-                plot_data[key] = val
-
-                # Try to infer the name of the variable
-                variables[key] = getattr(val, "name", None)
-
-        # Construct a tidy plot DataFrame. This will convert a number of
-        # types automatically, aligning on index in case of pandas objects
-        plot_data = pd.DataFrame(plot_data)
-
-        # Reduce the variables dictionary to fields with valid data
-        variables = {
-            var: name
-            for var, name in variables.items()
-            if plot_data[var].notnull().any()
-        }
-
-        return plot_data, variables
-
-
-# ------------------------
-
 
 def add_scale_bar(ax):
     scale = 100
