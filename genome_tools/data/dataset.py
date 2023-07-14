@@ -36,6 +36,12 @@ class base_dataset(object):
     def batch_predict_iter(self, **kwargs):
         return (x["inputs"] for x in self.batch_iter(**kwargs))
 
+    def batch_eval_iter(self, **kwargs):
+        return (
+            (x["inputs"], x["targets"], x["metadata"])
+            for x in self.batch_iter(**kwargs)
+        )
+
     def load_all(self, **kwargs):
         """Load an entire dataset"""
         return [x for x in self.batch_iter(**kwargs)]

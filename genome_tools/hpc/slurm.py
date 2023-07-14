@@ -131,7 +131,8 @@ class job:
 
       sb_filehandle.write("#!/bin/bash\n\n")
 
-      sb_filehandle.write("#SBATCH -n 1\n")
+      sb_filehandle.write(f"#SBATCH -p {self.queue}\n")
+      sb_filehandle.write(f"#SBATCH -n 1\n")
       sb_filehandle.write(f"#SBATCH -c {self.cpu}\n")
 
       if self.name:

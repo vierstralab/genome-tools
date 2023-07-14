@@ -94,7 +94,7 @@ def color_palette(palette=None, n_colors=None, as_cmap=False):
         palette = [next(palette_cycle) for _ in range(n_colors)]
 
         try:
-            palette = map(mcolors.to_rbg, palette)
+            palette = map(mcolors.to_rgb, palette)
             palette = _ColorPalette(palette)
         except ValueError:
             raise ValueError(
