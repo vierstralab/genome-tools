@@ -14,7 +14,7 @@ install_requires = ["numpy",
 					"pyBigWig",
 					"matplotlib",
 					"descartes",
-					"shapley"] 
+					"shapely"] 
 
 setup(
 	name = "genome_tools",
