@@ -1,1 +1,1 @@
-__all__ = ["fast_sample"]
+__all__ = ["sampling"]
