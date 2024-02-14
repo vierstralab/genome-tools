@@ -60,11 +60,12 @@ def get_sample_indicators(counts_to_sample, all_counts, seed=0):
     for i in range(num_columns):
         all_c = all_counts[i]
         for j in range(num_samples):
-            rng = np.random.default_rng(seed)
+            np.random.seed(seed)
             c_to_sample = counts_to_sample[j, i]
             binary_matrix = np.arange(all_c) < c_to_sample
-            shuffled_indices = rng.permutation(all_c)
+            shuffled_indices = np.random.permutation(all_c)
             res[cums: cums + all_c, j] = binary_matrix[shuffled_indices]
+            seed += 10000
         cums += all_c
 
     return res
