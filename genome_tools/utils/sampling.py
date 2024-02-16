@@ -102,19 +102,18 @@ def fast_sample(sampling_data, ref_data, matching_fields, num_samples=100, w=0, 
         np.ndarray: Matrix of sample indicators.
     """
     if input_sorted:
-        sorted_variants = sampling_data
-        argsort_indices = np.arange(sampling_data.shape[0])
+        sorted_variants = sampling_data.reset_index(drop=True)
+        reordering_indices = np.arange(sampling_data.shape[0])
     else:
-        sorted_variants = sampling_data.sort_values(matching_fields)
-        argsort_indices = sorted_variants.index.to_numpy()
+        sorted_variants = sampling_data.reset_index(drop=True).sort_values(matching_fields)
+        reordering_indices = np.argsort(sorted_variants.index.to_numpy()) 
 
     reference_bin_counts = ref_data[matching_fields].value_counts().sort_index()
     all_bin_counts = sorted_variants[matching_fields].value_counts().sort_index()
     bin_counts_to_sample = perturb_bin_counts(reference_bin_counts, w=w, num_samples=num_samples)
     
     sample_indicators = get_sample_indicators(bin_counts_to_sample, all_bin_counts.values).astype(bool)
-    return sample_indicators[argsort_indices, :]
-
+    return sample_indicators[reordering_indices, :]
 
 def perturb_bin_counts(bin_counts, w=0.01, num_samples=1000):
     """
