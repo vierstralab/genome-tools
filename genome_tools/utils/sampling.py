@@ -86,7 +86,7 @@ def get_probs(bin_distances, w):
     transformed = np.exp(-bin_distances / (2*w**2))
     return transformed / transformed.sum(axis=1)
 
-def fast_sample(sampling_data, ref_data, matching_fields, num_samples=100, w=0, input_sorted=False):
+def fast_sample(sampling_data, ref_data, matching_fields, num_samples=100, w=0, starting_seed=0, input_sorted=False):
     """
     Sample from sampling_data to match the distribution of ref_data.
     
@@ -96,6 +96,7 @@ def fast_sample(sampling_data, ref_data, matching_fields, num_samples=100, w=0, 
         matching_fields (list): Fields to match the distribution on.
         num_samples (int): Number of samples to generate.
         w (float): Width of the Gaussian kernel to use for the distance-based probabilities.
+        starting_seed (int): Random seed. For each sample seed is incremented by 10000.
         input_sorted (bool): Whether the input data is already sorted by matching_fields.
     
     Returns:
@@ -112,7 +113,7 @@ def fast_sample(sampling_data, ref_data, matching_fields, num_samples=100, w=0, 
     all_bin_counts = sorted_variants[matching_fields].value_counts().sort_index()
     bin_counts_to_sample = perturb_bin_counts(reference_bin_counts, w=w, num_samples=num_samples)
     
-    sample_indicators = get_sample_indicators(bin_counts_to_sample, all_bin_counts.values).astype(bool)
+    sample_indicators = get_sample_indicators(bin_counts_to_sample, all_bin_counts.values, seed=starting_seed).astype(bool)
     return sample_indicators[reordering_indices, :]
 
 def perturb_bin_counts(bin_counts, w=0.01, num_samples=1000):
