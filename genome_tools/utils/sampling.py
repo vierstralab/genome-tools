@@ -110,10 +110,16 @@ def fast_sample(sampling_data, ref_data, matching_fields, num_samples=100, w=0, 
         reordering_indices = np.argsort(sorted_variants.index.to_numpy()) 
 
     reference_bin_counts = ref_data[matching_fields].value_counts().sort_index()
-    all_bin_counts = sorted_variants[matching_fields].value_counts().sort_index()
+    sampling_bin_counts = sorted_variants[matching_fields].value_counts().sort_index()
+
+    # make sure both reference and sampling bins are the same, fill with zeros
+    all_bin_indices = reference_bin_counts.index.union(sampling_bin_counts.index)
+    reference_bin_counts = reference_bin_counts.reindex(all_bin_indices, fill_value=0)
+    sampling_bin_counts = sampling_bin_counts.reindex(all_bin_indices, fill_value=0)
+
     bin_counts_to_sample = perturb_bin_counts(reference_bin_counts, w=w, num_samples=num_samples)
     
-    sample_indicators = get_sample_indicators(bin_counts_to_sample, all_bin_counts.values, seed=starting_seed).astype(bool)
+    sample_indicators = get_sample_indicators(bin_counts_to_sample, sampling_bin_counts.values, seed=starting_seed).astype(bool)
     return sample_indicators[reordering_indices, :]
 
 def perturb_bin_counts(bin_counts, w=0.01, num_samples=1000):
@@ -139,9 +145,6 @@ def perturb_bin_counts(bin_counts, w=0.01, num_samples=1000):
         return sample_multinomial(bin_counts.values, probs, num_samples)
     else:
         return np.tile(bin_counts.values, (num_samples, 1))
-
-
-
 
 def get_cumulative_dist(values):
     z  = np.sort(values)
