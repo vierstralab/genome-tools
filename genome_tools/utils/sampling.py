@@ -80,7 +80,7 @@ def get_sample_indicators(counts_to_sample, all_counts, seed=0):
         for j in range(num_samples):
             c_to_sample = counts_to_sample[j, i]
             binary_matrix = np.arange(all_c) < c_to_sample
-            shuffled_indices = sampling_with_seed(np.random.permutation, all_c, seed=seed)
+            shuffled_indices = sampling_with_seed(np.random.permutation, seed, all_c)
             res[cums: cums + all_c, j] = binary_matrix[shuffled_indices]
             if seed is not None:
                 seed += 10000
