@@ -3,25 +3,6 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from numba import jit, prange
 
-@jit(nopython=True)
-def sampling_with_seed(func, *args, seed=0, use_seed=True, **kwargs):
-    """
-    Random sampling with a given seed.
-    Workaround for the lack of support for seed=None in numba.
-    
-    Args:
-        func (function): Sampling function (np.random).
-        seed (int): Random seed.
-        use_seed (bool): Whether to use the seed.
-        *args: Arguments for the sampling function.
-        **kwargs: Keyword arguments for the sampling function.
-    
-    Returns:
-        np.ndarray: Random sample.
-    """
-    if use_seed:
-        np.random.seed(seed)  # Set the seed if provided
-    return func(*args, **kwargs)
 
 @jit(nopython=True, parallel=False)
 def sample_multinomial(n_array, p_matrix, num_samples):
