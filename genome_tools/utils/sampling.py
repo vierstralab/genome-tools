@@ -3,6 +3,24 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from numba import jit, prange
 
+@jit(nopython=True)
+def sampling_with_seed(func, seed=None, *args, **kwargs):
+    """
+    Random sampling with a given seed.
+    Workaround for the lack of support for seed=None in numba.
+    
+    Args:
+        func (function): Sampling function (np.random).
+        seed (int): Random seed.
+        *args: Arguments for the sampling function.
+        **kwargs: Keyword arguments for the sampling function.
+    
+    Returns:
+        np.ndarray: Random sample.
+    """
+    if seed is not None:
+        np.random.seed(seed)  # Set the seed if provided
+    return func(*args, **kwargs)
 
 @jit(nopython=True, parallel=False)
 def sample_multinomial(n_array, p_matrix, num_samples):
@@ -28,7 +46,7 @@ def sample_multinomial(n_array, p_matrix, num_samples):
 
             # Inlined categorical sampling
             for _ in range(n):
-                r = np.random.random()
+                r = sampling_with_seed(np.random.random, seed=None)
                 cumulative = 0.0
                 for k, p_val in enumerate(p):
                     cumulative += p_val
@@ -40,7 +58,7 @@ def sample_multinomial(n_array, p_matrix, num_samples):
     return results
 
 @jit(nopython=True, parallel=False)
-def get_sample_indicators(counts_to_sample, all_counts, seed=0):
+def get_sample_indicators(counts_to_sample, all_counts, seed):
     """
     Sample from counts_to_sample to match the distribution of all_counts.
     
@@ -60,10 +78,9 @@ def get_sample_indicators(counts_to_sample, all_counts, seed=0):
     for i in range(num_columns):
         all_c = all_counts[i]
         for j in range(num_samples):
-            np.random.seed(seed)
             c_to_sample = counts_to_sample[j, i]
             binary_matrix = np.arange(all_c) < c_to_sample
-            shuffled_indices = np.random.permutation(all_c)
+            shuffled_indices = sampling_with_seed(np.random.permutation, all_c, seed=seed)
             res[cums: cums + all_c, j] = binary_matrix[shuffled_indices]
             seed += 10000
         cums += all_c
@@ -86,7 +103,32 @@ def get_probs(bin_distances, w):
     transformed = np.exp(-bin_distances / (2*w**2))
     return transformed / transformed.sum(axis=1)
 
-def fast_sample(sampling_data, ref_data, matching_fields, num_samples=100, w=0, starting_seed=0, input_sorted=False):
+def perturb_bin_counts(bin_counts, w=0.01, num_samples=1000):
+    """
+    Perturb bin counts by sampling from a multinomial distribution with probabilities
+    based on the distance between bins.
+
+    Args:
+        bin_counts (pd.Series): Bin counts to perturb.
+        w (float): Width of the Gaussian kernel to use for the distance-based probabilities.
+        num_samples (int): Number of perturbed samples to generate.
+
+    Returns:
+        np.ndarray: Matrix of perturbed bin counts.
+
+    Shape:
+        - Input: (n,)
+        - Output: (num_samples, n)
+    """
+    bin_distances = squareform(pdist(np.array(bin_counts.index.tolist()), 'euclidean'))
+    if w > 0:
+        probs = get_probs(bin_distances, w)
+        return sample_multinomial(bin_counts.values, probs, num_samples)
+    else:
+        return np.tile(bin_counts.values, (num_samples, 1))
+
+
+def fast_sample(sampling_data, ref_data, matching_fields, num_samples=100, w=0, starting_seed=None, input_sorted=False):
     """
     Sample from sampling_data to match the distribution of ref_data.
     
@@ -121,32 +163,3 @@ def fast_sample(sampling_data, ref_data, matching_fields, num_samples=100, w=0, 
     
     sample_indicators = get_sample_indicators(bin_counts_to_sample, sampling_bin_counts.values, seed=starting_seed).astype(bool)
     return sample_indicators[reordering_indices, :]
-
-def perturb_bin_counts(bin_counts, w=0.01, num_samples=1000):
-    """
-    Perturb bin counts by sampling from a multinomial distribution with probabilities
-    based on the distance between bins.
-
-    Args:
-        bin_counts (pd.Series): Bin counts to perturb.
-        w (float): Width of the Gaussian kernel to use for the distance-based probabilities.
-        num_samples (int): Number of perturbed samples to generate.
-
-    Returns:
-        np.ndarray: Matrix of perturbed bin counts.
-
-    Shape:
-        - Input: (n,)
-        - Output: (num_samples, n)
-    """
-    bin_distances = squareform(pdist(np.array(bin_counts.index.tolist()), 'euclidean'))
-    if w > 0:
-        probs = get_probs(bin_distances, w)
-        return sample_multinomial(bin_counts.values, probs, num_samples)
-    else:
-        return np.tile(bin_counts.values, (num_samples, 1))
-
-def get_cumulative_dist(values):
-    z  = np.sort(values)
-    x = np.arange(z.shape[0])/z.shape[0]
-    return z, x
