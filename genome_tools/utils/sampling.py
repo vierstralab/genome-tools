@@ -58,7 +58,7 @@ def sample_multinomial(n_array, p_matrix, num_samples):
     return results
 
 @jit(nopython=True, parallel=False)
-def get_sample_indicators(counts_to_sample, all_counts, seed):
+def get_sample_indicators(counts_to_sample, all_counts, seed=0):
     """
     Sample from counts_to_sample to match the distribution of all_counts.
     
@@ -82,7 +82,8 @@ def get_sample_indicators(counts_to_sample, all_counts, seed):
             binary_matrix = np.arange(all_c) < c_to_sample
             shuffled_indices = sampling_with_seed(np.random.permutation, all_c, seed=seed)
             res[cums: cums + all_c, j] = binary_matrix[shuffled_indices]
-            seed += 10000
+            if seed is not None:
+                seed += 10000
         cums += all_c
 
     return res
