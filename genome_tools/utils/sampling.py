@@ -47,7 +47,7 @@ def sample_multinomial(n_array, p_matrix, num_samples):
 
             # Inlined categorical sampling
             for _ in range(n):
-                r = sampling_with_seed(np.random.random, use_seed=False)
+                r = np.random.random()
                 cumulative = 0.0
                 for k, p_val in enumerate(p):
                     cumulative += p_val
@@ -81,7 +81,9 @@ def get_sample_indicators(counts_to_sample, all_counts, seed=0, use_seed=True):
         for j in range(num_samples):
             c_to_sample = counts_to_sample[j, i]
             binary_matrix = np.arange(all_c) < c_to_sample
-            shuffled_indices = sampling_with_seed(np.random.permutation, all_c, seed=seed, use_seed=use_seed)
+            if use_seed:
+                np.random.seed(seed)
+            shuffled_indices = np.random.permutation(all_c)
             res[cums: cums + all_c, j] = binary_matrix[shuffled_indices]
             if use_seed:
                 seed += 10000
