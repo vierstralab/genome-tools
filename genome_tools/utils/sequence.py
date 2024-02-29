@@ -6,6 +6,18 @@ IN_MAP = np.asarray(
     [[0, 0, 0, 0], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype="int8"
 )
 
+"""
+A = 0001
+
+C = 0010
+G = 0100
+T = 1000
+N = 1111
+"""
+IUPAC_DNA = "XACMGRSVTWYHKDBN"
+
+def one_hot_decode(x):
+    pass
 
 def get_base_encoding():
     base_encoding = np.zeros((ord("t") + 1, 1), dtype=np.int)

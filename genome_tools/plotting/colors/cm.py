@@ -62,7 +62,7 @@ VOCAB_COLOR_MAPS = dict(
         "exon": "gold",
         "utr": "black",
         "cds": "black",
-    }
+    },
     # DHS component annotations from Meuleman et al., 2020 Nature
     # meuleman2020 = {
     #     '': '#FFE500',
@@ -180,6 +180,17 @@ COLOR_MAPS = dict(
         "#206AAD",
         "#243996",
         "#081D58",
+    ],
+    flame_light=[
+        "#000033",
+        "#000E92",
+        "#1300FF",
+        "#8E0EEA",
+        "#C628D6",
+        "#E9699F",
+        "#FF9B63",
+        "#FFCE62",
+        "#FFFF5F",
     ],
 )
 
