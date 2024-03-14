@@ -164,7 +164,9 @@ def stratified_sampling(sampling_data, ref_data, matching_fields, num_samples=10
         w (float): Width of the Gaussian kernel to use for the distance-based probabilities.
         starting_seed (int): Random seed. For each sample seed is incremented by 10000.
         input_sorted (bool): Whether the input data is already sorted by matching_fields.
-    
+        return_indicators (bool): Whether to return a matrix of sample indicators.
+        replace (bool): Whether to sample with replacement.
+        n_to_sample (int): Number of records to sample. If None, defaults to the total number of records in ref_data.
     Returns:
         np.ndarray: Matrix of sample indicators.
     """
