@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from numba import njit
-import dask.dataframe as dd
 
 
 @njit
