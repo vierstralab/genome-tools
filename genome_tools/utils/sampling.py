@@ -174,8 +174,7 @@ def stratified_sampling(sampling_data, ref_data, matching_fields, num_samples=10
     sorted_variants = sampling_data.reset_index(drop=True)
     if not input_sorted:
         sorted_variants = sorted_variants.sort_values(matching_fields)
-        reordering_indices = np.argsort(sorted_variants.index.to_numpy())
-        original_index = original_index[reordering_indices]
+        original_index = original_index[sorted_variants.index.to_numpy()]
 
     reference_bin_counts = ref_data[matching_fields].value_counts().sort_index()
     sampling_bin_counts = sorted_variants[matching_fields].value_counts().sort_index()
