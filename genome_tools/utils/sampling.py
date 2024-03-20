@@ -189,8 +189,8 @@ def stratified_sampling(sampling_data, ref_data, matching_fields, num_samples=10
 
     not_in_sampling = (reference_bin_counts == 0) & (sampling_bin_counts > 0)
     if not_in_sampling.any():
-        message = f"Reference data contains {len(not_in_sampling[not_in_sampling].index.tolist())} bins not present in sampling data;
-                      in total {reference_bin_counts[not_in_sampling].sum()} records ({reference_bin_counts[not_in_sampling].sum() / total_reference * 100:.1f}%)."
+        message = f"""Reference data contains {len(not_in_sampling[not_in_sampling].index.tolist())} bins not present in sampling data;
+                      in total {reference_bin_counts[not_in_sampling].sum()} records ({reference_bin_counts[not_in_sampling].sum() / total_reference * 100:.1f}%)."""
         if ignore_missing_bins:
             warnings.warn(message + " These bins will be ignored when sampling data.")
         else:
