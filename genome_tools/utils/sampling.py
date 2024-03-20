@@ -149,7 +149,7 @@ def indices_to_indicators(original_index, sampled_indices):
         for idx in range(sampled_indices.shape[0]):
             sampled_indicators[sampled_indices[idx, sample_num], sample_num] += 1
     
-    return sampled_indicators.astype(bool)
+    return sampled_indicators
 
 
 def stratified_sampling(sampling_data, ref_data, matching_fields, num_samples=100, w=0, starting_seed=None, input_sorted=False,
@@ -225,6 +225,6 @@ def stratified_sampling(sampling_data, ref_data, matching_fields, num_samples=10
     )
 
     if return_indicators:
-        return indices_to_indicators(original_index, sampled)
+        return indices_to_indicators(original_index, sampled).astype(bool)
     else:
         return sampled
