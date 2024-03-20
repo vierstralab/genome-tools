@@ -62,7 +62,7 @@ VOCAB_COLOR_MAPS = dict(
         "exon": "gold",
         "utr": "black",
         "cds": "black",
-    }
+    },
     # DHS component annotations from Meuleman et al., 2020 Nature
     # meuleman2020 = {
     #     '': '#FFE500',
@@ -114,6 +114,28 @@ COLOR_MAPS = dict(
         "#EAD397",
         "#FDB31A",
         "#E42A2A",
+        "#A31D1D",
+    ],
+    solar_blues=[
+        "#FCFCFC",
+        "#C0E4FD",
+        "#75CEFE",
+        "#0CB9FF",
+        "#1BA7FF",
+        "#1E95FF",
+        "#2884E7",
+        "#3072C5",
+        "#3361A5",
+    ],
+    solar_rojos=[
+        "#FCFCFC",
+        "#FFEDB0",
+        "#FFDF5F",
+        "#FEC510",
+        "#FA8E24",
+        "#F14C2B",
+        "#DA2828",
+        "#BE2222",
         "#A31D1D",
     ],
     aqua_brick=[

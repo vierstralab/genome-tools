@@ -63,16 +63,19 @@ class tabix_iter(object):
 
 
 class tabix_extractor(base_extractor):
-    def __init__(self, filename, **kwargs):
+    def __init__(self, filename, header_char="#", **kwargs):
         """ """
         super(tabix_extractor, self).__init__(filename, **kwargs)
 
         self.tabix = pysam.TabixFile(filename)
 
+        self.columns = self.tabix.header[0].strip(header_char).split("\t")
+
     def __getitem__(self, interval):
         ret = pd.read_table(
             tabix_iter(self.tabix, interval), header=None, index_col=None
         )
+        ret.columns = self.columns
         return ret
 
     def __del__(self):

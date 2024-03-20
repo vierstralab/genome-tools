@@ -197,7 +197,7 @@ def stratified_sampling(sampling_data, ref_data, matching_fields, num_samples=10
             raise ValueError(message + " To ignore these bins, set ignore_missing_bins=True.")
         
     reference_bin_counts[not_in_sampling] = 0
-
+    
     # workaround to pass to numba function
     use_seed = starting_seed is not None
     starting_seed = starting_seed if use_seed else 0
