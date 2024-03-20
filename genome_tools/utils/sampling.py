@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from numba import njit
+import warnings
 
 
 @njit
@@ -152,7 +153,7 @@ def indices_to_indicators(original_index, sampled_indices):
 
 
 def stratified_sampling(sampling_data, ref_data, matching_fields, num_samples=100, w=0, starting_seed=None, input_sorted=False,
-                return_indicators=False, replace=False, n_to_sample=None):
+                return_indicators=False, replace=False, n_to_sample=None, ignore_missing_bins=False):
     """
     Sample from sampling_data to match the distribution of ref_data.
     
@@ -185,6 +186,17 @@ def stratified_sampling(sampling_data, ref_data, matching_fields, num_samples=10
     all_bin_indices = reference_bin_counts.index.union(sampling_bin_counts.index).sort_values()
     reference_bin_counts = reference_bin_counts.reindex(all_bin_indices, fill_value=0)
     sampling_bin_counts = sampling_bin_counts.reindex(all_bin_indices, fill_value=0)
+
+    not_in_sampling = (reference_bin_counts == 0) & (sampling_bin_counts > 0)
+    if not_in_sampling.any():
+        message = f"Reference data contains {len(not_in_sampling[not_in_sampling].index.tolist())} bins not present in sampling data;
+                      in total {reference_bin_counts[not_in_sampling].sum()} records ({reference_bin_counts[not_in_sampling].sum() / total_reference * 100:.1f}%)."
+        if ignore_missing_bins:
+            warnings.warn(message + " These bins will be ignored when sampling data.")
+        else:
+            raise ValueError(message + " To ignore these bins, set ignore_missing_bins=True.")
+        
+    reference_bin_counts[not_in_sampling] = 0
 
     # workaround to pass to numba function
     use_seed = starting_seed is not None
