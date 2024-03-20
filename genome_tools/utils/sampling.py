@@ -225,6 +225,6 @@ def stratified_sampling(sampling_data, ref_data, matching_fields, num_samples=10
     )
 
     if return_indicators:
-        return indices_to_indicators(original_index, sampled).astype(bool)
+        return indices_to_indicators(original_index, sampled)
     else:
         return sampled
