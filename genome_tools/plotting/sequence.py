@@ -11,6 +11,8 @@ from fontTools.pens.basePen import BasePen
 
 from matplotlib import font_manager
 
+import string
+
 
 class MultiPolygonPen(BasePen):
     def __init__(self, glyphSet, approximation_scale=1):
@@ -149,9 +151,8 @@ def get_letter_polygons(font_name, letters):
     glyph_set = font.getGlyphSet()
     return {l: get_polygon(l, glyph_set) for l in letters}
 
-
-genome_letters = ['A', 'C', 'G', 'T', 'a', 'c', 'g', 't']
-default_letter_polygons = get_letter_polygons('Arial', genome_letters)
+default_font = 'Arial'
+default_letter_polygons = get_letter_polygons(default_font, string.ascii_uppercase + string.ascii_lowercase)
 
 
 def transform_polygon(polygon, width_scale=1.0, height_scale=1.0, x_offset=0.0, y_offset=0.0):
@@ -196,11 +197,11 @@ def add_letter_to_axis(ax, multipolygon, col, x, y, height, width_scale=1.0):
         ax.add_patch(hole_polygon)
 
 
-def seq_plot(letter_heights, ax=None, vocab="dna", offset=0, width_scale=1.0, font=None, **kwargs):
-    if font is None:
+def seq_plot(letter_heights, ax=None, vocab="dna", offset=0, width_scale=1.0, font=default_font, **kwargs):
+    if font == default_font:
         letter_polygons = default_letter_polygons
     else:
-        letter_polygons = get_letter_polygons(font, genome_letters)
+        letter_polygons = get_letter_polygons(font, string.ascii_uppercase + string.ascii_lowercase)
 
     if not ax:
         ax = plt.gca()
