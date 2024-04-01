@@ -2,6 +2,7 @@ import numpy as np
 import os
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
 
 from .colors.cm import VOCAB_COLOR_MAPS
 
