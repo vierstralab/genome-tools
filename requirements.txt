@@ -3,6 +3,6 @@ pysam
 pyBigWig
 matplotlib
 descartes
-shapely
+fonttools
 pysam
 openpyxl
