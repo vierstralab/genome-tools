@@ -147,7 +147,7 @@ class AxisAnnotatedRepositionable(object):
 
     def _reposition_axis_annotations(self, renderer):
         order = [
-            x for x, y in sorted(enumerate(self.annotations), key=lambda z: z[1].xy[0])
+            x for x, y in sorted(enumerate(self.annotations), key=lambda z: z[1].xy[0] if self.axis_name == 'x' else z[1].xy[1])
         ]
 
         mid = len(order) // 2
@@ -197,7 +197,7 @@ class AxisAnnotatedRepositionable(object):
             seen_bboxes.append(current_artist.get_text_window_extent(renderer))
 
     def draw(self, renderer, *args, **kwargs):
-        super().draw(renderer, *args, **kwargs)
+        #super().draw(renderer, *args, **kwargs)
 
         for a in self.annotations:
             a.update_positions(renderer)
@@ -254,6 +254,8 @@ class XAxisAnnotated(maxis.XAxis, AxisAnnotatedRepositionable):
         t.set_figure(self.axes.figure)
         self.annotations.append(t)
 
+    def draw(self, renderer, *args, **kwargs):
+        AxisAnnotatedRepositionable.draw(self, renderer, *args, **kwargs)
 
 # ------------------------
 
@@ -296,7 +298,8 @@ class YAxisAnnotated(maxis.YAxis, AxisAnnotatedRepositionable):
         t.set_figure(self.axes.figure)
         self.annotations.append(t)
 
-
+    def draw(self, renderer, *args, **kwargs):
+        AxisAnnotatedRepositionable.draw(self, renderer, *args, **kwargs)
 # ------------------------
 
 
