@@ -8,6 +8,7 @@ import numpy as np
 import pysam
 import pyBigWig as pbw
 import pandas as pd
+import gzip
 
 
 class base_extractor(object):
@@ -63,13 +64,23 @@ class tabix_iter(object):
 
 
 class tabix_extractor(base_extractor):
-    def __init__(self, filename, header_char="#", **kwargs):
+    def __init__(self, filename, header_char="#", columns=None, **kwargs):
         """ """
         super(tabix_extractor, self).__init__(filename, **kwargs)
 
         self.tabix = pysam.TabixFile(filename)
 
-        self.columns = self.tabix.header[0].strip(header_char).split("\t")
+
+        with gzip.open(filename, "rt") as f:
+            line = f.readline().strip('\n')
+            if columns is None:
+                if line.startswith(header_char):
+                    self.columns = line.strip(header_char).split("\t")
+                else:
+                    self.columns = [i for i in range(len(line.split("\t")))]
+            else:
+                assert len(columns) == len(line.split("\t"))
+                self.columns = columns
 
     def __getitem__(self, interval):
         ret = pd.read_table(

@@ -7,7 +7,7 @@ class genomic_interval(object):
     """Class that implements BED-style object"""
 
     def __init__(
-        self, chrom, start, end, name=".", score=None, strand=None, extra=None
+        self, chrom, start, end, name=".", score=None, strand=None, extra=None, **kwargs
     ):
         self.chrom = str(chrom)
         self.start = int(start)
@@ -16,6 +16,8 @@ class genomic_interval(object):
         self.score = score
         self.strand = strand
         self.extra = extra
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     def __len__(self):
         """Length of element"""
@@ -52,3 +54,21 @@ class genomic_interval(object):
         return genomic_interval(
             self.chrom, self.start + x, self.end + x, self.name, self.strand
         )
+
+
+def filter_df_to_interval(df, interval):
+    chromosome_col = 'chrom' if 'chrom' in df.columns else '#chr'
+    return df.loc[df[chromosome_col] == interval.chrom].query(
+        f'end >= {interval.start} & start < {interval.end}'
+    )
+
+
+
+def df_to_genomic_intervals(df, interval=None, extra_columns=()):
+    df = df.rename(
+        columns={'#chr': 'chrom'}
+    )
+    if interval is not None:
+        df = filter_df_to_interval(df, interval)
+    result = [genomic_interval(df_row['chrom'], df_row['start'], df_row['end'], **{col: df_row[col] for col in extra_columns}) for _, df_row in df.iterrows()]
+    return result

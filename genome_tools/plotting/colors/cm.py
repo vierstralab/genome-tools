@@ -210,10 +210,16 @@ for _name, _palette in COLOR_MAPS.items():
     color_list = list(map(mcolors.to_rgb, _palette))
 
     _cmap = mcolors.LinearSegmentedColormap.from_list(_name, color_list)
-    locals()[_name] = _cmap
-
     _cmap_r = mcolors.LinearSegmentedColormap.from_list(_name + "_r", color_list[::-1])
-    locals()[_name + "_r"] = _cmap_r
 
-    mcm.register_cmap(_name, _cmap)
-    mcm.register_cmap(_name + "_r", _cmap_r)
+    try:
+        mcm.get_cmap(_name)
+    except ValueError:
+        locals()[_name] = _cmap
+        mcm.register_cmap(_name, _cmap)
+    
+    try:
+        mcm.get_cmap(_name + "_r")
+    except ValueError:
+        locals()[_name + "_r"] = _cmap_r
+        mcm.register_cmap(_name + "_r", _cmap_r)
