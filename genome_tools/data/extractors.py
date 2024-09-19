@@ -75,7 +75,7 @@ class tabix_extractor(base_extractor):
             line = f.readline().strip('\n')
             if columns is None:
                 if line.startswith(header_char):
-                    self.columns = line.strip(header_char).split("\t")
+                    self.columns = line.split("\t")
                 else:
                     self.columns = [i for i in range(len(line.split("\t")))]
             else:
@@ -93,7 +93,7 @@ class tabix_extractor(base_extractor):
         self.close()
 
     def close(self):
-        if self.tabix and self.tabix.is_open():
+        if getattr(self, "tabix", None) and self.tabix.is_open():
             self.tabix.close()
 
 
@@ -115,7 +115,7 @@ class bigwig_extractor(base_extractor):
         self.close()
 
     def close(self):
-        if self.bw:
+        if getattr(self, "bw", None):
             self.bw.close()
 
 

@@ -54,6 +54,28 @@ class genomic_interval(object):
         return genomic_interval(
             self.chrom, self.start + x, self.end + x, self.name, self.strand
         )
+    
+
+class variant_interval(genomic_interval):
+    def __init__(self, chrom, start, end, ref=None, alt=None, value=None, **kwargs):
+        assert end - start == 1
+        super().__init__(chrom, start, end, **kwargs)
+        self.ref = ref
+        self.alt = alt
+        self.pos = end
+        self.value = value
+
+    def __str__(self):
+        return "\t".join([str(x) for x in [self.chrom, self.start, self.end, self.ref, self.alt]])
+
+    def to_ucsc(self):
+        return f"{self.chrom}:{self.pos}:{self.ref}:{self.alt}"
+    
+    def widen(self, x, inplace=False):
+        raise NotImplementedError("Cannot widen a variant interval")
+    
+    def shift(self, x, inplace=False):
+        raise NotImplementedError("Cannot shift a variant interval")
 
 
 def filter_df_to_interval(df, interval):
@@ -71,4 +93,14 @@ def df_to_genomic_intervals(df, interval=None, extra_columns=()):
     if interval is not None:
         df = filter_df_to_interval(df, interval)
     result = [genomic_interval(df_row['chrom'], df_row['start'], df_row['end'], **{col: df_row[col] for col in extra_columns}) for _, df_row in df.iterrows()]
+    return result
+
+
+def df_to_variant_intervals(df, interval=None, extra_columns=()):
+    df = df.rename(
+        columns={'#chr': 'chrom'}
+    )
+    if interval is not None:
+        df = filter_df_to_interval(df, interval)
+    result = [variant_interval(df_row['chrom'], df_row['start'], df_row['end'], ref=df_row['ref'], alt=df_row['alt'], **{col: df_row[col] for col in extra_columns}) for _, df_row in df.iterrows()]
     return result

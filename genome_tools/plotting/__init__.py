@@ -461,10 +461,6 @@ def grouped_heatmap_plot(
 def segment_plot(interval, segments, pad_points=1, ax=None, **kwargs):
     if not ax:
         ax = plt.gca()
-    fig = ax.figure
-
-    xaxis = kwargs.pop("xaxis", "bottom")
-    yaxis = kwargs.pop("yaxis", None)
 
     rectprops = {}
     rectprops["color"] = "k"
@@ -481,18 +477,18 @@ def segment_plot(interval, segments, pad_points=1, ax=None, **kwargs):
     )
 
     x0 = ax.transData.inverted().transform(trans_left.transform((interval.start, 0)))[0]
-    x1 = ax.transData.inverted().transform(trans_right.transform((interval.start, 0)))[
-        0
-    ]
+    x1 = ax.transData.inverted().transform(trans_right.transform((interval.start, 0)))[0]
 
     pad_bp = (x1 - x0) // 2
     row_indices = pack_rows(segments, pad=pad_bp)
 
     patches = []
-    for i, row_index in row_indices.items():
+    for interval_i, row_index in row_indices.items():
+        interval_rectprops = rectprops.copy()
+        interval_rectprops.update(getattr(interval_i, "rectprops", {}))
         patches.append(
             mpatches.Rectangle(
-                (i.start, row_index + 0.3), i.end - i.start, 0.4, **rectprops
+                (interval_i.start, row_index + 0.3), interval_i.end - interval_i.start, 0.4, **interval_rectprops
             )
         )
 
@@ -505,7 +501,7 @@ def segment_plot(interval, segments, pad_points=1, ax=None, **kwargs):
     # ax.yaxis.set_ticks(np.array(list(set(row_idxs)))+0.5)
     # ax.yaxis.set_ticklabels([])
 
-    format_axes_to_interval(ax, interval, xaxis=xaxis, yaxis=yaxis)
+    format_axes_to_interval(ax, interval)
 
     return ax
 
