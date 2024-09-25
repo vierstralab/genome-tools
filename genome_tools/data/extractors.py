@@ -18,6 +18,18 @@ class base_extractor(object):
     def __getitem__(self, i):
         raise NotImplementedError
 
+    def close(self):
+        raise NotImplementedError
+    
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def __del__(self):
+        self.close()
+
 
 # ------------------------
 
@@ -32,9 +44,6 @@ class fasta_extractor(base_extractor):
         seq = self.fasta.fetch(interval.chrom, interval.start, interval.end)
         # implement any post processing steps here
         return seq
-
-    def __del__(self):
-        self.close()
 
     def close(self):
         if self.fasta and self.fasta.is_open():
@@ -89,9 +98,6 @@ class tabix_extractor(base_extractor):
         ret.columns = self.columns
         return ret
 
-    def __del__(self):
-        self.close()
-
     def close(self):
         if getattr(self, "tabix", None) and self.tabix.is_open():
             self.tabix.close()
@@ -111,9 +117,6 @@ class bigwig_extractor(base_extractor):
         out = self.bw.values(interval.chrom, interval.start, interval.end, numpy=True)
         return out
 
-    def __del__(self):
-        self.close()
-
     def close(self):
         if getattr(self, "bw", None):
             self.bw.close()
@@ -128,9 +131,6 @@ class d4_extractor(base_extractor):
 
     def __getitem__(self, i):
         raise NotImplementedError
-
-    def __del__(self):
-        self.close()
 
     def close(self):
         pass
