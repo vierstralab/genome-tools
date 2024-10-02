@@ -465,7 +465,7 @@ def segment_plot(interval, segments, pad_points=1, ax=None, **kwargs):
     rectprops = {}
     rectprops["color"] = "k"
     rectprops["edgecolor"] = "none"
-    # rectprops.update(kwargs)
+    rectprops.update(kwargs)
 
     ax.set_xlim(interval.start, interval.end)
 
