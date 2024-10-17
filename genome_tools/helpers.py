@@ -32,7 +32,7 @@ def open_file(filename):
 
 def read_starch(filename, columns=None):
     # Not efficent, try to avoid starch files
-    result = subprocess.run(['unstarch', filename], stdout=subprocess.PIPE, text=True)
+    result = subprocess.run(['unstarch', filename], stdout=subprocess.PIPE, text=True, check=True)
     bed_data = pd.read_table(StringIO(result.stdout), header=None)
     ncols = len(bed_data.columns)
     if columns is None:
