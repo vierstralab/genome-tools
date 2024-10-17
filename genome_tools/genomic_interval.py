@@ -7,16 +7,15 @@ class GenomicInterval(object):
     """Class that implements BED-style object"""
 
     def __init__(
-        self, chrom, start, end, name=".", score=None, strand=None, extra=None, **kwargs
+        self, chrom, start, end, name=".", **kwargs
     ):
         self.chrom = str(chrom)
         self.start = int(start)
         self.end = int(end)
         self.name = str(name)
-        self.score = score
-        self.strand = strand
-        self.extra = extra
+        self._extra_fields = []
         for key, value in kwargs.items():
+            self._extra_fields.append(key)
             setattr(self, key, value)
 
     def __len__(self):
@@ -27,7 +26,8 @@ class GenomicInterval(object):
         """Returns a string-formated version of the element
         for printing
         """
-        return f'{self.__class__.__name__}({self.to_ucsc()})'
+        extra_fields = f", extra_fields={tuple(self._extra_fields)}" if len(self._extra_fields) > 0 else ""
+        return f'{self.__class__.__name__}({self.to_ucsc()}{extra_fields})'
 
     def to_ucsc(self):
         """Prints out a UCSC version of interval. Note
