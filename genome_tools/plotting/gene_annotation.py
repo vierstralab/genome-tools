@@ -6,7 +6,7 @@ import numpy as np
 
 import pysam
 
-from genome_tools.genomic_interval import genomic_interval
+from genome_tools.genomic_interval import GenomicInterval
 
 from .utils import pack_rows
 from .colors.cm import get_vocab_color
@@ -49,7 +49,7 @@ def load_gff_data(interval, gff_file, gene_symbol_exclude_regex=None):
     for row in fh.fetch(
         interval.chrom, interval.start, interval.end, parser=pysam.asGTF()
     ):
-        feature_interval = genomic_interval(
+        feature_interval = GenomicInterval(
             row.contig, row.start, row.end, strand=row.strand
         )
         attribs = parse_gff_attribs(row.attributes)

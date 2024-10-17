@@ -1,5 +1,5 @@
 import numpy as np
-from genome_tools.data.extractors import bigwig_extractor as BigwigExtractor
+from genome_tools.data.extractors import BigwigExtractor as BigwigExtractor
 
 
 def smooth_signal(bp_signal, bandwidth, step):

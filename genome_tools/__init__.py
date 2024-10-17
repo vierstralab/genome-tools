@@ -1,3 +1,3 @@
-__all__ = ["bed", "genomic_interval", "helpers"]
+__all__ = ["bed", "GenomicInterval", "helpers"]
 
 from .genomic_interval import *

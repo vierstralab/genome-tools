@@ -3,7 +3,7 @@
 import numpy as np
 
 
-class genomic_interval(object):
+class GenomicInterval(object):
     """Class that implements BED-style object"""
 
     def __init__(
@@ -23,11 +23,11 @@ class genomic_interval(object):
         """Length of element"""
         return self.end - self.start
 
-    def __str__(self):
+    def __repr__(self):
         """Returns a string-formated version of the element
         for printing
         """
-        return "\t".join([str(x) for x in [self.chrom, self.start, self.end]])
+        return f'{self.__class__.__name__}({self.to_ucsc()})'
 
     def to_ucsc(self):
         """Prints out a UCSC version of interval. Note
@@ -41,7 +41,7 @@ class genomic_interval(object):
             self.start -= x
             self.end += x
             return self
-        return genomic_interval(
+        return GenomicInterval(
             self.chrom, self.start - x, self.end + x, self.name, self.strand
         )
 
@@ -51,12 +51,12 @@ class genomic_interval(object):
             self.start += x
             self.end += x
             return self
-        return genomic_interval(
+        return GenomicInterval(
             self.chrom, self.start + x, self.end + x, self.name, self.strand
         )
     
 
-class variant_interval(genomic_interval):
+class VariantInterval(GenomicInterval):
     def __init__(self, chrom, start, end, ref=None, alt=None, value=None, **kwargs):
         assert end - start == 1
         super().__init__(chrom, start, end, **kwargs)
@@ -64,9 +64,6 @@ class variant_interval(genomic_interval):
         self.alt = alt
         self.pos = end
         self.value = value
-
-    def __str__(self):
-        return "\t".join([str(x) for x in [self.chrom, self.start, self.end, self.ref, self.alt]])
 
     def to_ucsc(self):
         return f"{self.chrom}:{self.pos}:{self.ref}:{self.alt}"
@@ -92,7 +89,7 @@ def df_to_genomic_intervals(df, interval=None, extra_columns=()):
     )
     if interval is not None:
         df = filter_df_to_interval(df, interval)
-    result = [genomic_interval(df_row['chrom'], df_row['start'], df_row['end'], **{col: df_row[col] for col in extra_columns}) for _, df_row in df.iterrows()]
+    result = [GenomicInterval(df_row['chrom'], df_row['start'], df_row['end'], **{col: df_row[col] for col in extra_columns}) for _, df_row in df.iterrows()]
     return result
 
 
@@ -102,5 +99,5 @@ def df_to_variant_intervals(df, interval=None, extra_columns=()):
     )
     if interval is not None:
         df = filter_df_to_interval(df, interval)
-    result = [variant_interval(df_row['chrom'], df_row['start'], df_row['end'], ref=df_row['ref'], alt=df_row['alt'], **{col: df_row[col] for col in extra_columns}) for _, df_row in df.iterrows()]
+    result = [VariantInterval(df_row['chrom'], df_row['start'], df_row['end'], ref=df_row['ref'], alt=df_row['alt'], **{col: df_row[col] for col in extra_columns}) for _, df_row in df.iterrows()]
     return result

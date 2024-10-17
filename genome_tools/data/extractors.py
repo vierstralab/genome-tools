@@ -11,7 +11,8 @@ import pandas as pd
 import gzip
 
 
-class base_extractor(object):
+
+class BaseExtractor:
     def __init__(self, filename, **kwargs):
         self.filename = filename
 
@@ -34,9 +35,9 @@ class base_extractor(object):
 # ------------------------
 
 
-class fasta_extractor(base_extractor):
+class FastaExtractor(BaseExtractor):
     def __init__(self, filename, **kwargs):
-        super(fasta_extractor, self).__init__(filename, **kwargs)
+        super(FastaExtractor, self).__init__(filename, **kwargs)
 
         self.fasta = pysam.FastaFile(filename)
 
@@ -53,7 +54,7 @@ class fasta_extractor(base_extractor):
 # ------------------------
 
 
-class tabix_iter(object):
+class TabixIter(object):
     """Wraps tabix fetch to return an iterator that can be used with pandas"""
 
     def __init__(self, tabix, interval):
@@ -72,10 +73,10 @@ class tabix_iter(object):
         return self.read()
 
 
-class tabix_extractor(base_extractor):
+class TabixExtractor(BaseExtractor):
     def __init__(self, filename, header_char="#", columns=None, **kwargs):
         """ """
-        super(tabix_extractor, self).__init__(filename, **kwargs)
+        super(TabixExtractor, self).__init__(filename, **kwargs)
 
         self.tabix = pysam.TabixFile(filename)
 
@@ -93,7 +94,7 @@ class tabix_extractor(base_extractor):
 
     def __getitem__(self, interval):
         ret = pd.read_table(
-            tabix_iter(self.tabix, interval), header=None, index_col=None
+            TabixIter(self.tabix, interval), header=None, index_col=None
         )
         ret.columns = self.columns
         return ret
@@ -102,14 +103,35 @@ class tabix_extractor(base_extractor):
         if getattr(self, "tabix", None) and self.tabix.is_open():
             self.tabix.close()
 
+# ------------------------
+
+class ChromParquetExtractor(BaseExtractor):
+    def __init__(self, filename, columns=None, **kwargs):
+        """
+        Extracts data from a single bp resolution parquet file partitioned by chromosome
+        """
+        super(ChromParquetExtractor, self).__init__(filename, **kwargs)
+        self.columns = columns
+
+    def __getitem__(self, interval):
+        return pd.read_parquet(
+            self.filename,
+            filters=[('chrom', '==', interval.chrom)],
+            engine='pyarrow',
+            columns=self.columns,
+        ).iloc[interval.start:interval.end]
+
+    def close(self):
+        pass
+
 
 # ------------------------
 
 
-class bigwig_extractor(base_extractor):
+class BigwigExtractor(BaseExtractor):
     def __init__(self, filename, **kwargs):
         """ """
-        super(bigwig_extractor, self).__init__(filename, **kwargs)
+        super(BigwigExtractor, self).__init__(filename, **kwargs)
 
         self.bw = pbw.open(filename)
 
@@ -125,7 +147,7 @@ class bigwig_extractor(base_extractor):
 # ------------------------
 
 
-class d4_extractor(base_extractor):
+class D4Extractor(BaseExtractor):
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
 

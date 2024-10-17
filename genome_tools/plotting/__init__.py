@@ -458,9 +458,12 @@ def grouped_heatmap_plot(
 # ------------------------
 
 
-def segment_plot(interval, segments, pad_points=1, ax=None, **kwargs):
+def segment_plot(interval, segments, pad_points=1, ax=None, rect_height=0.4, **kwargs):
     if not ax:
         ax = plt.gca()
+
+    assert 0 < rect_height <= 1
+    rect_pad = (1 - rect_height) / 2
 
     rectprops = {}
     rectprops["color"] = "k"
@@ -488,7 +491,7 @@ def segment_plot(interval, segments, pad_points=1, ax=None, **kwargs):
         interval_rectprops.update(getattr(interval_i, "rectprops", {}))
         patches.append(
             mpatches.Rectangle(
-                (interval_i.start, row_index + 0.3), interval_i.end - interval_i.start, 0.4, **interval_rectprops
+                (interval_i.start, row_index + rect_pad), interval_i.end - interval_i.start, rect_height, **interval_rectprops
             )
         )
 
