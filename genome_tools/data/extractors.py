@@ -47,7 +47,7 @@ class FastaExtractor(BaseExtractor):
         return seq
 
     def close(self):
-        if self.fasta and self.fasta.is_open():
+        if self.fasta and not self.fasta.closed:
             self.fasta.close()
 
 
