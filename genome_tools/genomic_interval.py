@@ -8,15 +8,17 @@ class GenomicInterval(object):
     """Class that implements BED-style object"""
 
     def __init__(self, chrom, start, end, name=".", **kwargs):
-        super().__setattr__('extra_fields', []) 
+        super().__setattr__('_initialized', False)
         self.chrom = str(chrom)
         self.start = int(start)
         self.end = int(end)
         self.name = str(name)
         self.req_fields = ["chrom", "start", "end", "name"]
+        self.extra_fields = []
         for key, value in kwargs.items():
             self.extra_fields.append(key)
             setattr(self, key, value)
+        super().__setattr__('_initialized', True)
 
     def from_ucsc(ucsc_str):
         """Parses a UCSC-style string to a GenomicInterval object"""
@@ -29,10 +31,12 @@ class GenomicInterval(object):
         return self.end - self.start
 
     def __setattr__(self, name, value):
-        if name == 'extra_fields':
-            raise AttributeError("Cannot set extra_fields directly")
-        if not hasattr(self, name) and name != 'extra_fields':
-            self.extra_fields.append(name)
+        if getattr(self, '_initialized', False):
+            reserved_fields = ('extra_fields', 'req_fields')
+            if name in reserved_fields:
+                raise AttributeError(f"Cannot set reserved fields directly {reserved_fields}")
+            if not hasattr(self, name):
+                self.extra_fields.append(name)
         super().__setattr__(name, value)
 
     def __repr__(self):
