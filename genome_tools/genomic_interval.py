@@ -28,6 +28,13 @@ class GenomicInterval(object):
         """Length of element"""
         return self.end - self.start
 
+    def __setattr__(self, name, value):
+        if name == 'extra_fields':
+            raise AttributeError("Cannot set extra_fields directly")
+        if not hasattr(self, name) and name != 'extra_fields':
+            self.extra_fields.append(name)
+        super().__setattr__(name, value)
+
     def __repr__(self):
         """Returns a string-formated version of the element
         for printing
