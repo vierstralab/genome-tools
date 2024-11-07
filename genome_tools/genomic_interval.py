@@ -192,7 +192,7 @@ def genomic_intervals_to_df(genomic_intervals: List[GenomicInterval]):
     fields = req_fields + extra_fields
     return pd.DataFrame(
         [
-            (getattr(interval, field) for field in fields)
+            [getattr(interval, field) for field in fields]
             for interval in genomic_intervals
         ],
         columns=fields
