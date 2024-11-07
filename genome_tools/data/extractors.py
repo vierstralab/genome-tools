@@ -93,9 +93,12 @@ class TabixExtractor(BaseExtractor):
                 self.columns = columns
 
     def __getitem__(self, interval):
-        ret = pd.read_table(
-            TabixIter(self.tabix, interval), header=None, index_col=None
-        )
+        try:
+            ret = pd.read_table(
+                TabixIter(self.tabix, interval), header=None, index_col=None
+            )
+        except pd.errors.EmptyDataError:
+            ret = pd.DataFrame(columns=self.columns)
         ret.columns = self.columns
         return ret
 

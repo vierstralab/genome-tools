@@ -9,6 +9,7 @@ import matplotlib.axes as maxes
 import matplotlib.axis as maxis
 import matplotlib.collections as mcollections
 import matplotlib.patches as mpatches
+import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import matplotlib.text as mtext
 import matplotlib.transforms as mtransforms
@@ -485,6 +486,7 @@ def segment_plot(interval, segments, pad_points=1, ax=None, rect_height=0.4, **k
     pad_bp = (x1 - x0) // 2
     row_indices = pack_rows(segments, pad=pad_bp)
 
+    summit_lines = []
     patches = []
     for interval_i, row_index in row_indices.items():
         interval_rectprops = rectprops.copy()
@@ -494,11 +496,26 @@ def segment_plot(interval, segments, pad_points=1, ax=None, rect_height=0.4, **k
                 (interval_i.start, row_index + rect_pad), interval_i.end - interval_i.start, rect_height, **interval_rectprops
             )
         )
+        if hasattr(interval_i, "summit"):
+            summit_lines.append(
+                mlines.Line2D(
+                    [interval_i.summit, interval_i.summit],
+                    [row_index + rect_pad - rect_height*0.2, row_index + rect_pad + rect_height*1.2],
+                    color="k",
+                    lw=0.25,
+                )
+        )
 
     pc = mcollections.PatchCollection(patches, match_original=True)
     ax.add_collection(pc)
 
-    ax.set_ylim(min(row_indices.values()), max(row_indices.values()) + 1)
+    for line in summit_lines:
+        ax.add_line(line)
+
+    ax.set_ylim(
+        min(row_indices.values(), default=0),
+        max(row_indices.values(), default=1) + 1
+    )
     ax.invert_yaxis()
 
     # ax.yaxis.set_ticks(np.array(list(set(row_idxs)))+0.5)
