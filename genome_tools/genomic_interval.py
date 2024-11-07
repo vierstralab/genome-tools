@@ -7,9 +7,7 @@ import pandas as pd
 class GenomicInterval(object):
     """Class that implements BED-style object"""
 
-    def __init__(
-        self, chrom, start, end, name=".", **kwargs
-    ):
+    def __init__(self, chrom, start, end, name=".", **kwargs):
         self.chrom = str(chrom)
         self.start = int(start)
         self.end = int(end)
