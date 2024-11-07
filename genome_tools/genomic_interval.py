@@ -48,24 +48,28 @@ class GenomicInterval(object):
         return {key: getattr(self, key) for key in self.extra_fields}
     
     def __add__(self, x: int):
-        if not isinstance(x, int):
-            raise TypeError("shift must be an integer")
         return self.shift(x)
     
+    def __iadd__(self, x):
+        return self.shift(x, inplace=True)
+    
     def __sub__(self, x: int):
-        if not isinstance(x, int):
-            raise TypeError("shift must be an integer")
         return self.shift(-x)
     
+    def __isub__(self, x: int):
+        return self.shift(-x, inplace=True)
+    
     def __mul__(self, x: float):
-        if not isinstance(x, (int, float)):
-            raise TypeError("zoom-in factor must be an int or float")
         return self.zoom(x)
     
+    def __imul__(self, x: float):
+        return self.zoom(x, inplace=True)
+    
     def __truediv__(self, x: float):
-        if not isinstance(x, (int, float)):
-            raise TypeError("zoom-out factor must be an int or float")
         return self.zoom(1 / x)
+    
+    def __itruediv__(self, x: float):
+        return self.zoom(1 / x, inplace=True)
 
     def widen(self, x, inplace=False):
         """Expands the coordinates"""
@@ -89,6 +93,8 @@ class GenomicInterval(object):
         Positive zoom is interpreted as zooming in
         Negative zoom is interpreted as zooming out
         """
+        if not isinstance(zoom_factor, (int, float)):
+            raise TypeError("zoom factor must be an int or float")
         assert zoom_factor != 0, "Zoom factor cannot be zero"
         if zoom_factor < 0:
             zoom_factor = -1 / zoom_factor
@@ -96,7 +102,9 @@ class GenomicInterval(object):
         padding = int(len(self) * ((1 / zoom_factor) - 1) / 2)
         return self.widen(padding, inplace=inplace)
 
-    def shift(self, x, inplace=False):
+    def shift(self, x: int, inplace=False):
+        if not isinstance(x, int):
+            raise TypeError("shift must be an integer")
         """Shifts the coordinates"""
         if inplace:
             self.start += x
