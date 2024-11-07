@@ -8,12 +8,12 @@ class GenomicInterval(object):
     """Class that implements BED-style object"""
 
     def __init__(self, chrom, start, end, name=".", **kwargs):
+        super().__setattr__('extra_fields', []) 
         self.chrom = str(chrom)
         self.start = int(start)
         self.end = int(end)
         self.name = str(name)
         self.req_fields = ["chrom", "start", "end", "name"]
-        self.extra_fields = []
         for key, value in kwargs.items():
             self.extra_fields.append(key)
             setattr(self, key, value)
