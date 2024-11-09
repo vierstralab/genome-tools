@@ -8,17 +8,16 @@ class GenomicInterval(object):
     """Class that implements BED-style object"""
 
     def __init__(self, chrom, start, end, name=".", **kwargs):
-        super().__setattr__('_initialized', False)
         self.chrom = str(chrom)
         self.start = int(start)
         self.end = int(end)
         self.name = str(name)
         self.req_fields = ["chrom", "start", "end", "name"]
         self.extra_fields = []
-        for key, value in kwargs.items():
-            self.extra_fields.append(key)
-            setattr(self, key, value)
         super().__setattr__('_initialized', True)
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+ 
 
     def from_ucsc(ucsc_str):
         """Parses a UCSC-style string to a GenomicInterval object"""
@@ -43,7 +42,8 @@ class GenomicInterval(object):
         """Returns a string-formated version of the element
         for printing
         """
-        extra_fields = f", extra_fields={tuple(self.extra_fields)}" if len(self.extra_fields) > 0 else ""
+        extra_repr = ', '.join([f'{k}={v}'for k, v in self.extra_kwargs.items()])
+        extra_fields = f", {extra_repr}" if len(self.extra_fields) > 0 else ""
         return f'{self.__class__.__name__}({self.to_ucsc()}{extra_fields})'
 
     def to_ucsc(self):
