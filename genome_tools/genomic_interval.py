@@ -56,6 +56,10 @@ class GenomicInterval(object):
     def extra_kwargs(self):
         return {key: getattr(self, key) for key in self.extra_fields}
     
+    @property
+    def center(self):
+        return self.widen(-len(self))
+    
     def __add__(self, x: int):
         return self.shift(x)
     
@@ -108,7 +112,7 @@ class GenomicInterval(object):
         if zoom_factor < 0:
             zoom_factor = -1 / zoom_factor
         
-        padding = int(len(self) * ((1 / zoom_factor) - 1) / 2)
+        padding = round(len(self) * ((1 / zoom_factor) - 1) / 2)
         return self.widen(padding, inplace=inplace)
 
     def shift(self, x: int, inplace=False):
