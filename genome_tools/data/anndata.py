@@ -9,7 +9,7 @@ def _read_zarr_group(dat):
     if type(dat) == zarr.Array:
         return da.from_zarr(dat)
     else:
-        return ad.experimental.sparse_dataset(dat)
+        return ad.experimental.sparse_dataset(dat).to_memory()
 
 
 def read_zarr_backed(filename):
