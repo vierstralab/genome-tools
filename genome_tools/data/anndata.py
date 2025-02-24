@@ -20,8 +20,10 @@ def read_zarr_backed(filename):
     with zarr.open(filename, "r") as f:
         if "encoding-type" in f.attrs:
             attributes.extend(df_attributes)
-        
-        d['X'] = _read_zarr_group(f['X'])
+
+        if 'X' in f:
+            d['X'] = _read_zarr_group(f['X'])
+
         for k in attributes:
             if k not in f:
                 continue
