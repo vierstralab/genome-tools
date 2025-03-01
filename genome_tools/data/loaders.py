@@ -103,6 +103,7 @@ class data_loader_iter(object):
                 self._put_indices()
         else:
             logger.info(f"Using a single threads to process data")
+            self.shutdown = False
 
     def __len__(self):
         return len(self.batch_sampler)
