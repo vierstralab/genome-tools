@@ -132,11 +132,13 @@ class VariantInterval(GenomicInterval):
     def __init__(self, chrom, start, end, ref=None, alt=None, value=None, **kwargs):
         assert end - start == 1
         super().__init__(chrom, start, end, **kwargs)
+        super().__setattr__('_initialized', False)
         self.ref = ref
         self.alt = alt
         self.value = value
         self.req_fields += ["ref", "alt", "value"]
         self.pos = end
+        super().__setattr__('_initialized', True)
 
     def to_ucsc(self):
         return f"{self.chrom}:{self.pos}:{self.ref}:{self.alt}"
