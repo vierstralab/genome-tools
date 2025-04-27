@@ -194,7 +194,7 @@ def genomic_intervals_to_df(genomic_intervals: List[GenomicInterval]):
     assert len(genomic_intervals) > 0, "No intervals to convert"
     req_fields = genomic_intervals[0].req_fields
     extra_fields = genomic_intervals[0].extra_fields
-    assert all(inerval.extra_fields == extra_fields for inerval in genomic_intervals), "Not all _extra_fields of genomic_intervals are identical!"
+    assert all(interval.extra_fields == extra_fields for interval in genomic_intervals), "Not all _extra_fields of genomic_intervals are identical!"
     fields = req_fields + extra_fields
     return pd.DataFrame(
         [
