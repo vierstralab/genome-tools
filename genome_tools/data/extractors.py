@@ -74,14 +74,31 @@ class TabixIter(object):
 
 
 class TabixExtractor(BaseExtractor):
-    def __init__(self, filename, header_char="#", columns=None, **kwargs):
-        """ """
+    def __init__(self, filename, header_char="#", columns=None, skiprows=0, **kwargs):
+        """
+        Extracts data from a tabix file. The file must be bgzip compressed and indexed with tabix.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the tabix file.
+        header_char : str
+            Character that indicates the start of a header line. Default is '#'.
+        columns : list
+            List of column names to use. If None, the first line of the file is used as the header.
+        skiprows : int
+            Number of rows to skip at the beginning of the file. Default is 0.
+        **kwargs : dict
+            Additional arguments to pass to the base class.
+        """
         super(TabixExtractor, self).__init__(filename, **kwargs)
 
         self.tabix = pysam.TabixFile(filename)
 
 
         with gzip.open(filename, "rt") as f:
+            for _ in range(skiprows):
+                next(f)
             line = f.readline().strip('\n')
             if columns is None:
                 if line.startswith(header_char):
