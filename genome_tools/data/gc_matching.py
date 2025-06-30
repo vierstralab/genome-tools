@@ -9,6 +9,7 @@ from genome_tools import GenomicInterval, df_to_genomic_intervals, genomic_inter
 from typing import Union, List
 
 from tqdm import tqdm
+import pickle
 
 try:
     from hotspot3.helpers.utils import correct_offset
@@ -44,7 +45,22 @@ class GCTrack:
         self.built = False
         self.masked = False
         self.has_sampling_index = False
+
+    def __getitem__(self, key):
+        interval, col = self.parse_key(key)
+        return self.track[interval.chrom][interval.start:interval.end, col]
     
+    def __setitem__(self, key, value):
+        interval, col = self.parse_key(key)
+        self.track[interval.chrom][interval.start:interval.end, col] = value
+    
+    def __repr__(self):
+        return f"GCTrack(window_size={self.window_size}, n_bins={self.n_bins}, is_built={self.built}, is_masked={self.masked}, has_sampling_index={self.has_sampling_index})"
+    
+    def at(self, key):
+        assert isinstance(key, GenomicInterval), "Key must be a GenomicInterval"
+        center = key.center
+        return self[center, 'raw'][0]
 
     def parse_key(self, key):
         assert isinstance(key, tuple)
@@ -65,25 +81,11 @@ class GCTrack:
         else:
             raise ValueError("Invalid mode")
         return interval, col
-
-    def __getitem__(self, key):
-        interval, col = self.parse_key(key)
-        return self.track[interval.chrom][interval.start:interval.end, col]
-    
-    def __setitem__(self, key, value):
-        interval, col = self.parse_key(key)
-        self.track[interval.chrom][interval.start:interval.end, col] = value
-    
-    def at(self, key):
-        assert isinstance(key, GenomicInterval), "Key must be a GenomicInterval"
-        center = key.center
-        return self[center, 'raw'][0]
     
     @correct_offset
     def bn_mean_correct_offset(self, array, window, *args, **kwargs):
         return bn.move_mean(array, window, *args, **kwargs).astype(np.float32)
     
-
     def build(self):
         with FastaExtractor(self.fasta_file) as extractor:
             for chrom, length in tqdm(self.chrom_sizes.items(), total=len(self.chrom_sizes)):
@@ -109,6 +111,7 @@ class GCTrack:
                 self[gi, 'masked'] = bins
 
         self.built = True
+        return self
 
     def mask(self, exclude_regions: Union[List[GenomicInterval], pd.DataFrame]):
         # Group excluded intervals by chromosome
@@ -129,11 +132,11 @@ class GCTrack:
             chrom_track[exclude_windows, 1] = -1
 
         self.masked = True
-
+        return self
 
     def build_sampling_index(self):
         if not self.masked:
-            print('Warning! No regions were masked. All data will be used in sampling.')
+            print('Warning! No regions are masked. All data will be used for sampling.')
         sampling_data = defaultdict(list)
         for chromosome in tqdm(self.chrom_names):
             gc_bins_track = self.track[chromosome][:, 1]
@@ -156,6 +159,16 @@ class GCTrack:
         for key, value in sampling_data.items():
             self.sampling_index[key] = pd.concat(value, ignore_index=True)
         self.has_sampling_index = True
+        return self
+    
+    def save(self, filename: str):
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
+    
+    @staticmethod
+    def load(filename: str):
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
 
 
 class GCSampler:
@@ -174,7 +187,7 @@ class GCSampler:
             raise ValueError("GC track is not built. Call `build` method for GC track first.")
         
         if not self.gc_track.masked:
-            print('Warning! No regions are masked in GC track. All data will be used in sampling.')
+            print('Warning! No regions are masked in GC track. All data will be used for sampling.')
         
         positives = sanitize_bed_data(positives)
         if not self.gc_track.has_sampling_index:
