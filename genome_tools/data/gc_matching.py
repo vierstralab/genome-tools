@@ -204,7 +204,7 @@ class GCSampler:
         gc_bin_counts = gc_bin_counts * n
 
         result = []
-        for bin, count in zip(gc_bins, gc_bin_counts):
+        for bin, count in tqdm(zip(gc_bins, gc_bin_counts), total=len(gc_bins)):
             if len(self.gc_track.sampling_index[bin]) < count:
                 print(f"Warning: Not enough samples for GC bin {bin}. Requested {count}, available {len(self.gc_track.sampling_index[bin])}. Sampling with replacement")
                 replace = True
@@ -262,13 +262,13 @@ class GCSampler:
             if same_chromosome:
                 chrom = reference_interval.chrom
             else:
-                chrom = self.rng.choice(self.chrom_sizes.index)
+                chrom = self.rng.choice(self.gc_track.chrom_names)
             sampled_center = self.rng.integers(
                 self.flank_length,
-                self.chrom_sizes.at[chrom, 'length'] - self.flank_length
+                self.chrom_sizes[chrom] - self.flank_length
             )
             interval = GenomicInterval(chrom, sampled_center, sampled_center + 1)
             if self.gc_track[interval, 'masked'][0] == bin_id:
                 return interval.widen(self.flank_length)
         else:
-            print(f"Warning: Maximum iterations {max_iter} reached without finding a valid sample.")
+            print(f"Warning: Maximum iterations {max_iter} reached without finding a matching region.")
