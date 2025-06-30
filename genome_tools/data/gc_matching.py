@@ -112,7 +112,7 @@ class GCTrack:
 
     def mask(self, exclude_regions: Union[List[GenomicInterval], pd.DataFrame]):
         # Group excluded intervals by chromosome
-        grouped = defaultdict(List[GenomicInterval])
+        grouped = defaultdict(list)
         for interval in sanitize_bed_data(exclude_regions):
             grouped[interval.chrom].append(interval)
 
