@@ -8,7 +8,6 @@ from genome_tools import GenomicInterval, df_to_genomic_intervals, genomic_inter
 
 from typing import Union, List
 
-import pickle
 from tqdm import tqdm
 
 try:
@@ -189,6 +188,7 @@ class GCSampler:
         if not self.gc_track.masked:
             print('Warning! No regions are masked in GC track. All data will be used in sampling.')
         
+        positives = sanitize_bed_data(positives)
         if not self.gc_track.has_sampling_index:
             print('GC track doesn\'t have a sampling index. Call `build_sampling_index` for GC track to enable efficent sampling')
             return self.rejection_sampling(positives, n, *args, **kwargs)
