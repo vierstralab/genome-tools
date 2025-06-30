@@ -24,9 +24,9 @@ def sanitize_bed_data(data: Union[List[GenomicInterval], pd.DataFrame]):
 
 
 class GCTrack:
-    def __init__(self, chrom_sizes: pd.DataFrame, fasta_file, window_size=1345, n_bins=100):
+    def __init__(self, chrom_sizes: dict, fasta_file, window_size=1345, n_bins=100):
         self.chrom_sizes = chrom_sizes
-        self.chrom_names = chrom_sizes.index.tolist()
+        self.chrom_names = list(chrom_sizes.keys())
         self.fasta_file = fasta_file
 
         self.window_size = window_size
@@ -36,8 +36,8 @@ class GCTrack:
         self.gc_bins = np.linspace(0, 1, n_bins + 1)
 
         self.track = {
-            chrom: np.full((length, 2), -1, dtype=np.int16)
-            for chrom, length in zip(self.chrom_names, self.chrom_sizes['length'])
+            chrom: np.full((length, 2), -1, dtype=np.float32)
+            for chrom, length in self.chrom_sizes.items()
         }
         self.sampling_index = defaultdict(pd.DataFrame)
 
@@ -85,61 +85,49 @@ class GCTrack:
     
 
     def build(self):
-        extractor = FastaExtractor(self.fasta_file)
-        for chrom, row in self.chrom_sizes.iterrows():
-            length = int(row['length'])
-            gi = GenomicInterval(chrom, 0, length)
-            seq = extractor[gi].upper()
-            arr = np.frombuffer(seq.encode('ascii'), dtype=np.uint8)
+        with FastaExtractor(self.fasta_file) as extractor:
+            for chrom, length in tqdm(self.chrom_sizes.items(), total=len(self.chrom_sizes)):
+                gi = GenomicInterval(chrom, 0, length)
+                seq = extractor[gi].upper()
+                arr = np.frombuffer(seq.encode('ascii'), dtype=np.uint8)
 
-            is_gc = np.select(
-                [
-                    (arr == ord('G')) | (arr == ord('C')),
-                    (arr == ord('A')) | (arr == ord('T')),
-                ],
-                [
-                    1,
-                    0
-                ],
-                default=np.nan  # Other bases
-            ).astype(np.float32)
+                is_gc = np.select(
+                    [
+                        (arr == ord('G')) | (arr == ord('C')),
+                        (arr == ord('A')) | (arr == ord('T')),
+                    ],
+                    [
+                        1,
+                        0
+                    ],
+                    default=np.nan  # Other bases
+                ).astype(np.float32)
 
-
-            # GC fraction per window
-            print('Convolving')
-            print(self.window_size)
-            gc_frac = self.bn_mean_correct_offset(is_gc, self.window_size, self.flank_length).astype(np.float32)
-            bins = np.digitize(gc_frac, self.gc_bins[1:-1])
-            print('Convolution done')
-            self[gi, 'raw'] = bins
-            self[gi, 'masked'] = bins
-        extractor.close()
+                gc_frac = self.bn_mean_correct_offset(is_gc, self.window_size, self.flank_length).astype(np.float32)
+                bins = np.digitize(gc_frac, self.gc_bins[1:-1])
+                self[gi, 'raw'] = bins
+                self[gi, 'masked'] = bins
 
         self.built = True
 
     def mask(self, exclude_regions: Union[List[GenomicInterval], pd.DataFrame]):
         # Group excluded intervals by chromosome
-        grouped = defaultdict(list)
-        for ex in sanitize_bed_data(exclude_regions):
-            grouped[ex.chrom].append(ex)
+        grouped = defaultdict(List[GenomicInterval])
+        for interval in sanitize_bed_data(exclude_regions):
+            grouped[interval.chrom].append(interval)
 
-        for chrom, chrom_track in self.track.items():
+        for chrom, intervals in tqdm(grouped.items(), total=len(grouped)):
+            chrom_track = self.track[chrom]
             mask = np.zeros(len(chrom_track), dtype=np.float32)
-            ## TODO: double check
-            for ex in grouped.get(chrom, []):
-                # Mark the base-level exclusion mask
-                 # ensure in-bounds 
-                start = max(0, ex.start)
-                end = min(ex.end, start + len(mask)) 
-                mask[start:end] = 1
-
-            # Convolve once per chromosome
+            for interval in intervals:
+                mask[interval.start:interval.end] = 1
             exclude_windows = (self.bn_mean_correct_offset(
                 mask,
                 self.window_size
             ) > 0).astype(bool)
             chrom_track[:, 1] = chrom_track[:, 0]
-            chrom_track[exclude_windows > 0, 1] = -1
+            chrom_track[exclude_windows, 1] = -1
+
         self.masked = True
 
 
@@ -147,7 +135,7 @@ class GCTrack:
         if not self.masked:
             print('Warning! No regions were masked. All data will be used in sampling.')
         sampling_data = defaultdict(list)
-        for chromosome in self.chrom_names:
+        for chromosome in tqdm(self.chrom_names):
             gc_bins_track = self.track[chromosome][:, 1]
             sorted_idx = np.argsort(gc_bins_track)
             sorted_vals = gc_bins_track[sorted_idx]
