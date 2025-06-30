@@ -221,7 +221,7 @@ class GCSampler:
         result['start'] = result['center'] - self.flank_length
 
         result['end'] = result['center'] + self.flank_length + 1
-        return result
+        return result[['chrom', 'start', 'end', 'mid']]
 
     def rejection_sampling(
             self,
