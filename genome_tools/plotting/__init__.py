@@ -15,7 +15,7 @@ import matplotlib.text as mtext
 import matplotlib.transforms as mtransforms
 import matplotlib.ticker as mticker
 
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes, InsetPosition
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 # registers custom colormaps
@@ -375,6 +375,12 @@ def grouped_heatmap_plot(
     cb_label="",
     **kwargs,
 ):
+    try:
+        from mpl_toolkits.axes_grid1.inset_locator import InsetPosition
+    except ImportError:
+        raise ImportError(
+            "Please install mpl version <= 3.10 to use grouped_heatmap_plot."
+        )
     if not ax:
         ax = plt.gca()
     fig = ax.get_figure()
