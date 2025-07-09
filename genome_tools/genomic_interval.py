@@ -2,6 +2,7 @@
 
 from typing import List
 import pandas as pd
+from tqdm import tqdm
 
 
 class GenomicInterval(object):
@@ -169,9 +170,18 @@ def _sanitize_df(df: pd.DataFrame, interval: GenomicInterval):
     return df
 
 
-def df_to_genomic_intervals(df: pd.DataFrame, interval: GenomicInterval=None, extra_columns=()):
+def df_to_genomic_intervals(df: pd.DataFrame, interval: GenomicInterval = None, extra_columns=()):
     df = _sanitize_df(df, interval)
-    result = [GenomicInterval(df_row['chrom'], df_row['start'], df_row['end'], **{col: df_row[col] for col in extra_columns}) for _, df_row in df.iterrows()]
+    get_col_idx = {col: i for i, col in enumerate(df.columns)}
+    result = [
+        GenomicInterval(
+            row[get_col_idx['chrom']],
+            row[get_col_idx['start']],
+            row[get_col_idx['end']],
+            **{col: row[get_col_idx[col]] for col in extra_columns}
+        )
+        for row in tqdm(df.itertuples(index=False, name=None), total=len(df), desc="Converting df to intervals")
+    ]
     return result
 
 
