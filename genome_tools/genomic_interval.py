@@ -170,7 +170,7 @@ def _sanitize_df(df: pd.DataFrame, interval: GenomicInterval):
     return df
 
 
-def df_to_genomic_intervals(df: pd.DataFrame, interval: GenomicInterval = None, extra_columns=(), verbose=True):
+def df_to_genomic_intervals(df: pd.DataFrame, interval: GenomicInterval = None, extra_columns=(), verbose=False):
     df = _sanitize_df(df, interval)
     iterator = df.itertuples(index=False, name=None)
     if verbose:
