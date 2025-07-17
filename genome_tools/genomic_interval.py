@@ -170,8 +170,11 @@ def _sanitize_df(df: pd.DataFrame, interval: GenomicInterval):
     return df
 
 
-def df_to_genomic_intervals(df: pd.DataFrame, interval: GenomicInterval = None, extra_columns=()):
+def df_to_genomic_intervals(df: pd.DataFrame, interval: GenomicInterval = None, extra_columns=(), verbose=True):
     df = _sanitize_df(df, interval)
+    iterator = df.itertuples(index=False, name=None)
+    if verbose:
+        iterator = tqdm(iterator, total=len(df), desc="Converting df to intervals")
     get_col_idx = {col: i for i, col in enumerate(df.columns)}
     result = [
         GenomicInterval(
@@ -180,7 +183,7 @@ def df_to_genomic_intervals(df: pd.DataFrame, interval: GenomicInterval = None, 
             row[get_col_idx['end']],
             **{col: row[get_col_idx[col]] for col in extra_columns}
         )
-        for row in tqdm(df.itertuples(index=False, name=None), total=len(df), desc="Converting df to intervals")
+        for row in iterator
     ]
     return result
 
