@@ -9,12 +9,13 @@ import matplotlib.axes as maxes
 import matplotlib.axis as maxis
 import matplotlib.collections as mcollections
 import matplotlib.patches as mpatches
+import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import matplotlib.text as mtext
 import matplotlib.transforms as mtransforms
 import matplotlib.ticker as mticker
 
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes, InsetPosition
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 # registers custom colormaps
@@ -377,6 +378,12 @@ def grouped_heatmap_plot(
     cb_label="",
     **kwargs,
 ):
+    try:
+        from mpl_toolkits.axes_grid1.inset_locator import InsetPosition
+    except ImportError:
+        raise ImportError(
+            "Please install mpl version <= 3.10 to use grouped_heatmap_plot."
+        )
     if not ax:
         ax = plt.gca()
     fig = ax.get_figure()
@@ -461,18 +468,17 @@ def grouped_heatmap_plot(
 # ------------------------
 
 
-def segment_plot(interval, segments, pad_points=1, ax=None, **kwargs):
+def segment_plot(interval, segments, pad_points=1, ax=None, rect_height=0.4, **kwargs):
     if not ax:
         ax = plt.gca()
-    fig = ax.figure
 
-    xaxis = kwargs.pop("xaxis", "bottom")
-    yaxis = kwargs.pop("yaxis", None)
+    assert 0 < rect_height <= 1
+    rect_pad = (1 - rect_height) / 2
 
     rectprops = {}
     rectprops["color"] = "k"
     rectprops["edgecolor"] = "none"
-    # rectprops.update(kwargs)
+    rectprops.update(kwargs)
 
     ax.set_xlim(interval.start, interval.end)
 
@@ -484,31 +490,47 @@ def segment_plot(interval, segments, pad_points=1, ax=None, **kwargs):
     )
 
     x0 = ax.transData.inverted().transform(trans_left.transform((interval.start, 0)))[0]
-    x1 = ax.transData.inverted().transform(trans_right.transform((interval.start, 0)))[
-        0
-    ]
+    x1 = ax.transData.inverted().transform(trans_right.transform((interval.start, 0)))[0]
 
     pad_bp = (x1 - x0) // 2
     row_indices = pack_rows(segments, pad=pad_bp)
 
+    summit_lines = []
     patches = []
-    for i, row_index in row_indices.items():
+    for interval_i, row_index in row_indices.items():
+        interval_rectprops = rectprops.copy()
+        interval_rectprops.update(getattr(interval_i, "rectprops", {}))
         patches.append(
             mpatches.Rectangle(
-                (i.start, row_index + 0.3), i.end - i.start, 0.4, **rectprops
+                (interval_i.start, row_index + rect_pad), interval_i.end - interval_i.start, rect_height, **interval_rectprops
             )
+        )
+        if hasattr(interval_i, "summit"):
+            summit_lines.append(
+                mlines.Line2D(
+                    [interval_i.summit, interval_i.summit],
+                    [row_index + rect_pad - rect_height*0.2, row_index + rect_pad + rect_height*1.2],
+                    color="k",
+                    lw=0.25,
+                )
         )
 
     pc = mcollections.PatchCollection(patches, match_original=True)
     ax.add_collection(pc)
 
-    ax.set_ylim(min(row_indices.values()), max(row_indices.values()) + 1)
+    for line in summit_lines:
+        ax.add_line(line)
+
+    ax.set_ylim(
+        min(row_indices.values(), default=0),
+        max(row_indices.values(), default=1) + 1
+    )
     ax.invert_yaxis()
 
     # ax.yaxis.set_ticks(np.array(list(set(row_idxs)))+0.5)
     # ax.yaxis.set_ticklabels([])
 
-    format_axes_to_interval(ax, interval, xaxis=xaxis, yaxis=yaxis)
+    format_axes_to_interval(ax, interval)
 
     return ax
 

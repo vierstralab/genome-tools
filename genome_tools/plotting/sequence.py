@@ -3,6 +3,7 @@ import os
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
+from shapely.geometry import Polygon as ShapelyPolygon
 
 from .colors.cm import VOCAB_COLOR_MAPS
 
@@ -181,20 +182,54 @@ def transform_polygon(polygon, width_scale=1.0, height_scale=1.0, x_offset=0.0, 
     return transformed_polygon
 
 
+def classify_polygons_by_nesting_depth(polygons):
+    """
+    Classify each polygon by the number of times it is contained within other polygons (its depth).
+    
+    Parameters:
+    - polygons: A list of lists of (x, y) tuples representing the polygons.
+
+    Returns:
+    - A list of tuples, where each tuple contains (depth, polygon).
+    """
+    shapely_polygons = [ShapelyPolygon(p) for p in polygons]
+
+    # List to store (depth, polygon) tuples
+    ranked_polygons = []
+
+    # Determine depth for each polygon
+    for i, polygon in enumerate(shapely_polygons):
+        depth = 0  # Start with depth 0
+
+        # Check containment within all other polygons
+        for j, other_polygon in enumerate(shapely_polygons):
+            if i != j and polygon.within(other_polygon):
+                depth += 1  # Increase depth for each containment
+
+        ranked_polygons.append((depth, polygons[i]))
+
+    # Sort polygons by depth
+    ranked_polygons.sort(key=lambda x: x[0])
+
+    return ranked_polygons
+
+
 def add_letter_to_axis(ax, multipolygon, col, x, y, height, width_scale=1.0):
     """
-    Add 'let' with position x,y and height height to matplotlib axis 'ax', adjusting width by width_scale.
+    Add 'let' with position x, y and height height to matplotlib axis 'ax', adjusting width by width_scale.
     """
-    # Transform and plot outer boundary
-    transformed_outer_polygon = transform_polygon(multipolygon[0], width_scale, height, x, y)
-    outer_polygon = Polygon(transformed_outer_polygon, closed=True, edgecolor='none', facecolor=col, linewidth=0)
-    ax.add_patch(outer_polygon)
+    # Classify polygons by their containment depth
+    ranked_polygons = classify_polygons_by_nesting_depth(multipolygon)
 
-    # Transform and plot holes, if any
-    for hole in multipolygon[1:]:
-        transformed_hole = transform_polygon(hole, width_scale, height, x, y)
-        hole_polygon = Polygon(transformed_hole, closed=True, edgecolor='none', facecolor='white', linewidth=0)
-        ax.add_patch(hole_polygon)
+    # Draw polygons from lowest depth to highest depth
+    for depth, polygon in ranked_polygons:
+        # Determine face color based on depth parity
+        face_color = col if depth % 2 == 0 else 'white'
+        
+        # Transform and plot the polygon
+        transformed_polygon = transform_polygon(polygon, width_scale, height, x, y)
+        polygon_patch = Polygon(transformed_polygon, closed=True, edgecolor='none', facecolor=face_color, linewidth=0)
+        ax.add_patch(polygon_patch)
 
 
 def seq_plot(letter_heights, ax=None, vocab="dna", offset=0, width_scale=1.0, font=default_font, **kwargs):

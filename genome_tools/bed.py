@@ -1,6 +1,6 @@
 # Copyright 2015 Jeff Vierstra
 
-from . import genomic_interval
+from . import GenomicInterval
 
 
 def bed3_iterator(filehandle):
@@ -17,7 +17,7 @@ def bed3_iterator(filehandle):
         start = int(fields[1])
         end = int(fields[2])
 
-        yield genomic_interval(chrom, start, end)
+        yield GenomicInterval(chrom, start, end)
 
 
 def bed5_iterator(filehandle):
@@ -37,7 +37,7 @@ def bed5_iterator(filehandle):
         name = fields[3]
         score = float(fields[4])
 
-        yield genomic_interval(chrom, start, end, name, score)
+        yield GenomicInterval(chrom, start, end, name, score)
 
 
 def bed6_iterator(filehandle):
@@ -58,4 +58,4 @@ def bed6_iterator(filehandle):
         score = float(fields[4])
         strand = fields[5]
 
-        yield genomic_interval(chrom, start, end, name, score, strand)
+        yield GenomicInterval(chrom, start, end, name, score, strand)

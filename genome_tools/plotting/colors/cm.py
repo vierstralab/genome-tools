@@ -1,5 +1,6 @@
 import matplotlib.colors as mcolors
 import matplotlib.cm as mcm
+import matplotlib as mpl
 
 from collections.abc import Iterable
 
@@ -210,10 +211,16 @@ for _name, _palette in COLOR_MAPS.items():
     color_list = list(map(mcolors.to_rgb, _palette))
 
     _cmap = mcolors.LinearSegmentedColormap.from_list(_name, color_list)
-    locals()[_name] = _cmap
-
     _cmap_r = mcolors.LinearSegmentedColormap.from_list(_name + "_r", color_list[::-1])
-    locals()[_name + "_r"] = _cmap_r
 
-    mcm.register_cmap(_name, _cmap)
-    mcm.register_cmap(_name + "_r", _cmap_r)
+    for orient, loc_cmap in zip(["", "_r"], [_cmap, _cmap_r]):
+        name = _name + orient
+        try:
+            mcm.get_cmap(name)
+        except ValueError:
+            locals()[name] = loc_cmap
+            try:
+                mcm.register_cmap(name, loc_cmap)
+            except AttributeError:
+                mpl.colormaps.register(loc_cmap, name=name)
+

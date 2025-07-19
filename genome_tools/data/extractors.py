@@ -8,22 +8,36 @@ import numpy as np
 import pysam
 import pyBigWig as pbw
 import pandas as pd
+import gzip
 
 
-class base_extractor(object):
+
+class BaseExtractor:
     def __init__(self, filename, **kwargs):
         self.filename = filename
 
     def __getitem__(self, i):
         raise NotImplementedError
 
+    def close(self):
+        raise NotImplementedError
+    
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def __del__(self):
+        self.close()
+
 
 # ------------------------
 
 
-class fasta_extractor(base_extractor):
+class FastaExtractor(BaseExtractor):
     def __init__(self, filename, **kwargs):
-        super(fasta_extractor, self).__init__(filename, **kwargs)
+        super(FastaExtractor, self).__init__(filename, **kwargs)
 
         self.fasta = pysam.FastaFile(filename)
 
@@ -32,18 +46,15 @@ class fasta_extractor(base_extractor):
         # implement any post processing steps here
         return seq
 
-    def __del__(self):
-        self.close()
-
     def close(self):
-        if self.fasta and self.fasta.is_open():
+        if self.fasta is not None and not self.fasta.closed:
             self.fasta.close()
 
 
 # ------------------------
 
 
-class tabix_iter(object):
+class TabixIter(object):
     """Wraps tabix fetch to return an iterator that can be used with pandas"""
 
     def __init__(self, tabix, interval):
@@ -62,37 +73,85 @@ class tabix_iter(object):
         return self.read()
 
 
-class tabix_extractor(base_extractor):
-    def __init__(self, filename, header_char="#", **kwargs):
-        """ """
-        super(tabix_extractor, self).__init__(filename, **kwargs)
+class TabixExtractor(BaseExtractor):
+    def __init__(self, filename, header_char="#", columns=None, skiprows=0, **kwargs):
+        """
+        Extracts data from a tabix file. The file must be bgzip compressed and indexed with tabix.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the tabix file.
+        header_char : str
+            Character that indicates the start of a header line. Default is '#'.
+        columns : list
+            List of column names to use. If None, the first line of the file is used as the header.
+        skiprows : int
+            Number of rows to skip at the beginning of the file. Default is 0.
+        **kwargs : dict
+            Additional arguments to pass to the base class.
+        """
+        super(TabixExtractor, self).__init__(filename, **kwargs)
 
         self.tabix = pysam.TabixFile(filename)
 
-        self.columns = self.tabix.header[0].strip(header_char).split("\t")
+
+        with gzip.open(filename, "rt") as f:
+            for _ in range(skiprows):
+                next(f)
+            line = f.readline().strip('\n')
+            if columns is None:
+                if line.startswith(header_char):
+                    self.columns = line.split("\t")
+                else:
+                    self.columns = [i for i in range(len(line.split("\t")))]
+            else:
+                assert len(columns) == len(line.split("\t"))
+                self.columns = columns
 
     def __getitem__(self, interval):
-        ret = pd.read_table(
-            tabix_iter(self.tabix, interval), header=None, index_col=None
-        )
+        try:
+            ret = pd.read_table(
+                TabixIter(self.tabix, interval), header=None, index_col=None
+            )
+        except pd.errors.EmptyDataError:
+            ret = pd.DataFrame(columns=self.columns)
         ret.columns = self.columns
         return ret
 
-    def __del__(self):
-        self.close()
+    def close(self):
+        if getattr(self, "tabix", None) and self.tabix.is_open():
+            self.tabix.close()
+
+# ------------------------
+
+class ChromParquetExtractor(BaseExtractor):
+    def __init__(self, filename, columns=None, **kwargs):
+        """
+        Extracts data from a single bp resolution parquet file partitioned by chromosome
+        """
+        super(ChromParquetExtractor, self).__init__(filename, **kwargs)
+        self.columns = columns
+
+    def __getitem__(self, interval):
+        return pd.read_parquet(
+            self.filename,
+            filters=[('chrom', '==', interval.chrom)],
+            engine='pyarrow',
+            columns=self.columns,
+        ).iloc[interval.start:interval.end]
 
     def close(self):
-        if self.tabix and self.tabix.is_open():
-            self.tabix.close()
+        pass
 
 
 # ------------------------
 
 
-class bigwig_extractor(base_extractor):
+class BigwigExtractor(BaseExtractor):
     def __init__(self, filename, **kwargs):
         """ """
-        super(bigwig_extractor, self).__init__(filename, **kwargs)
+        super(BigwigExtractor, self).__init__(filename, **kwargs)
 
         self.bw = pbw.open(filename)
 
@@ -100,26 +159,20 @@ class bigwig_extractor(base_extractor):
         out = self.bw.values(interval.chrom, interval.start, interval.end, numpy=True)
         return out
 
-    def __del__(self):
-        self.close()
-
     def close(self):
-        if self.bw:
+        if getattr(self, "bw", None):
             self.bw.close()
 
 
 # ------------------------
 
 
-class d4_extractor(base_extractor):
+class D4Extractor(BaseExtractor):
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
 
     def __getitem__(self, i):
         raise NotImplementedError
-
-    def __del__(self):
-        self.close()
 
     def close(self):
         pass
