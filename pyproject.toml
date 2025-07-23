@@ -29,6 +29,7 @@ Issues = "https://github.com/vierstralab/genome-tools/issues"
 
 [tool.setuptools]
 packages = ["genome_tools"]
+license-files = []
 
 [build-system]
 requires = [
