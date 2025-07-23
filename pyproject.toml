@@ -1,0 +1,39 @@
+[project]
+name = "genome-tools"
+version = "2.0.0"
+description = "A toolkit for genome analysis and manipulation."
+authors = [
+    { name = "Jeff Vierstra", email = "jvierstra@altius.org" }
+]
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+keywords = ["genome", "bioinformatics", "analysis", "toolkit"]
+
+dependencies = [
+    "numpy",
+    "pandas",
+    "pysam",
+    "pyBigWig",
+    "matplotlib",
+    "descartes",
+    "fonttools==4.49.0",
+    "openpyxl",
+    "shapely"
+]
+
+[project.urls]
+Homepage = "https://github.com/vierstralab/genome-tools"
+Repository = "https://github.com/vierstralab/genome-tools"
+Issues = "https://github.com/vierstralab/genome-tools/issues"
+
+[tool.setuptools]
+packages = ["genome_tools"]
+
+[build-system]
+requires = [
+    "setuptools>=61.0",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
