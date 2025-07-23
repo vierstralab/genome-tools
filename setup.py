@@ -5,7 +5,7 @@ import sys
 
 from setuptools import find_packages, setup
 
-__version__ = "1.0.5"
+__version__ = "2.0.0"
 
 install_requires = ["numpy",
 					"scipy",
@@ -27,7 +27,7 @@ setup(
 	zip_safe = False,
 	packages =  find_packages(),
     install_requires = install_requires,
-    download_url = "https://github.com/jvierstra/genome-tools/archive/v1.0.5.tar.gz",
+    download_url = "https://github.com/jvierstra/genome-tools/archive/v2.0.0.tar.gz",
     classifiers=[
 	    'Development Status :: 5 - Production/Stable', 
 	    'Intended Audience :: Science/Research', 
