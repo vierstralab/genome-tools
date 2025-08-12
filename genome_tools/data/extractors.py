@@ -15,6 +15,7 @@ import gzip
 class BaseExtractor:
     def __init__(self, filename, **kwargs):
         self.filename = filename
+        self.kwargs = kwargs
 
     def __getitem__(self, i):
         raise NotImplementedError
@@ -89,12 +90,11 @@ class TabixExtractor(BaseExtractor):
         skiprows : int
             Number of rows to skip at the beginning of the file. Default is 0.
         **kwargs : dict
-            Additional arguments to pass to the base class.
+            Additional arguments passed to `pd.read_table`.
         """
         super(TabixExtractor, self).__init__(filename, **kwargs)
 
         self.tabix = pysam.TabixFile(filename)
-
 
         with gzip.open(filename, "rt") as f:
             for _ in range(skiprows):
@@ -112,11 +112,11 @@ class TabixExtractor(BaseExtractor):
     def __getitem__(self, interval):
         try:
             ret = pd.read_table(
-                TabixIter(self.tabix, interval), header=None, index_col=None
+                TabixIter(self.tabix, interval), header=None, index_col=None, columns=self.columns, **self.kwargs
             )
         except pd.errors.EmptyDataError:
             ret = pd.DataFrame(columns=self.columns)
-        ret.columns = self.columns
+
         return ret
 
     def close(self):
