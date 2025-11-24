@@ -4,12 +4,11 @@ Note that many of these filehandlers are not thread safe,
 so they must be opened separately on different threads when
 using multiprocessing.
 """
-import numpy as np
 import pysam
 import pyBigWig as pbw
 import pandas as pd
 import gzip
-
+from genome_tools import GenomicInterval, VariantInterval
 
 
 class BaseExtractor:
@@ -17,7 +16,7 @@ class BaseExtractor:
         self.filename = filename
         self.kwargs = kwargs
 
-    def __getitem__(self, i):
+    def __getitem__(self, interval: GenomicInterval):
         raise NotImplementedError
 
     def close(self):
@@ -58,7 +57,7 @@ class FastaExtractor(BaseExtractor):
 class TabixIter(object):
     """Wraps tabix fetch to return an iterator that can be used with pandas"""
 
-    def __init__(self, tabix, interval):
+    def __init__(self, tabix: pysam.TabixFile, interval: GenomicInterval):
         self.iter = tabix.fetch(interval.chrom, interval.start, interval.end)
 
     def read(self, n=0):
@@ -72,6 +71,53 @@ class TabixIter(object):
 
     def __next__(self):
         return self.read()
+
+
+class VariantGenotypeExtractor(BaseExtractor):
+    def __init__(self, filename, **kwargs):
+        """
+        Extracts data from a VCF file. The file must be bgzip compressed and indexed with tabix.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the VCF file.
+        **kwargs : dict
+            Additional arguments passed to `pd.read_table`.
+        """
+        super().__init__(filename, **kwargs)
+
+        self.variant_vcf = pysam.VariantFile(filename)
+
+    def __getitem__(self, interval):
+        records = self.variant_vcf.fetch(interval.chrom, interval.start, interval.end)
+        variants = []
+
+        for record in records:
+            assert len(record.alts) == 1
+            alt = record.alts[0]
+            if isinstance(interval, VariantInterval):
+                alt_allele = interval.alt
+                assert record.ref == interval.ref
+                if alt != alt_allele:
+                    continue
+
+            variant = {
+                'chrom': record.chrom,
+                'pos': record.pos,
+                'id': record.id,
+                'ref': record.ref,
+                'alt': alt,
+                'gt': [y['GT'] for y in record.samples.values()],
+                'indiv_id': list(record.samples.keys()),
+            }
+            variants.append(variant)
+        df = pd.DataFrame(variants).explode(['gt', 'indiv_id'])
+        return df
+
+    def close(self):
+        if getattr(self, "variant_vcf", None) and self.variant_vcf.is_open():
+            self.variant_vcf.close()
 
 
 class TabixExtractor(BaseExtractor):
