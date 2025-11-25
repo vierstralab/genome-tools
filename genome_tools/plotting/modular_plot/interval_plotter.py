@@ -178,7 +178,7 @@ class VerticalConnectorMixin(PlotComponentManager):
             kwargs['x'] = positions
         return kwargs
 
-class IntervalPlotter(PlotComponentManager, VerticalConnectorMixin):
+class IntervalPlotter(VerticalConnectorMixin):
     """
     Class to plot a genomic interval with multiple vertical plot components.
 
