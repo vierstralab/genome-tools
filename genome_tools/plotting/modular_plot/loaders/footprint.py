@@ -38,7 +38,8 @@ class PosteriorLoader(PlotDataLoader):
             data: DataBundle,
             posterior_file, 
             footprints_metadata: pd.DataFrame, 
-            sorting_region: GenomicInterval = None
+            sorting_region: GenomicInterval = None,
+            grouping_column='extended_annotation'
     ):
         # Get posterior data
         with TabixExtractor(
@@ -57,20 +58,21 @@ class PosteriorLoader(PlotDataLoader):
             columns=np.arange(data.interval.start, data.interval.end)
         )
         interval_posterior_df.loc[:, interval_posterior.columns] = interval_posterior
-
+        
+        grouping_column_data = footprints_metadata.loc[interval_posterior_df.index, grouping_column]
         if sorting_region is not None:
             order = self.sort_by_interval(
                 interval_posterior_df,
                 data.interval,
                 sorting_region,
-                footprints_metadata
+                grouping_column_data
             )
 
             interval_posterior_df = interval_posterior_df.loc[order]
+            grouping_column_data = grouping_column_data.loc[order]
             
-        grouping_column = footprints_metadata.loc[interval_posterior_df.index]
         data.interval_posterior = 1 - np.exp(-interval_posterior_df)
-        data.grouping_column = grouping_column
+        data.grouping_column = grouping_column_data
         return data
     
     @staticmethod
