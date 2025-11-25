@@ -8,7 +8,7 @@ from genome_tools.plotting.utils import clear_spines
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 
-from genome_tools.plotting.modular_plot.loaders.basic import IdeogramLoader, GencodeLoader,SignalLoader
+from genome_tools.plotting.modular_plot.loaders.basic import IdeogramLoader, GencodeLoader, SignalLoader
 
 class SegmentPlotComponent(IntervalPlotComponent):
     __intervals_attr__ = 'intervals'
