@@ -55,10 +55,16 @@ def ideogram_plot(data, chrom, pos=None, ax=None, **kwargs):
 
     yranges = (0, 0.5)
 
-    coll = mcollections.BrokenBarHCollection(
-        xranges, yranges, facecolors=colors, edgecolors="black", linewidths=0.5
-    )
-    ax.add_collection(coll)
+    try:
+        from matplotlib.collections import BrokenBarHCollection
+        coll = BrokenBarHCollection(
+            xranges, yranges, facecolors=colors, edgecolors="black", linewidths=0.5
+        )
+        ax.add_collection(coll)
+    except ImportError:
+        ax.broken_barh(
+            xranges, yranges, facecolors=colors, edgecolors="black", linewidths=0.5
+        )
 
     if pos:
         ax.axvline(pos, color="red", lw=4)
