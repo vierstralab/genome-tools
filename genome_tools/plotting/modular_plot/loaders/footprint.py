@@ -67,10 +67,8 @@ class PosteriorLoader(PlotDataLoader):
             )
 
             interval_posterior_df = interval_posterior_df.loc[order]
-            grouping_column = footprints_metadata.loc[interval_posterior_df.index]
-        else:
-            grouping_column = None
-
+            
+        grouping_column = footprints_metadata.loc[interval_posterior_df.index]
         data.interval_posterior = 1 - np.exp(-interval_posterior_df)
         data.grouping_column = grouping_column
         return data
