@@ -8,3 +8,6 @@ fonttools==4.49.0
 pysam
 openpyxl
 shapely
+makefun
+scipy
+pyarrow

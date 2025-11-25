@@ -8,6 +8,9 @@ import pysam
 import pyBigWig as pbw
 import pandas as pd
 import gzip
+import sys
+import numpy as np
+
 from genome_tools import GenomicInterval, VariantInterval
 
 
@@ -118,6 +121,42 @@ class VariantGenotypeExtractor(BaseExtractor):
     def close(self):
         if getattr(self, "variant_vcf", None) and self.variant_vcf.is_open():
             self.variant_vcf.close()
+
+
+class OverlappingReadsExtractor(BaseExtractor):
+    def __init__(self, filename, **kwargs):
+        """
+        Extracts data from a cram/bam file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the cram/bam file.
+        """
+        super().__init__(filename, **kwargs)
+
+        self.cram = pysam.AlignmentFile(filename)
+
+    def __getitem__(self, interval):
+        reads_1 = {}
+        reads_2 = {}
+
+        # Go into BAM file and get the reads
+        for pileupcolumn in self.cram.pileup(interval.chrom, interval.start, interval.end, maxdepth=10000, truncate=True, stepper="nofilter"):
+            for pileupread in pileupcolumn.pileups:
+                if pileupread.is_del or pileupread.is_refskip:
+                    print('refskip or del ', pileupread.alignment.query_name, file=sys.stderr)
+                    continue
+
+                if pileupread.alignment.is_read1:
+                    reads_1[pileupread.alignment.query_name] = pileupread
+                else:
+                    reads_2[pileupread.alignment.query_name] = pileupread
+
+        # All reads that overlap the region; unique set
+        read_pairs = set(reads_1.keys()) | set(reads_2.keys())
+
+        return reads_1, reads_2, read_pairs
 
 
 class TabixExtractor(BaseExtractor):

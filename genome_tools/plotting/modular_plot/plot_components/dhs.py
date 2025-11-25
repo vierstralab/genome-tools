@@ -1,0 +1,87 @@
+from matplotlib import gridspec
+from genome_tools.plotting.utils import clear_spines
+from genome_tools.plotting import signal_plot
+
+from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
+
+from genome_tools.plotting.modular_plot.loaders.dhs import ComponentTracksLoader, DHSIndexLoader, DHSLoadingsLoader
+
+from .basic import SegmentPlotComponent
+
+
+@uses_loaders(DHSIndexLoader)
+class DHSIndexComponent(SegmentPlotComponent):
+    __intervals_attr__ = DHSIndexLoader.__intervals_attr__
+
+    def _plot(self, data, ax, **kwargs):
+        super()._plot(data, ax, **kwargs)
+        ax.set_ylabel('NMF-annotated\nDHSs')
+        return ax
+    
+
+@uses_loaders(ComponentTracksLoader)
+class NMFTracksComponent(IntervalPlotComponent):
+    @IntervalPlotComponent.set_xlim_interval
+    def _plot(self, data, ax, component_data, **kwargs):
+        density_axes = self.plot_component_tracks(data.interval, data.nmf_components,
+                                                  data.component_tracks, component_data,
+                                                  gridspec_ax=ax, **kwargs)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_ylabel("DNase I\ndensity")
+        clear_spines(ax)
+        return ax, density_axes
+    
+
+    @staticmethod
+    def plot_component_tracks(interval, components, component_tracks, component_data,
+                              gridspec_ax, common_lim=False, **kwargs):
+        assert len(components) == len(component_tracks)
+        gss = gridspec.GridSpecFromSubplotSpec(len(components), 1, subplot_spec=gridspec_ax, hspace=0.05)
+        axes = []
+        colors = component_data.set_index('index').loc[components, 'color'].values
+        labels = component_data.set_index('index').loc[components, 'name'].values
+        lims = []
+        for i, (color, label, segs) in enumerate(zip(colors, labels, component_tracks)):
+            ax_dens = gridspec_ax.get_figure().add_subplot(gss[i])
+            lim = segs.max()
+            lims.append(lim)
+            signal_plot(interval, segs, ax=ax_dens, color=color, lw=0, **kwargs)
+            ax_dens.set_ylim(0, lim)
+            ax_dens.set_yticks([])
+            if i != len(components) - 1:
+                ax_dens.set_xticks([])
+            ax_dens.text(x=0.005, y=0.45, ha='left', va='bottom', s=label, transform=ax_dens.transAxes, fontsize=5)
+            axes.append(ax_dens)
+
+        if common_lim:
+            for ax in axes:
+                ax.set_ylim(0, max(lims))
+        return axes
+    
+
+@uses_loaders(DHSIndexLoader, DHSLoadingsLoader)
+class DHSLoadingsComponent(IntervalPlotComponent):
+
+    @IntervalPlotComponent.set_xlim_interval
+    def _plot(self, data, ax, component_data, bp_width=50, **kwargs):
+        ax.axis('off')
+        dhs_intervals = getattr(data, DHSIndexLoader.__intervals_attr__)
+        axes = self.add_axes_at_summits(
+            dhs_intervals,
+            data.interval,
+            ax=ax,
+            bp_width=bp_width
+        )
+        self.plot_barplots_for_dhs(dhs_intervals, axes, H=data.H, component_data=component_data)
+        return ax, axes
+    
+    @staticmethod
+    def plot_barplots_for_dhs(genomic_intervals, axes, H, component_data):
+        assert len(genomic_intervals) == len(axes)
+        from nmf_tools.plotting.matrices_barplots import component_barplot
+
+        for genomic_interval, ax in zip(genomic_intervals, axes):
+            component_barplot(H[:, genomic_interval.index: genomic_interval.index + 1], component_data, ax=ax, normalize=True)
+
+
