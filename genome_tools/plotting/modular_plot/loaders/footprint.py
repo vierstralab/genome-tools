@@ -37,7 +37,7 @@ class PosteriorLoader(PlotDataLoader):
             self,
             data: DataBundle,
             posterior_file, 
-            metadata: pd.DataFrame, 
+            footprints_metadata: pd.DataFrame, 
             sorting_region: GenomicInterval = None
     ):
         # Get posterior data
@@ -49,7 +49,7 @@ class PosteriorLoader(PlotDataLoader):
 
         interval_posterior = raw_posterior.set_index('start').drop(
             columns=['#chr', 'end']
-        ).T.loc[metadata.index]
+        ).T.loc[footprints_metadata.index]
         
         interval_posterior_df = pd.DataFrame(
             0.0,
@@ -63,11 +63,11 @@ class PosteriorLoader(PlotDataLoader):
                 interval_posterior_df,
                 data.interval,
                 sorting_region,
-                metadata
+                footprints_metadata
             )
 
             interval_posterior_df = interval_posterior_df.loc[order]
-            grouping_column = metadata.loc[interval_posterior_df.index]
+            grouping_column = footprints_metadata.loc[interval_posterior_df.index]
         else:
             grouping_column = None
 
