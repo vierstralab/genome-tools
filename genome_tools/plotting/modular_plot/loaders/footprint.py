@@ -36,13 +36,13 @@ class PosteriorLoader(PlotDataLoader):
     def _load(
             self,
             data: DataBundle,
-            posterior_file_url, 
+            posterior_file, 
             metadata: pd.DataFrame, 
             sorting_region: GenomicInterval = None
     ):
         # Get posterior data
         with TabixExtractor(
-            posterior_file_url,
+            posterior_file,
             skiprows=1
         ) as extractor:
             raw_posterior = extractor[data.interval].rename(columns={'# chrom': '#chr'})
