@@ -38,7 +38,7 @@ class PosteriorLoader(PlotDataLoader):
             data: DataBundle,
             posterior_file, 
             footprints_metadata: pd.DataFrame, 
-            sorting_region: GenomicInterval = None,
+            heatmap_sort_by_region: GenomicInterval = None,
             grouping_column='extended_annotation'
     ):
         # Get posterior data
@@ -60,11 +60,11 @@ class PosteriorLoader(PlotDataLoader):
         interval_posterior_df.loc[:, interval_posterior.columns] = interval_posterior
         
         grouping_column_data = footprints_metadata.loc[interval_posterior_df.index, grouping_column]
-        if sorting_region is not None:
+        if heatmap_sort_by_region is not None:
             order = self.sort_by_interval(
                 interval_posterior_df,
                 data.interval,
-                sorting_region,
+                heatmap_sort_by_region,
                 grouping_column_data
             )
 
