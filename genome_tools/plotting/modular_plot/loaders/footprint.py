@@ -109,8 +109,9 @@ class ProtectedNucleotidesLoader(PlotDataLoader):
         normalized = col_sums / col_sums.max()
         # Sequence
         pfm_like = self.seq_heights_to_matrix(sequence, normalized)
+        print(pfm_like.shape)
         pwm_like_matrix = relative_info_content(pfm_like.T)
-        data.matrix = pwm_like_matrix
+        data.matrix = pwm_like_matrix.T
 
         return data
 

@@ -38,7 +38,13 @@ class DataBundle(LoggerMixin):
         super().__setattr__(name, value)
 
     def __repr__(self):
-        return f"DataBundle({', '.join(self._initialized_attributes)})"
+        display_attrs = ', '.join(
+            [
+                x for x in self._initialized_attributes 
+                if x not in ('logger', 'processed_loaders', 'interval')
+            ]
+        )
+        return f"DataBundle({display_attrs})"
 
     def copy(self):
         """
