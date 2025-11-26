@@ -1,5 +1,6 @@
 import pandas as pd
 from typing import List
+import numpy as np
 
 from genome_tools.data.extractors import TabixExtractor, FastaExtractor
 from genome_tools import df_to_genomic_intervals, GenomicInterval
@@ -32,9 +33,15 @@ class MotifHitsLoader(PlotDataLoader):
                 interval_motif_hits = extractor[annotation_region]
                 interval_motif_hits = interval_motif_hits
                 interval_motif_hits['region'] = annotation_region.to_ucsc()
-                interval_motif_hits['overlap'] = interval_motif_hits.eval(
-                    f'min(end, {annotation_region.end}) - max(start, {annotation_region.start})'
-                )
+                interval_motif_hits['overlap'] = np.clip(
+                        interval_motif_hits['end'],
+                        annotation_region.start,
+                        annotation_region.end
+                    ) - np.clip(
+                        interval_motif_hits['start'],
+                        annotation_region.start,
+                        annotation_region.end
+                    )
                 interval_motif_hits['overlap_frac'] = interval_motif_hits.eval(
                     'overlap / (end - start)'
                 )
