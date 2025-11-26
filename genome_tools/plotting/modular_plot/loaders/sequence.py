@@ -25,7 +25,7 @@ class MotifHitsLoader(PlotDataLoader):
         ]
         with TabixExtractor(
             motif_annotations_path,
-            columns=[]
+            columns=['#chr', 'start', 'end', 'pfm', 'dg', 'orient', 'seq']
         ) as extractor:
             regions_annotations = []
             for motif_region in motif_regions:
@@ -74,7 +74,7 @@ class MotifHitsLoader(PlotDataLoader):
             motif_hits_df = motif_hits_df.groupby(
                 ['region_start', 'region_end'],
                 group_keys=False
-            ).filter(lambda x: x.nlargest(1, 'dg'))
+            ).filter(lambda x: x['dg'].abs().nlargest(1))
         else:
             raise NotImplementedError(f'Unknown best_by method: {best_by}')
 
