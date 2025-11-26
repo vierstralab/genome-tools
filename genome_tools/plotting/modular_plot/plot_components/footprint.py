@@ -49,7 +49,7 @@ class PosteriorHeatmapComponent(IntervalPlotComponent):
         gs = gridspec.GridSpecFromSubplotSpec(
             num_groups, 1,
             height_ratios=[df.shape[0] for _, df in grouped_posteriors],
-            subplot_spec=ax,
+            subplot_spec=ax.get_subplotspec(),
             hspace=hspace
         )
         
