@@ -21,6 +21,7 @@ class GenomicInterval(object):
             setattr(self, key, value)
         super().__setattr__('_initialized', True)
 
+    @staticmethod
     def from_ucsc(ucsc_str):
         """Parses a UCSC-style string to a GenomicInterval object"""
         chrom, rest = ucsc_str.split(":")
@@ -176,7 +177,8 @@ class VariantInterval(GenomicInterval):
     def to_str(self):
         return f"{self.chrom}:{self.pos}:{self.ref}:{self.alt}"
 
-    def from_str(self, variant_str: str):
+    @staticmethod
+    def from_str(variant_str: str):
         chrom, pos, ref, alt = variant_str.split(":")
         return VariantInterval(chrom, int(pos) - 1, int(pos), ref, alt, name=self.name, **self.extra_kwargs)
 
