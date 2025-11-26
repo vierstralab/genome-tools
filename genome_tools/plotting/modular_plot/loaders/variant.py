@@ -41,8 +41,8 @@ class FinemapLoader(PlotDataLoader):
 
 class AggregatedCAVLoader(PlotDataLoader):
 
-    def _load(self, data: DataBundle, cavs_data, fdr_tr=0.1, color='k', notsignif_color='#C0C0C0'):
-        filtered_cavs = filter_df_to_interval(cavs_data, data.interval)
+    def _load(self, data: DataBundle, aggregated_cavs_df, fdr_tr=0.1, color='k', notsignif_color='#C0C0C0'):
+        filtered_cavs = filter_df_to_interval(aggregated_cavs_df, data.interval)
         filtered_cavs['is_significant'] = filtered_cavs['min_fdr'] <= fdr_tr
         filtered_cavs['sig_es'] = np.clip(np.where(filtered_cavs['is_significant'], np.abs(filtered_cavs['logit_es_combined']), 0), 0, 2)
         group_ids_df = filtered_cavs.query('is_significant').groupby(['#chr', 'start', 'end', 'ref', 'alt'])['group_id'].apply(lambda x: ','.join(map(str, x))).reset_index()
@@ -58,14 +58,19 @@ class AggregatedCAVLoader(PlotDataLoader):
 class PerSampleCAVLoader(PlotDataLoader):
     __required_fields__ = ['nonaggregated_cavs_data']
 
-    def _load(self, data: DataBundle, nonaggregated_cavs_data, sample_id, fdr_tr=0.1, color='k', notsignif_color='#C0C0C0'):
-        filtered_cavs = TabixExtractor(nonaggregated_cavs_data)[data.interval].query(f'sample_id == "{sample_id}"')
+    def _load(self, data: DataBundle, nonaggregated_cavs_tabix, sample_id, fdr_tr=0.1, color='k', notsignif_color='#C0C0C0'):
+        with TabixExtractor(nonaggregated_cavs_tabix) as extractor:
+            filtered_cavs = extractor[data.interval].query(f'sample_id == "{sample_id}"')
+
         filtered_cavs['is_significant'] = filtered_cavs['FDR_sample'] <= fdr_tr
         filtered_cavs['sig_es'] = np.clip(np.where(filtered_cavs['is_significant'], np.abs(filtered_cavs['logit_es']), 0), 0, 2)
         
         filtered_cavs['value'] = np.abs(filtered_cavs['logit_es'])
         filtered_cavs['color'] = np.where(filtered_cavs['is_significant'], color, notsignif_color)
-        data.cavs_intervals = df_to_variant_intervals(filtered_cavs, extra_columns=['value', 'color'])
+        data.cavs_intervals = df_to_variant_intervals(
+            filtered_cavs,
+            extra_columns=['value', 'color']
+        )
         return data
 
 
