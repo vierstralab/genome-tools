@@ -20,7 +20,7 @@ class MotifHitsLoader(PlotDataLoader):
 
     def _load(self, data: DataBundle, motif_annotations_path, motif_meta, min_motif_overlap=0.9, best_by='dg'):
 
-        motif_regions: List[GenomicInterval] = [
+        annotation_regions: List[GenomicInterval] = [
             x for x in data.annotation_regions
         ]
         with TabixExtractor(
@@ -28,20 +28,16 @@ class MotifHitsLoader(PlotDataLoader):
             columns=['#chr', 'start', 'end', 'motif_id', 'dg', 'orient', 'seq']
         ) as extractor:
             regions_annotations = []
-            for motif_region in motif_regions:
-                interval_motif_hits = extractor[motif_region]
-                interval_motif_hits = interval_motif_hits.rename(
-                    columns={
-                        'start': 'motif_start',
-                        'end': 'motif_end'
-                    }
+            for annotation_region in annotation_regions:
+                interval_motif_hits = extractor[annotation_region]
+                interval_motif_hits = interval_motif_hits
+                interval_motif_hits['region'] = annotation_region.to_ucsc()
+                interval_motif_hits['overlap'] = interval_motif_hits.eval(
+                    f'min(end, {annotation_region.end}) - max(start, {annotation_region.start})'
                 )
-                interval_motif_hits['start'] = motif_region.start
-                interval_motif_hits['end'] = motif_region.end
-                interval_motif_hits['overlap_frac'] = (
-                    interval_motif_hits[['motif_end', 'end']].min(axis=1) -
-                    interval_motif_hits[['motif_start', 'start']].max(axis=1)
-                ) + 1 / len(motif_region)
+                interval_motif_hits['overlap_frac'] = interval_motif_hits.eval(
+                    'overlap / (end - start)'
+                )
                 regions_annotations.append(interval_motif_hits)
 
         # TMP FIX
@@ -74,7 +70,7 @@ class MotifHitsLoader(PlotDataLoader):
             motif_hits_df = (
                 motif_hits_df
                 .sort_values('dg', key=lambda s: s.abs(), ascending=False)
-                .drop_duplicates(subset=['#chr', 'start', 'end'], keep='first')
+                .drop_duplicates(subset=['region'], keep='first')
             )
         else:
             raise NotImplementedError(f'Unknown best_by method: {best_by}')
