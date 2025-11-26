@@ -21,7 +21,7 @@ from genome_tools.plotting.modular_plot.utils import DataBundle
 from .basic import SegmentsLoader
 
 
-class FootprintsLoader(SegmentsLoader):
+class FootprintsIndexLoader(SegmentsLoader):
     __intervals_attr__ = 'footprint_intervals'
     def _load(self, data: DataBundle, footprints_index: pd.DataFrame, extra_columns=None, rectprops_columns=None):
         return super()._load(
