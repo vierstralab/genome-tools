@@ -93,16 +93,15 @@ class PosteriorLoader(PlotDataLoader):
 
 class ProtectedNucleotidesLoader(PlotDataLoader):
     
-    def _load(self, data: DataBundle, metadata: pd.DataFrame, extended_annotation=None, threshold=0.99):
+    def _load(self, data: DataBundle, footprints_metadata: pd.DataFrame, protected_nuc_sample_ids=None, threshold=0.99):
         """
         Process the posterior probability data
         """
         interval_posterior = data.interval_posterior # data.interval_posterior
         sequence = data.sequence
         
-        if extended_annotation is not None:
-            sample_ids = metadata.query(f'extended_annotation == "{extended_annotation}"').index
-            interval_posterior = interval_posterior.loc[sample_ids, :]
+        if protected_nuc_sample_ids is not None:
+            interval_posterior = interval_posterior.loc[protected_nuc_sample_ids, :]
 
         binary_df = (interval_posterior >= threshold).astype(int)
         col_sums = binary_df.sum(axis=0)
