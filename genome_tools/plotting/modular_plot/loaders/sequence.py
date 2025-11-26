@@ -72,7 +72,7 @@ class MotifHitsLoader(PlotDataLoader):
         # FIXME: currently only keep the best hit per footprint
         if best_by == 'dg':
             motif_hits_df = motif_hits_df.groupby(
-                ['region_start', 'region_end'],
+                ['#chr', 'start', 'end'],
                 group_keys=False
             ).filter(lambda x: x['dg'].abs().nlargest(1))
         else:
