@@ -41,17 +41,31 @@ class FinemapLoader(PlotDataLoader):
 
 class AggregatedCAVLoader(PlotDataLoader):
 
-    def _load(self, data: DataBundle, aggregated_cavs_df, fdr_tr=0.1, color='k', notsignif_color='#C0C0C0'):
+    def _load(self, data: DataBundle, aggregated_cavs_df, fdr_tr=0.1, color='k', choose_best_by='sig_es', notsignif_color='#C0C0C0'):
         filtered_cavs = filter_df_to_interval(aggregated_cavs_df, data.interval)
         filtered_cavs['is_significant'] = filtered_cavs['min_fdr'] <= fdr_tr
         filtered_cavs['sig_es'] = np.clip(np.where(filtered_cavs['is_significant'], np.abs(filtered_cavs['logit_es_combined']), 0), 0, 2)
-        group_ids_df = filtered_cavs.query('is_significant').groupby(['#chr', 'start', 'end', 'ref', 'alt'])['group_id'].apply(lambda x: ','.join(map(str, x))).reset_index()
-        filtered_cavs = filtered_cavs.groupby(['#chr', 'start', 'end', 'ref', 'alt'], group_keys=False).apply(lambda x: x.nlargest(1, 'sig_es'))
-        filtered_cavs = filtered_cavs.merge(group_ids_df, on=['#chr', 'start', 'end', 'ref', 'alt'], how='left', suffixes=('', '_list'))
+        significant_groups = filtered_cavs.query('is_significant').groupby(
+            ['#chr', 'start', 'end', 'ref', 'alt']
+        )['group_id'].apply(
+            lambda x: ','.join(map(str, x))
+        )
+        if choose_best_by == "sig_es":
+            filtered_cavs = filtered_cavs.groupby(
+                ['#chr', 'start', 'end', 'ref', 'alt'],
+                group_keys=False
+            ).filter(
+                lambda x: x.nlargest(1, choose_best_by)
+            )
+        filtered_cavs = filtered_cavs.set_index(['#chr', 'start', 'end', 'ref', 'alt'])
+        filtered_cavs['significant_groups'] = significant_groups
         
         filtered_cavs['value'] = np.abs(filtered_cavs['logit_es_combined'])
         filtered_cavs['color'] = np.where(filtered_cavs['is_significant'], color, notsignif_color)
-        data.cavs_intervals = df_to_variant_intervals(filtered_cavs, extra_columns=['value', 'color'])
+        data.cavs_intervals = df_to_variant_intervals(
+            filtered_cavs.reset_index(),
+            extra_columns=['value', 'color', 'significant_groups']
+        )
         return data
     
 
