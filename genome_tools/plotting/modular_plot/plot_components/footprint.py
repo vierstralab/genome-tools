@@ -8,17 +8,16 @@ from genome_tools.plotting.sequence import seq_plot
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 
-from genome_tools.plotting.modular_plot.loaders.footprint import PosteriorLoader, FootprintDatasetLoader, ProtectedNucleotidesLoader, FootprintsLoader
+from genome_tools.plotting.modular_plot.loaders.footprint import PosteriorLoader, FootprintDatasetLoader, ProtectedNucleotidesLoader, FootprintsIndexLoader
 from genome_tools.plotting.modular_plot.loaders.sequence import FastaLoader
-
 
 
 from .basic import SegmentPlotComponent
 
 
-@uses_loaders(FootprintsLoader)
-class FootprintsComponent(SegmentPlotComponent):
-    __intervals_attr__ = FootprintsLoader.__intervals_attr__
+@uses_loaders(FootprintsIndexLoader)
+class FootprintsIndexComponent(SegmentPlotComponent):
+    __intervals_attr__ = FootprintsIndexLoader.__intervals_attr__
 
     def _plot(self, data, ax, **kwargs):
         super()._plot(data, ax, **kwargs)
