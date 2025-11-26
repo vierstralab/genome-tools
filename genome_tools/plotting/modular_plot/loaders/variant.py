@@ -63,7 +63,7 @@ class AggregatedCAVLoader(PlotDataLoader):
         filtered_cavs['color'] = np.where(filtered_cavs['is_significant'], color, notsignif_color)
         data.cavs_intervals = df_to_variant_intervals(
             filtered_cavs.reset_index(),
-            extra_columns=['value', 'color', 'significant_groups']
+            extra_columns=['value', 'is_significant', 'color', 'significant_groups']
         )
         return data
     
