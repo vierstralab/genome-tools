@@ -34,21 +34,21 @@ class MotifHitsLoader(PlotDataLoader):
                 interval_motif_hits = interval_motif_hits
                 interval_motif_hits['region'] = annotation_region.to_ucsc()
                 interval_motif_hits['overlap'] = np.clip(
-                        interval_motif_hits['end'],
-                        annotation_region.start,
-                        annotation_region.end
-                    ) - np.clip(
-                        interval_motif_hits['start'],
-                        annotation_region.start,
-                        annotation_region.end
-                    )
-                interval_motif_hits['overlap_frac'] = interval_motif_hits.eval(
-                    'overlap / (end - start)'
+                    interval_motif_hits['end'],
+                    annotation_region.start,
+                    annotation_region.end
+                ) - np.clip(
+                    interval_motif_hits['start'],
+                    annotation_region.start,
+                    annotation_region.end
                 )
                 regions_annotations.append(interval_motif_hits)
 
         regions_annotations: pd.DataFrame = pd.concat(regions_annotations, ignore_index=True)
-        # TMP FIX
+        regions_annotations['overlap_frac'] = regions_annotations.eval(
+            'overlap / (end - start)'
+        )
+        # TMP FIX?
         regions_annotations['motif_id'] = regions_annotations['motif_id'].str.replace(
             '.pfm', ''
         )
@@ -58,20 +58,22 @@ class MotifHitsLoader(PlotDataLoader):
             right_index=True
         )
 
-        regions_annotations = self.filter_motif_hits(
+        regions_annotations = regions_annotations.query(f'overlap_frac >= {min_motif_overlap}')
+
+        data.all_motifs_df = regions_annotations
+
+        filtered_regions = self.filter_motif_hits(
             regions_annotations,
-            min_motif_overlap=min_motif_overlap,
             best_by=best_by
         )
         data.motif_intervals = df_to_genomic_intervals(
-            regions_annotations,
+            filtered_regions,
             data.interval,
             extra_columns=['orient', 'region', 'tf_name', 'pfm']
         )
         return data
 
-    def filter_motif_hits(self, motif_hits_df: pd.DataFrame, min_motif_overlap=0.9, best_by='dg'):
-        motif_hits_df = motif_hits_df.query(f'overlap_frac >= {min_motif_overlap}')
+    def filter_motif_hits(self, motif_hits_df: pd.DataFrame, best_by='dg'):
 
         # FIXME: currently only keep the best hit per footprint
         if best_by == 'dg':

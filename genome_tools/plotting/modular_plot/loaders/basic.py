@@ -77,8 +77,8 @@ class SegmentsLoader(PlotDataLoader):
 
 
 class SegmentsTabixLoader(SegmentsLoader):
-    def _load(self, data: DataBundle, tabix_file: str, extra_columns=None, rectprops_columns=None, **tabix_loader_kwargs):
-        with TabixExtractor(tabix_file, **tabix_loader_kwargs) as extractor:
+    def _load(self, data: DataBundle, tabix_file: str, extra_columns=None, rectprops_columns=None, tabix_column_names=None):
+        with TabixExtractor(tabix_file, columns=tabix_column_names) as extractor:
             segments_df = extractor[data.interval]
         return super()._load(
             data,

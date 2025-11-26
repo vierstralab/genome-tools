@@ -373,7 +373,7 @@ def _collect_all_kwargs(*loaders):
     loader_kwargs = {}
     for loader in loaders[::-1]:
         if not issubclass(loader, PlotDataLoader):
-            raise ValueError(f"Loader {loader} is not a subclass of DataLoader.")
+            raise ValueError(f"Loader {loader} is not a subclass of PlotDataLoader.")
         loader_kwargs.update(loader.get_fullargspec())
     return loader_kwargs
 

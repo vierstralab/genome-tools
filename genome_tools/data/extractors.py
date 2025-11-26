@@ -9,7 +9,6 @@ import pyBigWig as pbw
 import pandas as pd
 import gzip
 import sys
-import numpy as np
 
 from genome_tools import GenomicInterval, VariantInterval
 

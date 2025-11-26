@@ -10,6 +10,7 @@ from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loade
 
 from genome_tools.plotting.modular_plot.loaders.basic import IdeogramLoader, GencodeLoader, SignalLoader
 
+
 class SegmentPlotComponent(IntervalPlotComponent):
     __intervals_attr__ = 'intervals'
 

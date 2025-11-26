@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from genome_tools.genomic_interval import filter_df_to_interval, df_to_variant_intervals, VariantInterval
+
+from genome_tools import filter_df_to_interval, df_to_variant_intervals, VariantInterval
 
 from genome_tools.data.extractors import TabixExtractor, VariantGenotypeExtractor
 from genome_tools.data.get_variant_resolved_reads import extract_allelic_reads

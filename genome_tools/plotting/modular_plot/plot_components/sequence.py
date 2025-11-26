@@ -6,6 +6,8 @@ from genome_tools.plotting.modular_plot.loaders.sequence import MotifHitsLoader
 from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLoader
 
 
+# TODO: add sequence plot
+
 @uses_loaders(AnnotationRegionsLoader, MotifHitsLoader)
 class MotifComponent(IntervalPlotComponent):
 
