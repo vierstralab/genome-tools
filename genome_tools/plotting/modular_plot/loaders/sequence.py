@@ -18,14 +18,14 @@ class FastaLoader(PlotDataLoader):
 
 class MotifHitsLoader(PlotDataLoader):
 
-    def _load(self, data: DataBundle, motif_annotations_path, motif_meta, annotation_regions_field='footprint_intervals', min_motif_overlap=0.9, best_by='dg', **kwargs):
+    def _load(self, data: DataBundle, motif_annotations_path, motif_meta, annotation_regions_field='footprint_intervals', min_motif_overlap=0.9, best_by='dg', columns=None):
         # TODO: adjust filtering
         motif_regions: List[GenomicInterval] = [
             x for x in getattr(data, annotation_regions_field)
         ]
         with TabixExtractor(
             motif_annotations_path,
-            **kwargs
+            columns=columns
         ) as extractor:
             regions_annotations = []
             for motif_region in motif_regions:
