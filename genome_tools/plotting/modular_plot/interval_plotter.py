@@ -60,6 +60,12 @@ class PlotComponentManager(LoggerMixin):
             raise AssertionError
         return [c for c in self.component_names if c in components]
     
+    def _get_interim_components(self, component1, component2):
+        idx1 = self.component_names.index(component1)
+        idx2 = self.component_names.index(component2)
+        return self.component_names[idx1:idx2 + 1]
+
+    
     def get_component_axes(self, component_axes, component):
         """
         Get the axes object for a specific component.
@@ -94,6 +100,7 @@ class VerticalConnectorMixin(PlotComponentManager):
             [start_component, end_component]
         ]
         components = self._sort_components(components)
+        components = self._get_interim_components(components[0], components[1])
         return components
 
     def plot_connector(self, component_axes, positions: List[int]=None, interval: GenomicInterval=None, start_component=None, end_component=None, type='area', extend_to_top=False, extend_to_bottom=False):
