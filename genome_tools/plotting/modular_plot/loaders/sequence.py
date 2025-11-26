@@ -58,7 +58,7 @@ class MotifHitsLoader(PlotDataLoader):
         data.motif_intervals = df_to_genomic_intervals(
             interval_motif_hits,
             data.interval,
-            extra_columns=['orient', 'motif_start', 'motif_end', 'tf_name', 'pfm']
+            extra_columns=['orient', 'region', 'tf_name', 'pfm']
         )
         return data
 
