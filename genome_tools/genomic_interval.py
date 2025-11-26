@@ -133,6 +133,25 @@ class GenomicInterval(object):
         return GenomicInterval(
             self.chrom, self.start + x, self.end + x, self.name, **self.extra_kwargs
         )
+    
+    def to_variant_interval(self, ref=None, alt=None, value=None):
+        args = {"ref": ref, "alt": alt, "value": value}
+        assert len(self) == 1, "Can only convert to VariantInterval if length is 1"
+
+        for key, val in args.items():
+            if val is None:
+                if hasattr(self, key):
+                    args[key] = getattr(self, key)
+                else:
+                    raise ValueError(f"Cannot convert to VariantInterval without {key} specified")
+
+        return VariantInterval(
+            self.chrom, self.start, self.end, self.name,
+            ref=args["ref"],
+            alt=args["alt"],
+            value=args["value"],
+            **self.extra_kwargs
+        )
 
     def overlaps(self, other: 'GenomicInterval'):
         """Returns whether two intervals overlap"""
@@ -154,8 +173,21 @@ class VariantInterval(GenomicInterval):
         self.pos = end
         super().__setattr__('_initialized', True)
 
-    def to_ucsc(self):
+    def to_str(self):
         return f"{self.chrom}:{self.pos}:{self.ref}:{self.alt}"
+
+    def from_str(self):
+        chrom, pos, ref, alt = self.to_str().split(":")
+        return VariantInterval(chrom, int(pos) - 1, int(pos), ref, alt, name=self.name, **self.extra_kwargs)
+
+    def to_genomic_interval(self):
+        return GenomicInterval(
+            self.chrom, self.start, self.end, self.name,
+            ref=self.ref,
+            alt=self.alt,
+            value=self.value,
+            **self.extra_kwargs
+        )
     
     def widen(self, x, inplace=False):
         raise NotImplementedError("Cannot widen a variant interval")
@@ -165,6 +197,7 @@ class VariantInterval(GenomicInterval):
     
     def zoom(self, zoom_factor, inplace=False):
         raise NotImplementedError("Cannot zoom a variant interval")
+
 
 
 class genomic_interval(GenomicInterval):
