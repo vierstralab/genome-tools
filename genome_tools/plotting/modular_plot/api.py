@@ -206,15 +206,17 @@ class IntervalPlotComponent(PlotComponent):
     defaulting to the class name.
     """
     def __init__(self, 
+                 name=None,
                  height: float = 1.0, 
                  margins: Union[float, Sequence[float]] = 0.1, 
                  interval_key=None,
+                 logger_level=None,
                  **kwargs):
         self.height = height
         self.margin_top, self.margin_bottom = self._parse_margins(margins)
         self.interval_key = interval_key
 
-        super().__init__(**kwargs)
+        super().__init__(name=name, logger_level=logger_level, **kwargs)
 
 
     def _parse_margins(self, margins):
