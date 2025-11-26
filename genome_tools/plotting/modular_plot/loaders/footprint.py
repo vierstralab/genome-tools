@@ -82,9 +82,7 @@ class PosteriorLoader(PlotDataLoader):
 
         region_slice = slice(region.start - base_interval.start, region.end - base_interval.start)
         sample_means = df.loc[:, region_slice].mean(axis=1)
-        group_mean = df.groupby(
-            group_column
-        ).transform('mean')
+        group_mean = sample_means.groupby(group_column).transform("mean")
         order = pd.DataFrame({
             'group_mean': group_mean,
             'per_sample': sample_means,
