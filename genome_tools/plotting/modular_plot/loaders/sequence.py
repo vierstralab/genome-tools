@@ -25,7 +25,7 @@ class MotifHitsLoader(PlotDataLoader):
         ]
         with TabixExtractor(
             motif_annotations_path,
-            columns=['#chr', 'start', 'end', 'pfm', 'dg', 'orient', 'seq']
+            columns=['#chr', 'start', 'end', 'motif_id', 'dg', 'orient', 'seq']
         ) as extractor:
             regions_annotations = []
             for motif_region in motif_regions:
@@ -45,7 +45,7 @@ class MotifHitsLoader(PlotDataLoader):
                 regions_annotations.append(interval_motif_hits)
 
         # TMP FIX
-        interval_motif_hits['motif_id'] = interval_motif_hits['pfm'].str.replace(
+        interval_motif_hits['motif_id'] = interval_motif_hits['motif_id'].str.replace(
             '.pfm', ''
         )
         interval_motif_hits = interval_motif_hits.merge(
