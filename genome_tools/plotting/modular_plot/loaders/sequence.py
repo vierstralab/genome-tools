@@ -1,5 +1,8 @@
+import pandas as pd
+from typing import List
+
 from genome_tools.data.extractors import TabixExtractor, FastaExtractor
-from genome_tools import df_to_genomic_intervals
+from genome_tools import df_to_genomic_intervals, GenomicInterval
 
 
 from genome_tools.plotting.modular_plot import PlotDataLoader
@@ -15,28 +18,47 @@ class FastaLoader(PlotDataLoader):
 
 class MotifHitsLoader(PlotDataLoader):
 
-    def _load(self, data: DataBundle, motif_annotations_path, motif_meta, best_by='dg'):
-        with TabixExtractor(motif_annotations_path,
-                             columns=['chrom', 'start', 'end', 'fp_id',
-                                      'motif_chr', 'motif_start', 'motif_end',
-                                      'pfm', 'dg', 'orient', 'sequence'
-                             ]) as extractor:
-            interval_motif_hits = extractor[data.interval]
+    def _load(self, data: DataBundle, motif_annotations_path, motif_meta, annotation_regions_field='footprint_intervals', min_motif_overlap=0.9, best_by='dg', **kwargs):
+        # TODO: adjust filtering
+        motif_regions: List[GenomicInterval] = [
+            x for x in getattr(data, annotation_regions_field)
+        ]
+        with TabixExtractor(
+            motif_annotations_path,
+            **kwargs
+        ) as extractor:
+            regions_annotations = []
+            for motif_region in motif_regions:
+                interval_motif_hits = extractor[motif_region]
+                interval_motif_hits = interval_motif_hits.rename(
+                    columns={
+                        'start': 'motif_start',
+                        'end': 'motif_end'
+                    }
+                )
+                interval_motif_hits['start'] = motif_region.start
+                interval_motif_hits['end'] = motif_region.end
+                interval_motif_hits['overlap_frac'] = (
+                    interval_motif_hits[['motif_end', 'end']].min(axis=1) -
+                    interval_motif_hits[['motif_start', 'start']].max(axis=1)
+                ) + 1 / len(motif_region)
+                regions_annotations.append(interval_motif_hits)
 
-        interval_motif_hits['dg'] = interval_motif_hits['dg'].astype(float)
-        interval_motif_hits['start'] = interval_motif_hits['start'].astype(int)
-        interval_motif_hits['end'] = interval_motif_hits['end'].astype(int)
-        interval_motif_hits['motif_start'] = interval_motif_hits['motif_start'].astype(int)
-        interval_motif_hits['motif_end'] = interval_motif_hits['motif_end'].astype(int)
-        interval_motif_hits['motif_id'] = interval_motif_hits['pfm'].str.replace('.pfm', '')
+        # TMP FIX
+        interval_motif_hits['motif_id'] = interval_motif_hits['pfm'].str.replace(
+            '.pfm', ''
+        )
+        interval_motif_hits = interval_motif_hits.merge(
+            motif_meta,
+            left_on='motif_id',
+            right_index=True
+        )
 
-        # FIXME: currently only keep the best hit per footprint
-        if best_by == 'dg':
-            interval_motif_hits = interval_motif_hits.groupby('fp_id', group_keys=False).filter(lambda x: x.nlargest(1, 'dg'))
-        else:
-            raise NotImplementedError(f'Unknown best_by method: {best_by}')
-
-        interval_motif_hits = interval_motif_hits.merge(motif_meta, left_on='motif_id', right_index=True)
+        interval_motif_hits = self.filter_motif_hits(
+            interval_motif_hits,
+            min_motif_overlap=min_motif_overlap,
+            best_by=best_by
+        )
         data.motif_intervals = df_to_genomic_intervals(
             interval_motif_hits,
             data.interval,
@@ -44,4 +66,16 @@ class MotifHitsLoader(PlotDataLoader):
         )
         return data
 
+    def filter_motif_hits(self, motif_hits_df: pd.DataFrame, min_motif_overlap=0.9, best_by='dg'):
+        motif_hits_df = motif_hits_df.query(f'overlap_frac >= {min_motif_overlap}')
 
+        # FIXME: currently only keep the best hit per footprint
+        if best_by == 'dg':
+            motif_hits_df = motif_hits_df.groupby(
+                ['region_start', 'region_end'],
+                group_keys=False
+            ).filter(lambda x: x.nlargest(1, 'dg'))
+        else:
+            raise NotImplementedError(f'Unknown best_by method: {best_by}')
+
+        return motif_hits_df

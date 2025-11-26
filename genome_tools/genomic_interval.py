@@ -27,6 +27,12 @@ class GenomicInterval(object):
         start, end = rest.split("-")
         return GenomicInterval(chrom, int(start.replace(',', '')), int(end.replace(',', '')))
 
+    def copy(self):
+        """Returns a copy of the object"""
+        return GenomicInterval(
+            self.chrom, self.start, self.end, self.name, **self.extra_kwargs
+        )
+
     def __len__(self):
         """Length of element"""
         return self.end - self.start

@@ -29,8 +29,12 @@ class AverageSignalLoader(PlotDataLoader):
     def _load(self, data, signal_files, smooth=True, step=20, bandwidth=150):
         if not smooth:
             bandwidth = 1
-        segs = smooth_and_aggregate_per_nucleotide_signal(data.interval, signal_files,
-                                                          step=step, bandwidth=bandwidth)
+        segs = smooth_and_aggregate_per_nucleotide_signal(
+            data.interval,
+            signal_files,
+            step=step,
+            bandwidth=bandwidth
+        )
         data.signal = segs
         return data
 

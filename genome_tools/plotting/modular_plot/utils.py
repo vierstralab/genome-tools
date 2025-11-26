@@ -28,23 +28,24 @@ class DataBundle(LoggerMixin):
     
     def __getattr__(self, name):
         loaders = ', '.join([loader.__name__ for loader in self.processed_loaders])
-        initialized_attributes = ', '.join(self._initialized_attributes)
-        raise AttributeError(f"Data loaded with {loaders} is missing attribute '{name}'. Available attributes: {initialized_attributes}")
+    
+        raise AttributeError(f"Data loaded with {loaders} is missing attribute '{name}'. Available attributes: {self._get_display_attributes()}. Did you forget to attach the loader that sets this attribute?")
     
     def __setattr__(self, name, value):
         if name != 'logger' and name in self._initialized_attributes:
             self.logger.warning(f"Warning: Attribute '{name}' is overridden.")
         self._initialized_attributes.add(name)
         super().__setattr__(name, value)
+    
+    def _get_display_attributes(self):
+        return {
+            attr: getattr(self, attr) 
+            for attr in self._initialized_attributes 
+            if attr not in ('logger', 'processed_loaders', 'interval')
+        }
 
     def __repr__(self):
-        display_attrs = ', '.join(
-            [
-                x for x in self._initialized_attributes 
-                if x not in ('logger', 'processed_loaders', 'interval')
-            ]
-        )
-        return f"DataBundle({display_attrs})"
+        return f"DataBundle({self._get_display_attributes()})"
 
     def copy(self):
         """
