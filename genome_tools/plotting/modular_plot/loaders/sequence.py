@@ -47,23 +47,24 @@ class MotifHitsLoader(PlotDataLoader):
                 )
                 regions_annotations.append(interval_motif_hits)
 
+        regions_annotations: pd.DataFrame = pd.concat(regions_annotations, ignore_index=True)
         # TMP FIX
-        interval_motif_hits['motif_id'] = interval_motif_hits['motif_id'].str.replace(
+        regions_annotations['motif_id'] = regions_annotations['motif_id'].str.replace(
             '.pfm', ''
         )
-        interval_motif_hits = interval_motif_hits.merge(
+        regions_annotations = regions_annotations.merge(
             motif_meta,
             left_on='motif_id',
             right_index=True
         )
 
-        interval_motif_hits = self.filter_motif_hits(
-            interval_motif_hits,
+        regions_annotations = self.filter_motif_hits(
+            regions_annotations,
             min_motif_overlap=min_motif_overlap,
             best_by=best_by
         )
         data.motif_intervals = df_to_genomic_intervals(
-            interval_motif_hits,
+            regions_annotations,
             data.interval,
             extra_columns=['orient', 'region', 'tf_name', 'pfm']
         )
