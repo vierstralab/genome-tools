@@ -176,8 +176,8 @@ class VariantInterval(GenomicInterval):
     def to_str(self):
         return f"{self.chrom}:{self.pos}:{self.ref}:{self.alt}"
 
-    def from_str(self):
-        chrom, pos, ref, alt = self.to_str().split(":")
+    def from_str(self, variant_str: str):
+        chrom, pos, ref, alt = variant_str.split(":")
         return VariantInterval(chrom, int(pos) - 1, int(pos), ref, alt, name=self.name, **self.extra_kwargs)
 
     def to_genomic_interval(self):
