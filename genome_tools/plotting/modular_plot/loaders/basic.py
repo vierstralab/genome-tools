@@ -1,14 +1,25 @@
+from typing import List
 import pandas as pd
 import numpy as np
 
 from genome_tools.data.extractors import TabixExtractor, BigwigExtractor
 from genome_tools.utils.signal import smooth_and_aggregate_per_nucleotide_signal
-from genome_tools import df_to_genomic_intervals
+from genome_tools import GenomicInterval, df_to_genomic_intervals
 
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
 
+class AnnotationRegionsLoader(PlotDataLoader):
+    def _load(self, data: DataBundle, annotation_regions: List[GenomicInterval]):
+        for region in annotation_regions:
+            assert region.overlaps(data.interval), f"Annotation regions must overlap with interval. Got non-overlapping region {region.to_ucsc()} (interval={data.interval.to_ucsc()})"
+
+        data.annotation_regions = annotation_regions
+        return data
+
+
+# TODO: wrap as class factory
 class IdeogramLoader(PlotDataLoader):
     required_loader_kwargs = ['ideogram_data']
 

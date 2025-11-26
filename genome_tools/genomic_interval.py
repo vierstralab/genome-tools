@@ -133,6 +133,13 @@ class GenomicInterval(object):
         return GenomicInterval(
             self.chrom, self.start + x, self.end + x, self.name, **self.extra_kwargs
         )
+
+    def overlaps(self, other: 'GenomicInterval'):
+        """Returns whether two intervals overlap"""
+        assert isinstance(other, GenomicInterval), "other must be a GenomicInterval"
+        if self.chrom != other.chrom:
+            return False
+        return self.end > other.start and self.start < other.end
     
 
 class VariantInterval(GenomicInterval):

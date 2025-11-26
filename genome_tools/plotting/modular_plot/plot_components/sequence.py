@@ -2,9 +2,10 @@ from genome_tools.plotting.pwm import plot_motif_logo
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 from genome_tools.plotting.modular_plot.loaders.sequence import MotifHitsLoader
+from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLoader
 
 
-@uses_loaders(MotifHitsLoader)
+@uses_loaders(AnnotationRegionsLoader, MotifHitsLoader)
 class MotifComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
