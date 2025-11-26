@@ -19,6 +19,6 @@ class MotifComponent(IntervalPlotComponent):
     def plot_motifs_for_intervals(motif_intervals, axes):
         assert len(motif_intervals) == len(axes)
         for interval, ax in zip(motif_intervals, axes):
-            plot_motif_logo(interval.pwm, rc=interval.orient == '-', font='IBM Plex Mono', ax=ax)
+            plot_motif_logo(interval.pfm, rc=interval.orient == '-', font='IBM Plex Mono', ax=ax)
             ax.set_xlabel(interval.tf_name, labelpad=0.5)
 
