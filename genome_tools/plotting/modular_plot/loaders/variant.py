@@ -51,11 +51,10 @@ class AggregatedCAVLoader(PlotDataLoader):
             lambda x: ','.join(map(str, x))
         )
         if choose_best_by == "sig_es":
-            filtered_cavs = filtered_cavs.groupby(
-                ['#chr', 'start', 'end', 'ref', 'alt'],
-                group_keys=False
-            ).filter(
-                lambda x: x.nlargest(1, choose_best_by)
+            filtered_cavs = (
+                filtered_cavs
+                .sort_values('sig_es', key=lambda s: s.abs(), ascending=False)
+                .drop_duplicates(subset=['#chr', 'start', 'end', 'ref', 'alt'], keep='first')
             )
         filtered_cavs = filtered_cavs.set_index(['#chr', 'start', 'end', 'ref', 'alt'])
         filtered_cavs['significant_groups'] = significant_groups
