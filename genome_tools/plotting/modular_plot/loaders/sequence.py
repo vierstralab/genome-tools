@@ -71,10 +71,11 @@ class MotifHitsLoader(PlotDataLoader):
 
         # FIXME: currently only keep the best hit per footprint
         if best_by == 'dg':
-            motif_hits_df = motif_hits_df.groupby(
-                ['#chr', 'start', 'end'],
-                group_keys=False
-            ).filter(lambda x: x['dg'].abs().nlargest(1))
+            motif_hits_df = (
+                motif_hits_df
+                .sort_values('dg', key=lambda s: s.abs(), ascending=False)
+                .drop_duplicates(subset=['#chr', 'start', 'end'], keep='first')
+            )
         else:
             raise NotImplementedError(f'Unknown best_by method: {best_by}')
 
