@@ -324,8 +324,9 @@ class IntervalPlotComponent(PlotComponent):
         axes = []
         for genomic_interval in genomic_intervals:
             parent_pos = ax.get_position()
-            x0_rel = (genomic_interval.start - interval.start) / (interval.end - interval.start)
-            x1_rel = (genomic_interval.end - interval.start) / (interval.end - interval.start)
+            # work in start coordinates
+            x0_rel = (genomic_interval.start - interval.start) / (interval.end - 1 - interval.start)
+            x1_rel = (genomic_interval.end - 1 - interval.start) / (interval.end - 1- interval.start)
 
             new_axes_width = parent_pos.width * (x1_rel - x0_rel)
             new_axes_height = parent_pos.height
