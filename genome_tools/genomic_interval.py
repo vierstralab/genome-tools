@@ -180,7 +180,7 @@ class VariantInterval(GenomicInterval):
     @staticmethod
     def from_str(variant_str: str):
         chrom, pos, ref, alt = variant_str.split(":")
-        return VariantInterval(chrom, int(pos) - 1, int(pos), ref, alt, name=self.name, **self.extra_kwargs)
+        return VariantInterval(chrom, int(pos) - 1, int(pos), ref, alt)
 
     def to_genomic_interval(self):
         return GenomicInterval(
@@ -189,6 +189,12 @@ class VariantInterval(GenomicInterval):
             alt=self.alt,
             value=self.value,
             **self.extra_kwargs
+        )
+
+    def copy(self):
+        """Returns a copy of the object"""
+        return VariantInterval(
+            self.chrom, self.start, self.end, self.ref, self.alt, self.value, name=self.name, **self.extra_kwargs
         )
     
     def widen(self, x, inplace=False):
