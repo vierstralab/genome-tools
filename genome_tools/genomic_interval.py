@@ -198,13 +198,13 @@ class VariantInterval(GenomicInterval):
         )
     
     def widen(self, x, inplace=False):
-        raise NotImplementedError("Cannot widen a variant interval")
+        raise NotImplementedError("Cannot widen a variant interval. Convert to GenomicInterval  with to_genomic_interval() method first.")
     
     def shift(self, x, inplace=False):
-        raise NotImplementedError("Cannot shift a variant interval")
+        raise NotImplementedError("Cannot shift a variant interval. Convert to GenomicInterval  with to_genomic_interval() method first.")
     
     def zoom(self, zoom_factor, inplace=False):
-        raise NotImplementedError("Cannot zoom a variant interval")
+        raise NotImplementedError("Cannot zoom a variant interval. Convert to GenomicInterval  with to_genomic_interval() method first.")
 
 
 
