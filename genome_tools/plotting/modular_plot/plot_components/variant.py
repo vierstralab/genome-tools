@@ -127,7 +127,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
 @uses_loaders(AllelicReadsLoaderFPTools)
 class AllelicCutcountsComponent(IntervalPlotComponent):
 
-    def _plot(self, data, ax, **kwargs):
+    def _plot(self, data, ax: plt.Axes, **kwargs):
 
         ref_cuts = data.ref_cuts
         alt_cuts = data.alt_cuts
@@ -150,24 +150,24 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
         fig = ax.get_figure()
         # fig.suptitle(data.rs_id)
         axes = []
-        x = np.arange(data.interval.start, data.interval.end)
-        for cuts, allele, ylim in zip(
-            [ref_cuts, alt_cuts],
-            [interval.ref, interval.alt],
-            [ylim_ref, ylim_alt]
-        ):
-            ax_bar = fig.add_subplot(gs[0, :])
-            # ax_bar.bar(
-            #     x,
-            #     cuts,
-            #     width=1,
-            #     color=get_vocab_color(allele, 'dna'), 
-            #     label=f"{cuts.sum()}\n({round(cuts.sum() / tot_reads * 100, 2)}%)"
-            # )
-            ax_bar.set_ylim(0, ylim)
-            ax_bar.xaxis.set_visible(False)
-            format_axes_to_interval(ax_bar, data.interval, axis='x')
-            axes.append(ax_bar)
+        # x = np.arange(data.interval.start, data.interval.end)
+        # for cuts, allele, ylim in zip(
+        #     [ref_cuts, alt_cuts],
+        #     [interval.ref, interval.alt],
+        #     [ylim_ref, ylim_alt]
+        # ):
+        #     ax_bar = fig.add_subplot(gs[0, :])
+        #     # ax_bar.bar(
+        #     #     x,
+        #     #     cuts,
+        #     #     width=1,
+        #     #     color=get_vocab_color(allele, 'dna'), 
+        #     #     label=f"{cuts.sum()}\n({round(cuts.sum() / tot_reads * 100, 2)}%)"
+        #     # )
+        #     ax_bar.set_ylim(0, ylim)
+        #     ax_bar.xaxis.set_visible(False)
+        #     format_axes_to_interval(ax_bar, data.interval, axis='x')
+        #     axes.append(ax_bar)
             
         
         return ax, axes
