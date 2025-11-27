@@ -128,47 +128,32 @@ class ProtectedNucleotidesLoader(PlotDataLoader):
 
 
 class FootprintsDataLoader(PlotDataLoader):
-    def _load(self, data: DataBundle, footprints_metadata: pd.DataFrame, variant_interval: VariantInterval, calc_posteriors=False):
-        variant_genotypes: pd.DataFrame = data.variant_genotypes # indiv_id, variant pairs
+    def _load(self, data: DataBundle, footprints_metadata: pd.DataFrame, calc_posteriors=False):
 
-        # TODO: change filter_df_to_interval to accept VariantInterval
-        variant_genotypes = filter_df_to_interval(variant_genotypes, variant_interval)
-
-        samples_with_genotype = footprints_metadata.dropna(
-            subset='indiv_id'
-        ).reset_index(
-            names='sample_id'
-        ).merge(
-            variant_genotypes
-        ).set_index(
-            "sample_id"
-        ).sort_values(
-            by="parsed_genotype"
-        )
-
-        data.a_allele_count = sum(samples_with_genotype['parsed_genotype'] == 'A')
-
-        data.disp_models = [
+        disp_models = [
             dispersion.load_dispersion_model(x) 
-            for x in samples_with_genotype["dm_file"].values
+            for x in footprints_metadata["dm_file"].values
         ]
 
         obs, exp, fdr, w = self.load_fp_data(
-            samples_with_genotype["tabix_file"].tolist(),
+            footprints_metadata["tabix_file"].tolist(),
             data.interval
         )
 
-        data.obs = pd.DataFrame(obs, index=samples_with_genotype.index)
-        data.exp = pd.DataFrame(exp, index=samples_with_genotype.index)
-        data.fdr = pd.DataFrame(fdr, index=samples_with_genotype.index)
-        data.w = pd.DataFrame(w, index=samples_with_genotype.index)
+        data.obs = pd.DataFrame(obs, index=footprints_metadata.index)
+        data.exp = pd.DataFrame(exp, index=footprints_metadata.index)
+        data.fdr = pd.DataFrame(fdr, index=footprints_metadata.index)
+        data.w = pd.DataFrame(w, index=footprints_metadata.index)
+        data.disp_models = pd.Series(disp_models, index=footprints_metadata.index)
         
         if calc_posteriors:
             post = self.calc_posteriors(
-                obs, exp, fdr, w, data.disp_models
+                obs, exp, fdr, w,
+                betas=footprints_metadata[['beta_a', 'beta_b']].values,
+                disp_models=disp_models
             )
-            post = pd.DataFrame(post, index=samples_with_genotype.index)
-            data.z = 1 - np.exp(-post)
+            post = pd.DataFrame(post, index=footprints_metadata.index)
+            data.pp = 1 - np.exp(-post)
         return data
     
     def load_fp_data(self, tabix_files, interval: GenomicInterval):
@@ -202,11 +187,11 @@ class FootprintsDataLoader(PlotDataLoader):
 
         return obs, exp, fdr, w
 
-    def calc_posteriors(self, obs, exp, fdr, w, disp_models):
+    def calc_posteriors(self, obs, exp, fdr, w, betas, disp_models):
         prior = posterior.compute_prior_weighted(fdr, w, cutoff=0.05) 
         scale = posterior.compute_delta_prior(
             obs, exp, fdr, 
-            np.ones((obs.shape[0], 2)),
+            betas,
             cutoff=0.05
         )
         ll_on = posterior.log_likelihood(
@@ -220,17 +205,17 @@ class FootprintsDataLoader(PlotDataLoader):
         post = -posterior.posterior(prior, ll_on, ll_off)
         post[post <= 0] = 0.0
         return post
-    
 
 class DifferentialFootprintLoader(PlotDataLoader):
 
     def _load(self, data: DataBundle):
 
         # Store number of samples
-        L_a = data.a_allele_count
+        L_a = data.groups_data.eval('group == "A"').sum()
 
-        obs = np.ascontiguousarray(data.obs)
-        exp = np.ascontiguousarray(data.exp)
+        obs = np.ascontiguousarray(data.obs.loc[data.groups_data.index, :])
+        exp = np.ascontiguousarray(data.exp.loc[data.groups_data.index, :])
+        disp_models = data.disp_models.loc[data.groups_data.index].values
         
         log2_obs_over_exp = np.log2((obs + 1) / (exp + 1)) # sample_id x positions
         
@@ -253,7 +238,7 @@ class DifferentialFootprintLoader(PlotDataLoader):
         step_args = (-6, 6, 100)
         # Negative binomial probabilities
         nb = differential.compute_logpmf_values(
-            data.disp_models,
+            disp_models,
             obs,
             exp,
             *step_args
@@ -279,8 +264,6 @@ class DifferentialFootprintLoader(PlotDataLoader):
         x = np.linspace(*step_args)
         mua = x[np.argmax(pr_a, axis=0)]
         mub = x[np.argmax(pr_b, axis=0)]
-
-        data.lfc = mub - mua
         
         # psuedo-integration over 'depletion' scores
         pa = pr_a[:, :, np.newaxis] + nb[:, :, :L_a]
@@ -298,6 +281,7 @@ class DifferentialFootprintLoader(PlotDataLoader):
          # include 1 in stouffer's aggregation
         lrt_pvalue = np.clip(lrt_pvalue, None, 1.0 - 1e-6)
         data.neglog10_pval = -np.log10(stouffers_z(lrt_pvalue, 3))
+        data.lfc = mub - mua
 
         return data
 

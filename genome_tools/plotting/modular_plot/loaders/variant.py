@@ -29,6 +29,32 @@ class VariantGenotypeLoader(PlotDataLoader):
         return data
 
 
+class GroupsByGenotypeLoader(PlotDataLoader):
+    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval):
+        ### Refactor to work with arbitrary groups
+        variant_genotypes: pd.DataFrame = data.variant_genotypes # indiv_id, variant pairs
+
+        # TODO: change filter_df_to_interval to accept VariantInterval
+        variant_genotypes = filter_df_to_interval(variant_genotypes, variant_interval)
+        if variant_genotypes.empty:
+            raise ValueError("No genotypes found for the specified variant interval.")
+
+        samples_with_genotype = samples_metadata.dropna(
+            subset='indiv_id'
+        ).reset_index(
+            names='sample_id'
+        ).merge(
+            variant_genotypes
+        ).set_index(
+            "sample_id"
+        ).rename(
+            columns={'parsed_genotype': 'group'}
+        ).sort_values(
+            by="group"
+        )
+        data.groups_data = samples_with_genotype['group']
+        return data
+
 class FinemapLoader(PlotDataLoader):
 
     def _load(self, data: DataBundle, finemap_df: pd.DataFrame, region, trait, cs_id):

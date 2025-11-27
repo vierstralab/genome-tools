@@ -216,9 +216,16 @@ class genomic_interval(GenomicInterval):
 
 def filter_df_to_interval(df: pd.DataFrame, interval: GenomicInterval):
     chromosome_col = 'chrom' if 'chrom' in df.columns else '#chr'
-    return df.loc[df[chromosome_col] == interval.chrom].query(
+    df_slice = df.loc[df[chromosome_col] == interval.chrom].query(
         f'end > {interval.start} & start < {interval.end}'
     )
+    if isinstance(interval, VariantInterval):
+        if 'ref' in df.columns and 'alt' in df.columns:
+            df_slice = df_slice.query(f'ref == "{interval.ref}" & alt == "{interval.alt}"')
+        else:
+            raise ValueError("DataFrame does not contain 'ref' and 'alt' columns required to filter by VariantInterval. Convert to GenomicInterval (.to_genomic_interval()) if you intend to filter only by position.")
+    return df_slice
+
 
 
 def _sanitize_df(df: pd.DataFrame, interval: GenomicInterval):

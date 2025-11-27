@@ -15,13 +15,12 @@ from genome_tools.plotting.modular_plot.utils import DataBundle
 
 from genome_tools.plotting.modular_plot.loaders.footprint import (
     PosteriorLoader,
-    FootprintDatasetLoader,
     ProtectedNucleotidesLoader,
     FootprintsIndexLoader,
     DifferentialFootprintLoader,
     FootprintsDataLoader
 )
-from genome_tools.plotting.modular_plot.loaders.variant import VariantGenotypeLoader
+from genome_tools.plotting.modular_plot.loaders.variant import VariantGenotypeLoader, GroupsByGenotypeLoader
 
 from genome_tools.plotting.modular_plot.loaders.sequence import FastaLoader
 
@@ -106,11 +105,34 @@ class TFProtectedNucleotidesComponent(IntervalPlotComponent):
         return ax
 
 
-@uses_loaders(VariantGenotypeLoader, FootprintsDataLoader, DifferentialFootprintLoader)
+@uses_loaders(FootprintsDataLoader)
+class FootprintTrackComponent(IntervalPlotComponent):
+    @IntervalPlotComponent.set_xlim_interval
+    def _plot(self, data, ax, smpl_idx=0, color='k', exp_color='C1', lw=0.5, kind='pp', **kwargs):
+        xs = self.squarify_array(np.arange(data.obs.shape[1] + 1) + data.interval.start)
+        if kind == 'pp':
+            try:
+                getattr(data, 'pp')
+            except AttributeError:
+                raise AttributeError("FootprintTrackComponent with kind='pp' requires calc_posteriors=True")
+
+            ax.plot(xs, np.repeat(data.pp[smpl_idx, :], 2), color=color, lw=lw, **kwargs)
+        elif kind == 'obs/exp':
+            ax.plot(xs, np.repeat(data.obs[smpl_idx, :], 2), color=exp_color, lw=lw, **kwargs)
+            ax.plot(xs, np.repeat(data.exp[smpl_idx, :], 2), color=color, lw=lw, **kwargs)
+        format_axes_to_interval(ax, data.interval)
+        return ax
+    
+    @staticmethod
+    def squarify_array(y):
+        return np.concatenate([y[:1], np.repeat(y[1:-1], 2), y[-1:]])
+
+
+@uses_loaders(VariantGenotypeLoader, GroupsByGenotypeLoader, FootprintsDataLoader, DifferentialFootprintLoader)
 class DifferentialFootprintsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data: DataBundle, ax: plt.Axes, **kwargs):
+    def _plot(self, data: DataBundle, ax: plt.Axes, cmap='Spectral', **kwargs):
         """
         main plot function of the component
         always accepts data, ax, **kwargs
@@ -132,6 +154,8 @@ class DifferentialFootprintsComponent(IntervalPlotComponent):
         ax.axhline(0, ls='dashed', color='k')
 
         ax.xaxis.set_visible(False)
+        max_ylim = np.max(np.abs(foldchange)) * 1.05
+        ax.set_ylim(-max_ylim, max_ylim)
         
         cbar = inset_axes(ax, width="2.5%", height="60%", loc='upper left',
                          bbox_to_anchor=(1.05 , -0.2, 1, 1),
@@ -140,24 +164,4 @@ class DifferentialFootprintsComponent(IntervalPlotComponent):
         plt.colorbar(mappable, cax=cbar, orientation='vertical', label='-log10 p-value')
         
         return ax
-
-
-@uses_loaders(FootprintDatasetLoader)
-class FootprintTrackComponent(IntervalPlotComponent):
-    # DEFUNC FIXME
-    @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, smpl_idx=0, color='k', exp_color='C1', lw=0.5, kind='pp', **kwargs):
-        xs = self.squarify_array(np.arange(data.pp.shape[1] + 1) + data.interval.start)
-        if kind == 'pp':
-            ax.plot(xs, np.repeat(data.pp[smpl_idx, :], 2), color=color, lw=lw, **kwargs)
-        elif kind == 'obs/exp':
-            ax.plot(xs, np.repeat(data.obs[smpl_idx, :], 2), color=exp_color, lw=lw, **kwargs)
-            ax.plot(xs, np.repeat(data.exp[smpl_idx, :], 2), color=color, lw=lw, **kwargs)
-        format_axes_to_interval(ax, data.interval)
-        return ax
-    
-    @staticmethod
-    def squarify_array(y):
-        return np.concatenate([y[:1], np.repeat(y[1:-1], 2), y[-1:]])
-
 
