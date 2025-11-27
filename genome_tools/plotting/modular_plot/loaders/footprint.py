@@ -92,7 +92,7 @@ class PosteriorLoader(PlotDataLoader):
 
 class ProtectedNucleotidesLoader(PlotDataLoader):
     
-    def _load(self, data: DataBundle, footprints_metadata: pd.DataFrame, protected_nuc_sample_ids=None, threshold=0.99):
+    def _load(self, data: DataBundle, protected_nuc_sample_ids=None, threshold=0.99):
         """
         Process the posterior probability data
         """
@@ -158,11 +158,11 @@ class FootprintDatasetLoader(PlotDataLoader):
 
 
 class FootprintsDataLoader(PlotDataLoader):
-    def _load(self, data: DataBundle, sample_meta: pd.DataFrame, calc_posteriors=True):
+    def _load(self, data: DataBundle, footprints_metadata: pd.DataFrame, calc_posteriors=True):
         variant_genotype = pd.DataFrame(data.variant_genotype)
 
         samples_with_genotype = variant_genotype.merge(  # explode by ag_id
-            sample_meta, 
+            footprints_metadata, 
             left_index=True, 
             right_on='indiv_id'
         ).set_index(

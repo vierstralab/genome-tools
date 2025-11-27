@@ -12,8 +12,8 @@ from genome_tools.plotting.modular_plot.utils import DataBundle
 
 class VariantGenotypeLoader(PlotDataLoader):
     
-    def _load(self, data: DataBundle, vcf_path):
-        with VariantGenotypeExtractor(vcf_path) as extractor:
+    def _load(self, data: DataBundle, genotypes_vcf_path):
+        with VariantGenotypeExtractor(genotypes_vcf_path) as extractor:
             variants = extractor[data.interval].rename(columns={'pos': 'end'})
         variants['start'] = variants['end'] + 1
         
