@@ -122,7 +122,7 @@ class AllelicReadsLoader(PlotDataLoader):
             sample_ids = [sample_ids]
         cram_paths = samples_metadata.loc[sample_ids, 'cram_file']
         reads = {}
-        for sample_id, cram_path in zip(sample_ids, cram_paths):
+        for sample_id, cram_path in tqdm(zip(sample_ids, cram_paths), total=len(sample_ids), desc="Allelic reads loader"):
             # TODO replace with extractor
             extracted_reads = extract_allelic_reads(cram_path, variant_interval, data.interval)
             if not self.check_reads(extracted_reads, variant_interval):
@@ -153,7 +153,7 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
         for sample_id, cram_path in tqdm(
             zip(sample_ids, cram_paths),
             total=len(sample_ids),
-            desc="Allelic reads loader"
+            desc="Allelic reads loader fp-tools"
         ):
             extractor = BamFile(cram_path)
             reads[sample_id] = extractor.lookup_allelic(
