@@ -168,7 +168,7 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
             #     continue
             ref_cuts += sample_ref_cuts
             alt_cuts += sample_alt_cuts
-        data.ref_cuts = ref_cuts
-        data.alt_cuts = alt_cuts
+        data.ref_cutcounts = ref_cuts
+        data.alt_cutcounts = alt_cuts
         data.variant_interval = variant_interval
         return data

@@ -130,8 +130,8 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
     @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax: plt.Axes, **kwargs):
 
-        ref_cuts = data.ref_cuts
-        alt_cuts = data.alt_cuts
+        ref_cuts = data.ref_cutcounts
+        alt_cuts = data.alt_cutcounts
         interval: VariantInterval = data.variant_interval
 
         tot_reads = ref_cuts.sum() + alt_cuts.sum()
