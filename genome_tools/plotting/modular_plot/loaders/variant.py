@@ -153,6 +153,7 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
                 ref=variant_interval.ref,
                 alt=variant_interval.alt
             )
+            extractor.close()
         
         ref_cuts = np.zeros(len(data.interval))
         alt_cuts = np.zeros(len(data.interval))
