@@ -217,7 +217,7 @@ class genomic_interval(GenomicInterval):
 def filter_df_to_interval(df: pd.DataFrame, interval: GenomicInterval):
     chromosome_col = 'chrom' if 'chrom' in df.columns else '#chr'
     return df.loc[df[chromosome_col] == interval.chrom].query(
-        f'end >= {interval.start} & start < {interval.end}'
+        f'end > {interval.start} & start < {interval.end}'
     )
 
 
