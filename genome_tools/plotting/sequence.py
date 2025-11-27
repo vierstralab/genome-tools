@@ -283,6 +283,6 @@ def seq_plot(letter_heights: np.ndarray, ax=None, vocab="dna", offset=0, width_s
 
 def plot_motif_logo(pfm: np.ndarray, ax=None, offset=-0.5, rc=False, **kwargs):
     if rc:
-        pwm = pfm[::-1, ::-1]
-    seq_plot(relative_info_content(pwm.T), ax=ax, offset=offset, **kwargs)
+        pfm = pfm[::-1, ::-1]
+    seq_plot(relative_info_content(pfm.T), ax=ax, offset=offset, **kwargs)
     return ax
