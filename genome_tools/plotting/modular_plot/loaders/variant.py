@@ -25,7 +25,7 @@ class VariantGenotypeLoader(PlotDataLoader):
         variants["parsed_genotype"] = variants["gt"].map(gt_mapping)
         variants = variants.dropna(subset=["parsed_genotype"])
 
-        data.variant_genotype = variants
+        data.variant_genotypes = variants
         return data
 
 

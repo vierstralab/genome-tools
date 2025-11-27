@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import scipy
+from scipy.special import logsumexp
+import scipy.stats as st
 import anndata as ad
 
 from genome_tools.data.extractors import TabixExtractor
@@ -125,41 +127,9 @@ class ProtectedNucleotidesLoader(PlotDataLoader):
         return mat #mat.T  
 
 
-# TODO: sample data file actually is not needed, it should be any pandas df file whatsoever
-# class FootprintDatasetLoader(PlotDataLoader):
-
-#     def _load(self, data: DataBundle, fp_sample_data_file, fp_sample_data, fp_samples, fdr_cutoff=0.05):
-#         dl = PosteriorStats(
-#             fp_sample_data_file,
-#             fp_sample_data.loc[fp_samples],
-#             fdr_cutoff=fdr_cutoff,
-#         )
-#         dl._open_tabix_files()
-#         obs, exp, fdr, w = dl._load_data(data.interval)
-
-#         prior = posterior.compute_prior_weighted(fdr, w, cutoff=0.05) #????
-#         delta = posterior.compute_delta_prior(
-#             obs, exp, fdr, dl.betas, cutoff=0.1 #????
-#         )
-        
-#         ll_on = posterior.log_likelihood(obs, exp, dl.disp_models, delta=delta, w=3)
-#         ll_off = posterior.log_likelihood(obs, exp, dl.disp_models, w=3)
-
-#         post = -posterior.posterior(prior, ll_on, ll_off)
-#         post[post <= 0] = 0.0
-
-#         z = 1 - np.exp(-post)
-
-#         data.pp = z
-#         data.obs = obs
-#         data.exp = exp
-
-#         return data
-
-
 class FootprintsDataLoader(PlotDataLoader):
-    def _load(self, data: DataBundle, footprints_metadata: pd.DataFrame, variant_interval: VariantInterval, calc_posteriors=True):
-        variant_genotypes: pd.DataFrame = data.variant_genotype # indiv_id, variant pairs
+    def _load(self, data: DataBundle, footprints_metadata: pd.DataFrame, variant_interval: VariantInterval, calc_posteriors=False):
+        variant_genotypes: pd.DataFrame = data.variant_genotypes # indiv_id, variant pairs
         variant_genotypes = filter_df_to_interval(variant_genotypes, variant_interval)
 
         samples_with_genotype = footprints_metadata.dropna(
@@ -175,64 +145,79 @@ class FootprintsDataLoader(PlotDataLoader):
         )
 
         data.a_allele_count = sum(samples_with_genotype['parsed_genotype'] == 'A')
-        data.b_allele_count = sum(samples_with_genotype['parsed_genotype'] == 'B')
 
-        shape = (len(samples_with_genotype), len(data.interval))
-    
-        obs = np.zeros(shape=shape)
-        exp = np.zeros(shape=shape)
-        fpr = np.ones(shape=shape)
-        w = np.zeros(shape=shape)
-        disp_models = []
+        data.disp_models = [
+            dispersion.load_dispersion_model(x) 
+            for x in samples_with_genotype["dm_file"].values
+        ]
+
+        obs, exp, fdr, w = self.load_fp_data(
+            samples_with_genotype["tabix_file"].tolist(),
+            data.interval
+        )
+
+        data.obs = pd.DataFrame(obs, index=samples_with_genotype.index)
+        data.exp = pd.DataFrame(exp, index=samples_with_genotype.index)
+        data.fdr = pd.DataFrame(fdr, index=samples_with_genotype.index)
+        data.w = pd.DataFrame(w, index=samples_with_genotype.index)
         
-        for sample_id, row in samples_with_genotype.iterrows():
-            tabix_path = row["tabix_file"]
+        if calc_posteriors:
+            post = self.calc_posteriors(
+                obs, exp, fdr, w, data.disp_models
+            )
+            post = pd.DataFrame(post, index=samples_with_genotype.index)
+            data.z = 1 - np.exp(-post)
+        return data
+    
+    def load_fp_data(self, tabix_files, interval: GenomicInterval):
+        """
+        Analogous to PosteriorStats._load_data but implemented with TabixExtractor
+        """
+        n = len(tabix_files)
+        m = len(interval)
+
+        obs = np.zeros((n, m), dtype=np.float64)
+        exp = np.zeros((n, m), dtype=np.float64)
+        fdr = np.ones((n, m), dtype=np.float64)
+        w = np.zeros((n, m), dtype=np.float64)
+
+
+        for tabix_path in tabix_files:
             with TabixExtractor(
                 tabix_path,
                 columns=[
                     'chrom', 'start', 'end', 
                     'exp', 'obs', 'neglog_pval', 
-                    'neglog_winpval', 'fpr'
+                    'neglog_winpval', 'fdr'
                 ]
             ) as extractor:
-                tabix_data = extractor[data.interval]
-                interval_index = tabix_data['start'].values - data.interval.start
+                tabix_data = extractor[interval]
+                interval_index = tabix_data['start'].values - interval.start
                 obs[:, interval_index] = tabix_data['obs']
                 exp[:, interval_index] = tabix_data['exp']
-                fpr[:, interval_index] = tabix_data['fpr']
+                fdr[:, interval_index] = tabix_data['fdr']
                 w[:, interval_index] = 1
 
-            disp_models.append(
-                dispersion.load_dispersion_model(row["dm_file"])
-            )
+        return obs, exp, fdr, w
 
-        data.obs = pd.DataFrame(obs, index=samples_with_genotype.index)
-        data.exp = pd.DataFrame(exp, index=samples_with_genotype.index)
-        data.fpr = pd.DataFrame(fpr, index=samples_with_genotype.index)
-        data.w = pd.DataFrame(w, index=samples_with_genotype.index)
-        data.disp_models = disp_models
-        
-        if calc_posteriors:
-            prior = posterior.compute_prior_weighted(fpr, w, cutoff=0.05) 
-            scale = posterior.compute_delta_prior(
-                obs, exp, fpr, 
-                np.ones((data.obs.shape[0], 2)),
-                cutoff=0.05
-            )
-            ll_on = posterior.log_likelihood(
-                obs, exp, disp_models,
-                delta=scale, w=3
-            ) 
-            ll_off = posterior.log_likelihood(
-                obs, exp, disp_models,
-                w=3
-            )
-            post = -posterior.posterior(prior, ll_on, ll_off)
-            post[post <= 0] = 0.0
-            post = pd.DataFrame(post, index=samples_with_genotype.index)
-            
-            data.z = 1 - np.exp(-post)
-        return data
+    def calc_posteriors(self, obs, exp, fdr, w, disp_models):
+        prior = posterior.compute_prior_weighted(fdr, w, cutoff=0.05) 
+        scale = posterior.compute_delta_prior(
+            obs, exp, fdr, 
+            np.ones((obs.shape[0], 2)),
+            cutoff=0.05
+        )
+        ll_on = posterior.log_likelihood(
+            obs, exp, disp_models,
+            delta=scale, w=3
+        ) 
+        ll_off = posterior.log_likelihood(
+            obs, exp, disp_models,
+            w=3
+        )
+        post = -posterior.posterior(prior, ll_on, ll_off)
+        post[post <= 0] = 0.0
+        return post
     
 
 class DifferentialFootprintLoader(PlotDataLoader):
@@ -241,22 +226,24 @@ class DifferentialFootprintLoader(PlotDataLoader):
 
         # Store number of samples
         L_a = data.a_allele_count
-        L_b = data.b_allele_count
+
+        obs = np.ascontiguousarray(data.obs)
+        exp = np.ascontiguousarray(data.exp)
         
+        log2_obs_over_exp = np.log2((obs + 1) / (exp + 1)) # sample_id x positions
         
-        log2_obs_over_exp = np.ascontiguousarray(
-            np.log2((data.obs+1)/(data.exp+1)).values
-        )
-        
-        #filter outliers
-        outliers = np.apply_along_axis(self.find_outliers, 0, log2_obs_over_exp)
+        #filter outliers per groups
+        outliers = np.apply_along_axis(
+            self.find_outliers,
+            axis=0,
+            arr=log2_obs_over_exp
+        ) # sample_id x positions
         log2_obs_over_exp[outliers] = np.nan
-        
+
         # Step 1: Fit prior
-        variance = np.var(log2_obs_over_exp[:,:], axis = 0)
-        variance = variance[np.isfinite(variance)]
-        variance = variance[variance > 0]
-        print(variance)
+        variance = np.nanvar(log2_obs_over_exp, axis=0) # per position
+        variance = variance[np.isfinite(variance) & (variance > 0)]
+
         
         obj = lambda p: -invchi2.log_likelihood(variance, p[0], p[1])
         nu_0, sig2_0 = scipy.optimize.fmin(obj, x0=[1.0, 1.0], disp=False)
@@ -265,19 +252,19 @@ class DifferentialFootprintLoader(PlotDataLoader):
         # Negative binomial probabilities
         nb = differential.compute_logpmf_values(
             data.disp_models,
-            np.ascontiguousarray(data.obs.values[:,:]),
-            np.ascontiguousarray(data.exp.values[:,:]),
+            obs,
+            exp,
             *step_args
         )
         
         # Calculate prior
         pr_a = differential.compute_log_prior_t(
-            log2_obs_over_exp[:L_a,:],
+            log2_obs_over_exp[:L_a, :],
             nu_0, sig2_0, 
             *step_args
         )
         pr_b = differential.compute_log_prior_t(
-            log2_obs_over_exp[L_a:,:],
+            log2_obs_over_exp[L_a:, :],
             nu_0, sig2_0, 
             *step_args
         )
@@ -287,30 +274,28 @@ class DifferentialFootprintLoader(PlotDataLoader):
             *step_args
         )
 
-        # data.pr_a = pr_a
-        # data.pr_b = pr_b
-        # data.pr_ab = pr_ab
         x = np.linspace(*step_args)
-        mua = x[np.argmax(np.exp(pr_a), axis=0)]
-        mub = x[np.argmax(np.exp(pr_b), axis=0)]
+        mua = x[np.argmax(pr_a, axis=0)]
+        mub = x[np.argmax(pr_b, axis=0)]
+
         data.lfc = mub - mua
         
         # psuedo-integration over 'depletion' scores
-        pa = pr_a[:,:, np.newaxis] + nb[:,:,:L_a]
-        pb = pr_b[:,:, np.newaxis] + nb[:,:,L_a:]
-        pab = pr_ab[:,:, np.newaxis] + nb[:,:,:]
-        
-        
+        pa = pr_a[:, :, np.newaxis] + nb[:, :, :L_a]
+        pb = pr_b[:, :, np.newaxis] + nb[:, :, L_a:]
+        pab = pr_ab[:, :, np.newaxis] + nb[:, :, :]
+
         # likelihood
-        La = np.sum(scipy.special.logsumexp(pa, axis=0), axis=1)
-        Lb = np.sum(scipy.special.logsumexp(pb, axis=0), axis=1)
-        Lab = np.sum(scipy.special.logsumexp(pab, axis=0), axis=1)
+        La = np.sum(logsumexp(pa, axis=0), axis=1)
+        Lb = np.sum(logsumexp(pb, axis=0), axis=1)
+        Lab = np.sum(logsumexp(pab, axis=0), axis=1)
         llr = La + Lb - Lab
-        lrt = scipy.stats.chi2.sf(2 * llr, df=3)
-        
-        lrt[lrt==1.0] = (1.0 - 1e-6) #????
-        
-        data.neglog10_pval = -np.log10(stouffers_z(lrt, 3))
+
+        lrt_pvalue = st.chi2.sf(2 * llr, df=3)
+
+         # include 1 in stouffer's aggregation
+        lrt_pvalue = np.clip(lrt_pvalue, None, 1.0 - 1e-6)
+        data.neglog10_pval = -np.log10(stouffers_z(lrt_pvalue, 3))
 
         return data
 
