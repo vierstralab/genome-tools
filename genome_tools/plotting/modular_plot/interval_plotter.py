@@ -320,6 +320,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             self.logger.debug("Using values passed to get_interval_data function.")
 
         result = []
+        # Use multiprocessing or threading here if needed in the future
         for component in self.plot_components:
             data = DataBundle(
                 interval=self._parse_interval(

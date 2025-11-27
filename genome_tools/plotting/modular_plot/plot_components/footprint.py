@@ -132,7 +132,7 @@ class FootprintTrackComponent(IntervalPlotComponent):
 class DifferentialFootprintsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data: DataBundle, ax: plt.Axes, cmap='Spectral', **kwargs):
+    def _plot(self, data: DataBundle, ax: plt.Axes, cmap='Spectral', vmin=-5, vmax=5, **kwargs):
         """
         main plot function of the component
         always accepts data, ax, **kwargs
@@ -141,10 +141,9 @@ class DifferentialFootprintsComponent(IntervalPlotComponent):
         foldchange = data.lfc
         neglog_pval = data.neglog10_pval
 
-        neglog_pval[foldchange < 0] *= -1
+        neglog_pval = np.where(foldchange < 0, -neglog_pval, neglog_pval)
         
-        norm = colors.Normalize(vmin=-5, vmax=5)
-        cmap = plt.get_cmap("Spectral")
+        norm = colors.Normalize(vmin=vmin, vmax=vmax)
         mappable = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
 
         color = mappable.to_rgba(neglog_pval)
