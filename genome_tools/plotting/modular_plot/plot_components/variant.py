@@ -127,6 +127,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
 @uses_loaders(AllelicReadsLoaderFPTools)
 class AllelicCutcountsComponent(IntervalPlotComponent):
 
+    @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax: plt.Axes, **kwargs):
 
         # ref_cuts = data.ref_cuts
