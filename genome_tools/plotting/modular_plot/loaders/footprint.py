@@ -162,9 +162,6 @@ class FootprintsDataLoader(PlotDataLoader):
         variant_genotypes: pd.DataFrame = data.variant_genotype # indiv_id, variant pairs
         variant_genotypes = filter_df_to_interval(variant_genotypes, variant_interval)
 
-        data.a_allele_count = sum(variant_genotypes['parsed_genotype'] == 'A')
-        data.b_allele_count = sum(variant_genotypes['parsed_genotype'] == 'B')
-
         samples_with_genotype = footprints_metadata.dropna(
             subset='indiv_id'
         ).reset_index(
@@ -176,6 +173,9 @@ class FootprintsDataLoader(PlotDataLoader):
         ).sort_values(
             by="parsed_genotype"
         )
+
+        data.a_allele_count = sum(samples_with_genotype['parsed_genotype'] == 'A')
+        data.b_allele_count = sum(samples_with_genotype['parsed_genotype'] == 'B')
 
         shape = (len(samples_with_genotype), len(data.interval))
     
@@ -238,8 +238,6 @@ class FootprintsDataLoader(PlotDataLoader):
 class DifferentialFootprintLoader(PlotDataLoader):
 
     def _load(self, data: DataBundle):
-
-        processed_df = data.variant_genotype # expect from VariantGenotypeLoader
 
         # Store number of samples
         L_a = data.a_allele_count
