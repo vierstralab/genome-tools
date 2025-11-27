@@ -144,7 +144,7 @@ class OverlappingReadsExtractor(BaseExtractor):
         for pileupcolumn in self.cram.pileup(interval.chrom, interval.start, interval.end, maxdepth=10000, truncate=True, stepper="nofilter"):
             for pileupread in pileupcolumn.pileups:
                 if pileupread.is_del or pileupread.is_refskip:
-                    print('refskip or del ', pileupread.alignment.query_name, file=sys.stderr)
+                    #print('refskip or del ', pileupread.alignment.query_name, file=sys.stderr)
                     continue
 
                 if pileupread.alignment.is_read1:
