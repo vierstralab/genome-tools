@@ -163,13 +163,15 @@ class MotifHitsSelectorLoader(PlotDataLoader):
     @staticmethod
     def score_row(row: pd.Series, variant_interval: VariantInterval) -> pd.Series:
         pfm_matrix = read_pfm(row['pfm'])
+        offset = variant_interval.start - row['start']
+        print(offset, pfm_matrix.shape)
         ref_score, alt_score = get_allelic_scores(
             pfm_matrix=pfm_matrix,
-            motif_start=row['start'],
-            motif_end=row['end'],
             sequence=row['seq'],
-            orient=row['orient'],
-            variant_interval=variant_interval
+            ref=variant_interval.ref,
+            alt=variant_interval.alt,
+            offset=offset,
+            orient=row['orient']
         )
         return pd.Series({
             "ref_score": ref_score,

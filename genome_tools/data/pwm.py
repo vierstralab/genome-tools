@@ -36,7 +36,7 @@ def seq_logp(mat, seq, bg=None):
     res = 0
     for i, c in enumerate(seq):
         j = LETTERS.find(c)
-        res += np.log(mat[j,i]/bg[j])
+        res += np.log(mat[j,i] / bg[j])
     return res
 
 
@@ -53,26 +53,25 @@ def calc_ddg(seq, ref, alt, offset, pfm):
     alt_score = seq_logp(pfm, alt_seq)
     return ref_score, alt_score
 
+
 def get_allelic_scores(
         pfm_matrix: np.ndarray,
-        motif_start,
-        motif_end,
         sequence: str,
-        orient,
-        variant_interval: VariantInterval
+        ref: str,
+        alt: str,
+        offset: int,
+        orient: str,
     ):
-    # constants from cavs
-    assert motif_end - motif_start == pfm_matrix.shape[1]
     if orient == '-':
         seq = reverse_complement(sequence)
-        ref = complement(variant_interval.ref)
-        alt = complement(variant_interval.alt)
-        offset = motif_end - variant_interval.end
+        ref = complement(ref)
+        alt = complement(alt)
+        offset = len(sequence) - offset - 1
     else:
         seq = sequence
-        ref = variant_interval.ref
-        alt = variant_interval.alt
-        offset = variant_interval.start - motif_start
+        ref = ref
+        alt = alt
+        offset = offset
 
         # Then return these three columns 
     return calc_ddg(seq, ref, alt, offset, pfm_matrix)
