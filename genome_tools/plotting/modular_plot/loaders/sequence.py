@@ -118,6 +118,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
                 raise ValueError("variant_interval required for ddg scoring")
             if not isinstance(variant_interval, VariantInterval):
                 raise ValueError("variant_interval must be an instance of genome_tools.VariantInterval")
+            assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval, variant_interval={variant_interval.to_ucsc()} vs {data.interval}"
             metric_name = 'abs_ddg'
 
             motif_hits = filter_df_to_interval(motif_hits, variant_interval)
@@ -164,7 +165,6 @@ class MotifHitsSelectorLoader(PlotDataLoader):
     def score_row(row: pd.Series, variant_interval: VariantInterval) -> pd.Series:
         pfm_matrix = read_pfm(row['pfm'])
         offset = variant_interval.start - row['start']
-        print(offset, pfm_matrix.shape)
         ref_score, alt_score = get_allelic_scores(
             pfm_matrix=pfm_matrix,
             sequence=row['seq'],
