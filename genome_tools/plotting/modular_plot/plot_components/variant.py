@@ -145,9 +145,9 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
             ylim_ref = ylim_alt/3 #np.quantile(ref_y, 0.65)
 
         # Plotting
-        gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=ax.get_subplotspec(), hspace = 0.25)
-        ax.axis("off")
-        fig = ax.get_figure()
+        # gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=ax.get_subplotspec(), hspace = 0.25)
+        # ax.axis("off")
+        # fig = ax.get_figure()
         # fig.suptitle(data.rs_id)
         axes = []
         # x = np.arange(data.interval.start, data.interval.end)
