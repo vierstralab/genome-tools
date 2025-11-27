@@ -211,11 +211,12 @@ class DifferentialFootprintLoader(PlotDataLoader):
     def _load(self, data: DataBundle):
 
         # Store number of samples
-        L_a = data.groups_data.eval('group == "A"').sum()
+        groups_data: pd.Series = data.groups_data
+        L_a = (groups_data == "A").sum()
 
-        obs = np.ascontiguousarray(data.obs.loc[data.groups_data.index, :])
-        exp = np.ascontiguousarray(data.exp.loc[data.groups_data.index, :])
-        disp_models = data.disp_models.loc[data.groups_data.index].values
+        obs = np.ascontiguousarray(data.obs.loc[groups_data.index, :])
+        exp = np.ascontiguousarray(data.exp.loc[groups_data.index, :])
+        disp_models = data.disp_models.loc[groups_data.index].values
         
         log2_obs_over_exp = np.log2((obs + 1) / (exp + 1)) # sample_id x positions
         
