@@ -14,7 +14,7 @@ from genome_tools.plotting.modular_plot.utils import DataBundle
 
 class VariantGenotypeLoader(PlotDataLoader):
     
-    def _load(self, data: DataBundle, genotypes_vcf_path):
+    def _load(self, data: DataBundle, genotypes_vcf_path, samples_metadata: pd.DataFrame):
         with VariantGenotypeExtractor(genotypes_vcf_path) as extractor:
             variants = extractor[data.interval].rename(columns={'pos': 'end'})
         variants['start'] = variants['end'] - 1
@@ -22,12 +22,24 @@ class VariantGenotypeLoader(PlotDataLoader):
         gt_mapping = {
             (0, 0): "A",
             (1, 1): "B",
+            (0, 1): "H",
+            (1, 0): "H",
         }
         
         variants["parsed_genotype"] = variants["gt"].map(gt_mapping)
         variants = variants.dropna(subset=["parsed_genotype"])
 
-        data.variant_genotypes = variants
+        variants_with_sample_id = samples_metadata.dropna(
+            subset='indiv_id'
+        ).reset_index(
+            names='sample_id'
+        ).merge(
+            variants
+        ).set_index(
+            "sample_id"
+        )
+
+        data.variant_genotypes = variants_with_sample_id
         return data
 
 
@@ -40,21 +52,15 @@ class GroupsByGenotypeLoader(PlotDataLoader):
         variant_genotypes = filter_df_to_interval(variant_genotypes, variant_interval)
         if variant_genotypes.empty:
             raise ValueError("No genotypes found for the specified variant interval.")
-
-        samples_with_genotype = samples_metadata.dropna(
-            subset='indiv_id'
-        ).reset_index(
-            names='sample_id'
-        ).merge(
-            variant_genotypes
-        ).set_index(
-            "sample_id"
-        ).rename(
+        variant_genotypes = variant_genotypes.rename(
             columns={'parsed_genotype': 'group'}
+        ).query(
+            'group == "A" or group == "B"'
         ).sort_values(
             by="group"
         )
-        data.groups_data = samples_with_genotype['group']
+
+        data.groups_data = variant_genotypes['group']
         return data
 
 class FinemapLoader(PlotDataLoader):
@@ -118,10 +124,16 @@ class PerSampleCAVLoader(PlotDataLoader):
 # TODO add fasta as input
 class AllelicReadsLoader(PlotDataLoader):
 
-    def _load(self, data: DataBundle, sample_ids, samples_metadata: pd.DataFrame, variant_interval: VariantInterval):
+    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval):
+        assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval. Got {variant_interval.to_str()} and {data.interval.to_ucsc()}"
         if isinstance(sample_ids, (str, int, float)):
             sample_ids = [sample_ids]
-        cram_paths = samples_metadata.loc[sample_ids, 'cram_file']
+        
+        variant_data = data.variant_genotypes
+        variant_data = filter_df_to_interval(variant_data, variant_interval)
+        assert variant_data.index.is_unique
+
+        cram_paths = samples_metadata.loc[variant_data.index, 'cram_file']
         reads = {}
         for sample_id, cram_path in tqdm(zip(sample_ids, cram_paths), total=len(sample_ids), desc="Allelic reads loader"):
             # TODO replace with extractor
