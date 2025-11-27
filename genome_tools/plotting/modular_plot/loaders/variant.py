@@ -121,19 +121,24 @@ class PerSampleCAVLoader(PlotDataLoader):
         return data
 
 
-# TODO add fasta as input
 class AllelicReadsLoader(PlotDataLoader):
 
-    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval):
+    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval, sample_ids=None):
         assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval. Got {variant_interval.to_str()} and {data.interval.to_ucsc()}"
-        if isinstance(sample_ids, (str, int, float)):
-            sample_ids = [sample_ids]
-        
-        variant_data = data.variant_genotypes
+
+        variant_data: pd.DataFrame = data.variant_genotypes.query('parsed_genotype == "H"')
         variant_data = filter_df_to_interval(variant_data, variant_interval)
+        if variant_data.empty:
+            raise ValueError("No heterozygous genotypes found for the specified variant_interval.")
         assert variant_data.index.is_unique
 
-        cram_paths = samples_metadata.loc[variant_data.index, 'cram_file']
+        if sample_ids is None:
+            sample_ids = variant_data.index.tolist()
+        elif isinstance(sample_ids, (str, int, float)):
+            sample_ids = [sample_ids]
+
+        cram_paths = samples_metadata.loc[sample_ids, 'cram_file']
+
         reads = {}
         for sample_id, cram_path in tqdm(zip(sample_ids, cram_paths), total=len(sample_ids), desc="Allelic reads loader"):
             # TODO replace with extractor

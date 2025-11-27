@@ -12,7 +12,7 @@ from genome_tools.plotting import segment_plot
 from genome_tools.plotting.utils import format_axes_to_interval
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
-from genome_tools.plotting.modular_plot.loaders.variant import FinemapLoader, AggregatedCAVLoader, PerSampleCAVLoader, AllelicReadsLoader, AllelicReadsLoaderFPTools
+from genome_tools.plotting.modular_plot.loaders.variant import FinemapLoader, AggregatedCAVLoader, PerSampleCAVLoader, AllelicReadsLoader, AllelicReadsLoaderFPTools, VariantGenotypeLoader
 
 
 class LolipopVariantsComponent(IntervalPlotComponent):
@@ -105,7 +105,7 @@ class NonAggregatedCAVComponent(CAVComponent):
     ...
 
 
-@uses_loaders(AllelicReadsLoader)
+@uses_loaders(VariantGenotypeLoader, AllelicReadsLoader)
 class AllelicReadsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
