@@ -185,7 +185,7 @@ class FootprintsDataLoader(PlotDataLoader):
         w = np.zeros(shape=shape)
         disp_models = []
         
-        for sample_id, row in enumerate(samples_with_genotype.iterrows()):
+        for sample_id, row in samples_with_genotype.iterrows():
             tabix_path = row["tabix_file"]
             with TabixExtractor(
                 tabix_path,
