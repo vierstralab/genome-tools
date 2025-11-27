@@ -2,14 +2,16 @@ import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 from matplotlib.offsetbox import AnnotationBbox, TextArea, HPacker
 
+from genome_tools import VariantInterval
 from genome_tools.plotting.utils import format_axes_to_interval
 from genome_tools.plotting.colors.cm import get_vocab_color
 from genome_tools.plotting import segment_plot
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
-from genome_tools.plotting.modular_plot.loaders.variant import FinemapLoader, AggregatedCAVLoader, PerSampleCAVLoader, AllelicReadsLoader
+from genome_tools.plotting.modular_plot.loaders.variant import FinemapLoader, AggregatedCAVLoader, PerSampleCAVLoader, AllelicReadsLoader, AllelicReadsLoaderFPTools
 
 
 class LolipopVariantsComponent(IntervalPlotComponent):
@@ -120,3 +122,50 @@ class AllelicReadsComponent(IntervalPlotComponent):
         format_axes_to_interval(ax, data.interval)
         return ax
 
+
+@uses_loaders(AllelicReadsLoaderFPTools)
+class AllelicCutcountsComponent(IntervalPlotComponent):
+
+    def _plot(self, data, ax, **kwargs):
+
+        ref_cuts = data.ref_cuts
+        alt_cuts = data.alt_cuts
+        interval: VariantInterval = data.variant_interval
+
+        tot_reads = ref_cuts.sum() + alt_cuts.sum()
+        
+        # Shared x-axis
+        plot_x = np.arange(data.interval.start, data.interval.end)
+
+        if ref_cuts.sum() > alt_cuts.sum():
+            ylim_ref = np.quantile(ref_cuts, 0.75)
+            ylim_alt = ylim_ref/3 #np.quantile(alt_y, 0.65)
+        else:
+            ylim_alt = np.quantile(alt_cuts, 0.75)
+            ylim_ref = ylim_alt/3 #np.quantile(ref_y, 0.65)
+
+        # Plotting
+        gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=ax.get_subplotspec(), hspace = 0.25)
+        ax.axis("off")
+        fig = ax.get_figure()
+        # fig.suptitle(data.rs_id)
+        axes = []
+        for cuts, allele, ylim in zip(
+            [ref_cuts, alt_cuts],
+            [interval.ref, interval.alt],
+            [ylim_ref, ylim_alt]
+        ):
+            ax_bar = fig.add_subplot(gs[0, :])
+            ax_bar.bar(
+                plot_x,
+                cuts,
+                width=1,
+                color=get_vocab_color(allele, 'dna'), 
+                label=f"{cuts.sum()}\n({round(cuts.sum()/tot_reads * 100, 2)}%)"
+            )
+                # ax_bar.set_ylabel("REF")
+            ax_bar.set_ylim(0, ylim)
+            ax_bar.xaxis.set_visible(False)
+            axes.append(ax_bar)
+        
+        return ax, axes

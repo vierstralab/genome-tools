@@ -113,6 +113,7 @@ class PerSampleCAVLoader(PlotDataLoader):
         return data
 
 
+# TODO add fasta as input
 class AllelicReadsLoader(PlotDataLoader):
 
     def _load(self, data: DataBundle, sample_ids, samples_metadata: pd.DataFrame, variant_interval: VariantInterval):
@@ -124,4 +125,41 @@ class AllelicReadsLoader(PlotDataLoader):
             # TODO replace with extractor
             reads[sample_id] = extract_allelic_reads(cram_path, variant_interval, data.interval)
         data.reads = reads
+        return data
+
+
+class AllelicReadsLoaderFPTools(PlotDataLoader):
+
+    def _load(self, data: DataBundle, sample_ids, samples_metadata: pd.DataFrame, variant_interval: VariantInterval):
+        from footprint_tools.cutcounts import bamfile as BamFile
+        if isinstance(sample_ids, (str, int, float)):
+            sample_ids = [sample_ids]
+        cram_paths = samples_metadata.loc[sample_ids, 'cram_file']
+        extractor = BamFile(cram_path)
+        reads = {}
+        for sample_id, cram_path in zip(sample_ids, cram_paths):
+            # TODO replace with extractor
+            reads[sample_id] = extractor.lookup_allelic(
+                chrom=variant_interval.chrom,
+                start=variant_interval.start,
+                end=variant_interval.end,
+                pos=variant_interval.pos,
+                ref=variant_interval.ref,
+                alt=variant_interval.alt
+            )
+        
+        ref_cuts = np.zeros(len(data.interval))
+        alt_cuts = np.zeros(len(data.interval))
+        for sample_id, allelic_reads in reads.items():
+
+            sample_ref_cuts = allelic_reads[variant_interval.ref]["+"] + allelic_reads[variant_interval.ref]["-"]
+            sample_alt_cuts = allelic_reads[variant_interval.alt]["+"] + allelic_reads[variant_interval.alt]["-"]
+            # TODO: check the actual genotype
+            if sum(sample_ref_cuts) == 0 or sum(sample_alt_cuts) == 0:
+                continue
+            ref_cuts += sample_ref_cuts
+            alt_cuts += sample_alt_cuts
+        data.ref_cuts = ref_cuts
+        data.alt_cuts = alt_cuts
+        data.variant_interval = variant_interval
         return data

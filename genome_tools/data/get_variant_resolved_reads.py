@@ -115,7 +115,12 @@ def choose_reads_for_plottng(assigned_reads, reads1, reads2, variant_interval, s
 			else:
 				read = rng.choice([first, second])
 		reads.append(
-               GenomicInterval(read.reference_name, read.reference_start, read.reference_end, base=read_base)
+                GenomicInterval(
+				   read.reference_name,
+				   read.reference_start,
+				   read.reference_end,
+				   base=read_base
+				)
         )
 
 	return reads
