@@ -35,23 +35,24 @@ def get_genomic_axis_tick_formatter(interval):
     return mticker.FuncFormatter(_func)
 
 
-def format_axes_to_interval(ax, interval, **kwargs):
+def format_axes_to_interval(ax, interval, axis="both", **kwargs):
     """Format axis appearance"""
 
     ax.set_xlim(interval.start, interval.end)
 
-    ax.tick_params(axis="both", direction="out")
+    ax.tick_params(axis=axis, direction="out")
 
-    ax.xaxis.set(
-        major_locator=mticker.MaxNLocator(3, prune="both"),
-        minor_locator=mticker.AutoMinorLocator(4),
-        major_formatter=get_genomic_axis_tick_formatter(interval),
-    )
-
-    ax.yaxis.set(
-        major_locator=mticker.MaxNLocator(3, prune="both"),
-        minor_locator=mticker.AutoMinorLocator(),
-    )
+    if axis in ("x", "both"):
+        ax.xaxis.set(
+            major_locator=mticker.MaxNLocator(3, prune="both"),
+            minor_locator=mticker.AutoMinorLocator(4),
+            major_formatter=get_genomic_axis_tick_formatter(interval),
+        )
+    if axis in ("y", "both"):
+        ax.yaxis.set(
+            major_locator=mticker.MaxNLocator(3, prune="both"),
+        )
+    return ax
 
 
 def rescale_data(interval, data, ax, downsample=0, win_fn=np.mean, **kwargs):

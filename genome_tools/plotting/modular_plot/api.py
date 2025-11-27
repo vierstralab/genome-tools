@@ -239,7 +239,7 @@ class IntervalPlotComponent(PlotComponent):
             # TODO: figure out ho to store data with named arguments
             # if not hasattr(data, 'interval') or not data.interval:
             #     raise ValueError("Data must have 'interval' attribute.")
-            format_axes_to_interval(ax, data.interval)
+            format_axes_to_interval(ax, data.interval, axis='x')
             return func(self, data, ax, **kwargs)
         return wrapper
     
