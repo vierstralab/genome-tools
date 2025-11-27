@@ -4,7 +4,7 @@ import scipy
 import anndata as ad
 
 from genome_tools.data.extractors import TabixExtractor
-from genome_tools import GenomicInterval, filter_df_to_interval
+from genome_tools import GenomicInterval, VariantInterval, filter_df_to_interval
 
 
 from footprint_tools.cli.post import posterior_stats as PosteriorStats
@@ -158,14 +158,21 @@ class FootprintDatasetLoader(PlotDataLoader):
 
 
 class FootprintsDataLoader(PlotDataLoader):
-    def _load(self, data: DataBundle, footprints_metadata: pd.DataFrame, calc_posteriors=True):
-        variant_genotype = pd.DataFrame(data.variant_genotype) # indiv_id, variant pairs
+    def _load(self, data: DataBundle, footprints_metadata: pd.DataFrame, variant_interval: VariantInterval, calc_posteriors=True):
+        variant_genotypes: pd.DataFrame = data.variant_genotype # indiv_id, variant pairs
+        variant_genotypes = filter_df_to_interval(variant_genotypes, variant_interval)
 
-        samples_with_genotype = variant_genotype.merge(  # ag_id, variant pairs
-            footprints_metadata.dropna(subset='indiv_id'),
-            on='indiv_id'
+        data.a_allele_count = sum(variant_genotypes['parsed_genotype'] == 'A')
+        data.b_allele_count = sum(variant_genotypes['parsed_genotype'] == 'B')
+
+        samples_with_genotype = footprints_metadata.dropna(
+            subset='indiv_id'
+        ).reset_index(
+            names='sample_id'
+        ).merge(
+            variant_genotypes
         ).set_index(
-            "ag_id"
+            "sample_id"
         ).sort_values(
             by="parsed_genotype"
         )
@@ -235,8 +242,8 @@ class DifferentialFootprintLoader(PlotDataLoader):
         processed_df = data.variant_genotype # expect from VariantGenotypeLoader
 
         # Store number of samples
-        L_a=np.sum(processed_df["group"] == 'A')
-        L_b=np.sum(processed_df["group"] == 'B')
+        L_a = data.a_allele_count
+        L_b = data.b_allele_count
         
         
         log2_obs_over_exp = np.ascontiguousarray(
@@ -250,7 +257,7 @@ class DifferentialFootprintLoader(PlotDataLoader):
         # Step 1: Fit prior
         variance = np.var(log2_obs_over_exp[:,:], axis = 0)
         variance = variance[np.isfinite(variance)]
-        variance = variance[variance>0]
+        variance = variance[variance > 0]
         
         obj = lambda p: -invchi2.log_likelihood(variance, p[0], p[1])
         nu_0, sig2_0 = scipy.optimize.fmin(obj, x0=[1.0, 1.0], disp=False)
