@@ -121,7 +121,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
             assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval, variant_interval={variant_interval.to_ucsc()} vs {data.interval}"
             metric_name = 'abs_ddg'
 
-            motif_hits = filter_df_to_interval(motif_hits, variant_interval)
+            motif_hits = filter_df_to_interval(motif_hits, variant_interval.gi())
             score_table = motif_hits.apply(
                 self.score_row,
                 axis=1,

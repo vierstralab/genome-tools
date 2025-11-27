@@ -157,6 +157,10 @@ class GenomicInterval(object):
     def vi(self, ref=None, alt=None, value=None):
         """Shortcut for to_variant_interval"""
         return self.to_variant_interval(ref=ref, alt=alt, value=value)
+    
+    def gi(self):
+        """Shortcut for to_genomic_interval"""
+        return self
 
     def overlaps(self, other: 'GenomicInterval'):
         """Returns whether two intervals overlap"""
@@ -198,6 +202,10 @@ class VariantInterval(GenomicInterval):
     def gi(self):
         """Shortcut for to_genomic_interval"""
         return self.to_genomic_interval()
+    
+    def vi(self):
+        """Returns self"""
+        return self
 
     def copy(self):
         """Returns a copy of the object"""
