@@ -21,13 +21,14 @@ from genome_tools.plotting.modular_plot.loaders.footprint import (
     FootprintsDataLoader,
     SequenceWeightsFromProtectedNucleotidesLoader,
 )
+from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLoader
 from genome_tools.plotting.modular_plot.loaders.variant import VariantGenotypeLoader, GroupsByGenotypeLoader
 from genome_tools.plotting.modular_plot.loaders.sequence import (
     FastaLoader,
     MotifHitsLoader,
     MotifHitsSelectorLoader
 )
-from genome_tools.plotting.modular_plot.plot_components.sequence import MotifComponent
+from genome_tools.plotting.modular_plot.plot_components.sequence import MotifHitsComponent
 
 from .basic import SegmentPlotComponent
 
@@ -169,11 +170,12 @@ class DifferentialFootprintsComponent(IntervalPlotComponent):
         return ax
 
 
-FPWeightedMotifHitsComponent = MotifComponent.with_loaders(
+FPWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
     PosteriorLoader,
     FastaLoader,
     ProtectedNucleotidesLoader,
     SequenceWeightsFromProtectedNucleotidesLoader,
+    AnnotationRegionsLoader,
     MotifHitsLoader,
     MotifHitsSelectorLoader,
 )

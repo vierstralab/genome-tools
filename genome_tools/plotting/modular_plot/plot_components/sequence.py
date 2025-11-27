@@ -12,7 +12,7 @@ from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLo
 # TODO: add sequence plot
 
 @uses_loaders(AnnotationRegionsLoader, MotifHitsLoader, MotifHitsSelectorLoader)
-class MotifComponent(IntervalPlotComponent):
+class MotifHitsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax, **kwargs):
