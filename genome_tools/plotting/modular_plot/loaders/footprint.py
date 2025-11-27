@@ -5,7 +5,6 @@ import anndata as ad
 
 from genome_tools.data.extractors import TabixExtractor
 from genome_tools import GenomicInterval, filter_df_to_interval
-from genome_tools.plotting.pwm import relative_info_content
 
 
 from footprint_tools.cli.post import posterior_stats as PosteriorStats
