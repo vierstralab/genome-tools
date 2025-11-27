@@ -79,7 +79,7 @@ class MotifHitsLoader(PlotDataLoader):
 
 class MotifHitsSelectorLoader(PlotDataLoader):
 
-    def _load(self, data, choose_by='dg', threshold=None, variant_interval: VariantInterval=None):
+    def _load(self, data, choose_by='dg', motif_hits_threshold=None, variant_interval: VariantInterval=None):
         """
         Select motif hits based on a scoring metric and an optional selection threshold.
 
@@ -152,7 +152,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
         else:
             raise ValueError(f"Unknown choose_by: {choose_by}")
 
-        selected_hits = self._select_hits(motif_hits, metric_name, threshold)
+        selected_hits = self._select_hits(motif_hits, metric_name, motif_hits_threshold)
 
         data.motif_intervals = df_to_genomic_intervals(
             selected_hits,
