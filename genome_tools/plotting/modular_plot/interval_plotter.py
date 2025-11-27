@@ -379,7 +379,9 @@ class IntervalPlotter(VerticalConnectorMixin):
             raise
 
         for gs, component, data_bundle in zip(gridspecs, self.plot_components, filtered_data):
+            component: IntervalPlotComponent
             ax = fig.add_subplot(gs)
+            component.set_xlim_interval(data_bundle.interval, ax)
             component_axes.append(component.plot(data_bundle, ax=ax, **kwargs))
         component_axes = self.CompTuple(*component_axes)
 
