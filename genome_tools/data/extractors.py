@@ -157,6 +157,10 @@ class OverlappingReadsExtractor(BaseExtractor):
 
         return reads_1, reads_2, read_pairs
 
+    def close(self):
+        if getattr(self, "cram", None) and not self.cram.closed:
+            self.cram.close()
+
 
 class TabixExtractor(BaseExtractor):
     def __init__(self, filename, header_char="#", columns=None, skiprows=0, **kwargs):
