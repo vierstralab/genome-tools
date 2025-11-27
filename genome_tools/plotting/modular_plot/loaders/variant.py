@@ -133,6 +133,7 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
 
     def _load(self, data: DataBundle, sample_ids, samples_metadata: pd.DataFrame, variant_interval: VariantInterval):
         from footprint_tools.cutcounts import bamfile as BamFile
+        assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval. Got {variant_interval.to_str()} and {data.interval.to_ucsc()}"
         if isinstance(sample_ids, (str, int, float)):
             sample_ids = [sample_ids]
         cram_paths = samples_metadata.loc[sample_ids, 'cram_file']
