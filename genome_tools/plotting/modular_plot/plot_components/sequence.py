@@ -27,4 +27,5 @@ class MotifComponent(IntervalPlotComponent):
         for interval, ax in zip(motif_intervals, axes):
             plot_motif_logo(interval.pfm_matrix, rc=interval.orient == '-', font='IBM Plex Mono', ax=ax)
             ax.set_xlabel(interval.tf_name, labelpad=0.5)
+        return axes
 

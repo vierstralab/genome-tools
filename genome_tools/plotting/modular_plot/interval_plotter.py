@@ -15,7 +15,8 @@ class PlotComponentManager(LoggerMixin):
     """
     Base class to manage plot components. Ensures unique component names and stores their order
     """
-    def __init__(self, plot_components: Sequence[PlotComponent]):
+    def __init__(self, plot_components: Sequence[PlotComponent], logger_level=None):
+        super().__init__(logger_level=logger_level)
         self.component_names = [c.name for c in plot_components]
 
         repeating_names = self._check_unique_component_names(self.component_names)
