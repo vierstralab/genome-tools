@@ -9,6 +9,7 @@ from genome_tools import VariantInterval
 from genome_tools.plotting.utils import format_axes_to_interval
 from genome_tools.plotting.colors.cm import get_vocab_color
 from genome_tools.plotting import segment_plot
+from genome_tools.plotting.utils import format_axes_to_interval
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 from genome_tools.plotting.modular_plot.loaders.variant import FinemapLoader, AggregatedCAVLoader, PerSampleCAVLoader, AllelicReadsLoader, AllelicReadsLoaderFPTools
@@ -135,7 +136,6 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
         tot_reads = ref_cuts.sum() + alt_cuts.sum()
         
         # Shared x-axis
-        plot_x = np.arange(data.interval.start, data.interval.end)
 
         if ref_cuts.sum() > alt_cuts.sum():
             ylim_ref = np.quantile(ref_cuts, 0.75)
@@ -150,6 +150,7 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
         fig = ax.get_figure()
         # fig.suptitle(data.rs_id)
         axes = []
+        x = np.arange(data.interval.start, data.interval.end)
         for cuts, allele, ylim in zip(
             [ref_cuts, alt_cuts],
             [interval.ref, interval.alt],
@@ -157,15 +158,17 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
         ):
             ax_bar = fig.add_subplot(gs[0, :])
             ax_bar.bar(
-                plot_x,
+                x,
                 cuts,
                 width=1,
                 color=get_vocab_color(allele, 'dna'), 
-                label=f"{cuts.sum()}\n({round(cuts.sum()/tot_reads * 100, 2)}%)"
+                label=f"{cuts.sum()}\n({round(cuts.sum() / tot_reads * 100, 2)}%)"
             )
                 # ax_bar.set_ylabel("REF")
             ax_bar.set_ylim(0, ylim)
             ax_bar.xaxis.set_visible(False)
+            format_axes_to_interval(ax_bar, data.interval, axis='x')
             axes.append(ax_bar)
+            
         
         return ax, axes
