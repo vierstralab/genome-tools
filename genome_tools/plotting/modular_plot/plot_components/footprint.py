@@ -2,13 +2,27 @@ import numpy as np
 import pandas as pd
 
 from matplotlib import gridspec
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
 from genome_tools.plotting.utils import format_axes_to_interval
 
 from genome_tools.plotting.sequence import seq_plot
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
+from genome_tools.plotting.modular_plot.utils import DataBundle
 
-from genome_tools.plotting.modular_plot.loaders.footprint import PosteriorLoader, FootprintDatasetLoader, ProtectedNucleotidesLoader, FootprintsIndexLoader
+from genome_tools.plotting.modular_plot.loaders.footprint import (
+    PosteriorLoader,
+    FootprintDatasetLoader,
+    ProtectedNucleotidesLoader,
+    FootprintsIndexLoader,
+    DifferentialFootprintLoader,
+    FootprintsDataLoader
+)
+from genome_tools.plotting.modular_plot.loaders.variant import VariantGenotypeLoader
+
 from genome_tools.plotting.modular_plot.loaders.sequence import FastaLoader
 
 
@@ -91,6 +105,41 @@ class TFProtectedNucleotidesComponent(IntervalPlotComponent):
         ax.axis("off")
         return ax
 
+
+@uses_loaders(VariantGenotypeLoader, FootprintsDataLoader, DifferentialFootprintLoader)
+class DifferentialPerNucleotides(IntervalPlotComponent):
+
+    @IntervalPlotComponent.set_xlim_interval
+    def _plot(self, data: DataBundle, ax: plt.Axes, **kwargs):
+        """
+        main plot function of the component
+        always accepts data, ax, **kwargs
+        kwargs override any fields in init
+        """
+        foldchange = data.lfc
+        neglog_pval = data.neglog10_pval
+
+        neglog_pval[foldchange < 0] *= -1
+        
+        norm = colors.Normalize(vmin=-5, vmax=5)
+        cmap = plt.get_cmap("Spectral")
+        mappable = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+
+        color = mappable.to_rgba(neglog_pval)
+        
+        x = np.arange(data.interval.start, data.interval.end)
+        ax.bar(x, foldchange, width=1, color=color)
+        ax.axhline(0, ls='dashed', color='k')
+
+        ax.xaxis.set_visible(False)
+        
+        cbar = inset_axes(ax, width="2.5%", height="60%", loc='upper left',
+                         bbox_to_anchor=(1.05 , -0.2, 1, 1),
+                         bbox_transform=ax.transAxes, borderpad=0,)
+
+        plt.colorbar(mappable, cax=cbar, orientation='vertical', label='-log10 p-value')
+        
+        return ax
 
 
 @uses_loaders(FootprintDatasetLoader)

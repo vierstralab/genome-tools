@@ -108,9 +108,7 @@ class ProtectedNucleotidesLoader(PlotDataLoader):
         normalized = col_sums / col_sums.max()
         # Sequence
         data.matrix = self.seq_heights_to_matrix(sequence, normalized)
-
         return data
-
 
     @staticmethod
     def seq_heights_to_matrix(seq, heights):
@@ -231,7 +229,7 @@ class FootprintsDataLoader(PlotDataLoader):
         return data
     
 
-class DifferentialGenotypeLoader(PlotDataLoader):
+class DifferentialFootprintLoader(PlotDataLoader):
 
     def _load(self, data: DataBundle):
 
@@ -284,9 +282,13 @@ class DifferentialGenotypeLoader(PlotDataLoader):
             *step_args
         )
 
-        data.pr_a = pr_a
-        data.pr_b = pr_b
-        data.pr_ab = pr_ab
+        # data.pr_a = pr_a
+        # data.pr_b = pr_b
+        # data.pr_ab = pr_ab
+        x = np.linspace(*step_args)
+        mua = x[np.argmax(np.exp(pr_a), axis=0)]
+        mub = x[np.argmax(np.exp(pr_b), axis=0)]
+        data.lfc = mub - mua
         
         # psuedo-integration over 'depletion' scores
         pa = pr_a[:,:, np.newaxis] + nb[:,:,:L_a]
@@ -295,15 +297,15 @@ class DifferentialGenotypeLoader(PlotDataLoader):
         
         
         # likelihood
-        La = np.sum(scipy.special.logsumexp(pa, axis = 0), axis = 1)
-        Lb = np.sum(scipy.special.logsumexp(pb, axis = 0), axis = 1)
-        Lab = np.sum(scipy.special.logsumexp(pab, axis = 0), axis = 1)
+        La = np.sum(scipy.special.logsumexp(pa, axis=0), axis=1)
+        Lb = np.sum(scipy.special.logsumexp(pb, axis=0), axis=1)
+        Lab = np.sum(scipy.special.logsumexp(pab, axis=0), axis=1)
         llr = La + Lb - Lab
-        lrt = scipy.stats.chi2.sf(2 * llr, df = 3)
+        lrt = scipy.stats.chi2.sf(2 * llr, df=3)
         
         lrt[lrt==1.0] = (1.0 - 1e-6) #????
         
-        data.stfz = stouffers_z(lrt, 3)
+        data.neglog10_pval = -np.log10(stouffers_z(lrt, 3))
 
         return data
 
