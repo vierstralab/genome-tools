@@ -2,8 +2,9 @@ import pandas as pd
 from typing import List
 import numpy as np
 
+from genome_tools import df_to_genomic_intervals, filter_df_to_interval, GenomicInterval, VariantInterval
 from genome_tools.data.extractors import TabixExtractor, FastaExtractor
-from genome_tools import df_to_genomic_intervals, GenomicInterval
+from genome_tools.data.pwm import read_pfm, get_allelic_scores
 
 
 from genome_tools.plotting.modular_plot import PlotDataLoader
@@ -19,7 +20,19 @@ class FastaLoader(PlotDataLoader):
 
 class MotifHitsLoader(PlotDataLoader):
 
-    def _load(self, data: DataBundle, motif_annotations_path, motif_meta, min_motif_overlap=0.9, best_by='dg'):
+    def _load(self, data: DataBundle, motif_annotations_path, motif_meta, min_motif_overlap=0.9):
+        """
+        Load motif hits overlapping annotation regions.
+        
+        Args:
+            data (DataBundle): The data bundle containing annotation_regions.
+            motif_annotations_path (str): Path to the tabix-indexed motif hits file (produced by MOODS) with columns ['#chr', 'start', 'end', 'motif_id', 'dg', 'orient', 'seq'].
+            motif_meta (pd.DataFrame): DataFrame containing motif metadata indexed by motif_id.
+            min_motif_overlap (float): Minimum fraction of motif overlap required to keep a hit.
+        
+        Returns:
+            DataBundle: Updated data bundle with all_motifs_df.
+        """
 
         annotation_regions: List[GenomicInterval] = [
             x for x in data.annotation_regions
@@ -61,28 +74,104 @@ class MotifHitsLoader(PlotDataLoader):
         regions_annotations = regions_annotations.query(f'overlap_frac >= {min_motif_overlap}')
 
         data.all_motifs_df = regions_annotations
+        return data
 
-        filtered_regions = self.filter_motif_hits(
-            regions_annotations,
-            best_by=best_by
-        )
+
+class MotifHitsSelectorLoader(PlotDataLoader):
+
+    def _load(self, data, choose_by='dg', threshold=None, variant_interval: VariantInterval=None):
+        """
+        Select motif hits based on a scoring metric and an optional selection threshold.
+
+        Parameters
+        ----------
+        data : DataBundle
+            Input data bundle containing `data.all_motifs_df` with all motif hits.
+
+        choose_by : {'dg', 'ddg', 'concordant_ddg'}
+            Scoring metric to use for selecting motif hits:
+            - 'dg': Use the motif delta G score from the motif hits file.
+            - 'ddg': Compute absolute difference of motif scores between reference and alternate alleles.
+            - 'concordant_ddg': Same as 'ddg', but keep only ddg values that match the direction of the variant effect (sign is taken from `variant_interval.value`).
+
+        threshold : float or None
+            Filter single best motif per region or filter by a cutoff:
+            - None: Select the best motif per region
+            - float: Keep all motifs with dg (or ddg) >= threshold
+
+        variant_interval : VariantInterval, optional
+            Required only for 'ddg' and 'concordant_ddg'. Concordance is determined based on the sign of `variant_interval.value`.
+
+        Returns
+        -------
+        DataBundle
+            Modified data bundle with `data.motif_intervals` containing the selected motif hits as genomic intervals.
+        """
+
+        motif_hits = data.all_motifs_df
+
+        if choose_by == 'dg':
+            metric_name = 'dg'
+
+        elif choose_by in ('ddg', 'concordant_ddg'):
+            if variant_interval is None:
+                raise ValueError("variant_interval required for ddg scoring")
+            metric_name = 'abs_ddg'
+
+            motif_hits = filter_df_to_interval(motif_hits, variant_interval)
+            score_table = motif_hits.apply(
+                self.score_row,
+                axis=1,
+                variant_interval=variant_interval
+            )
+            motif_hits[['ref_score', 'alt_score', 'pfm_matrix']] = score_table
+            motif_hits['ddg'] = motif_hits['alt_score'] - motif_hits['ref_score']
+            motif_hits['abs_ddg'] = motif_hits['ddg'].abs()
+
+            if choose_by == 'concordant_ddg':
+                effect_sign = np.sign(variant_interval.value)
+                motif_hits = motif_hits.query(f"ddg * {effect_sign} > 0")
+
+        else:
+            raise ValueError(f"Unknown choose_by: {choose_by}")
+
+        selected_hits = self._select_hits(motif_hits, metric_name, threshold)
+
         data.motif_intervals = df_to_genomic_intervals(
-            filtered_regions,
+            selected_hits,
             data.interval,
-            extra_columns=['orient', 'region', 'tf_name', 'pfm']
+            extra_columns=['orient', 'region', 'tf_name', 'pfm_matrix']
         )
         return data
 
-    def filter_motif_hits(self, motif_hits_df: pd.DataFrame, best_by='dg'):
-
-        # FIXME: currently only keep the best hit per footprint
-        if best_by == 'dg':
-            motif_hits_df = (
-                motif_hits_df
-                .sort_values('dg', key=lambda s: s.abs(), ascending=False)
+    @staticmethod
+    def _select_hits(motif_hits: pd.DataFrame, metric_name: str, threshold: float | None):
+        if threshold is None:
+            result = (
+                motif_hits
+                .sort_values(metric_name, ascending=False)
                 .drop_duplicates(subset=['region'], keep='first')
             )
         else:
-            raise NotImplementedError(f'Unknown best_by method: {best_by}')
+            result = motif_hits.query(f"{metric_name} >= {threshold}")
+        if 'pfm_matrix' not in result.columns:
+            result['pfm_matrix'] = result['pfm'].apply(read_pfm)
+        return result
 
-        return motif_hits_df
+    @staticmethod
+    def score_row(row: pd.Series, variant_interval: VariantInterval) -> pd.Series:
+        pfm_matrix = read_pfm(row['pfm'])
+        ref_score, alt_score = get_allelic_scores(
+            pfm_matrix=pfm_matrix,
+            motif_start=row['start'],
+            motif_end=row['end'],
+            sequence=row['sequence'],
+            orient=row['orient'],
+            variant_interval=variant_interval
+        )
+        return pd.Series({
+            "ref_score": ref_score,
+            "alt_score": alt_score,
+            "pfm_matrix": pfm_matrix
+        })
+

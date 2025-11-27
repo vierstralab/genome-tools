@@ -1,14 +1,17 @@
-from genome_tools.plotting.pwm import plot_motif_logo
-from genome_tools.plotting.utils import format_axes_to_interval
+from typing import List
+from genome_tools import GenomicInterval
+
+
+from genome_tools.plotting.sequence import plot_motif_logo
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
-from genome_tools.plotting.modular_plot.loaders.sequence import MotifHitsLoader
+from genome_tools.plotting.modular_plot.loaders.sequence import MotifHitsLoader, MotifHitsSelectorLoader
 from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLoader
 
 
 # TODO: add sequence plot
 
-@uses_loaders(AnnotationRegionsLoader, MotifHitsLoader)
+@uses_loaders(AnnotationRegionsLoader, MotifHitsLoader, MotifHitsSelectorLoader)
 class MotifComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
@@ -19,9 +22,9 @@ class MotifComponent(IntervalPlotComponent):
         return ax, axes
     
     @staticmethod
-    def plot_motifs_for_intervals(motif_intervals, axes):
+    def plot_motifs_for_intervals(motif_intervals: List[GenomicInterval], axes):
         assert len(motif_intervals) == len(axes)
         for interval, ax in zip(motif_intervals, axes):
-            plot_motif_logo(interval.pfm, rc=interval.orient == '-', font='IBM Plex Mono', ax=ax)
+            plot_motif_logo(interval.pfm_matrix, rc=interval.orient == '-', font='IBM Plex Mono', ax=ax)
             ax.set_xlabel(interval.tf_name, labelpad=0.5)
 

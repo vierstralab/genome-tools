@@ -13,6 +13,7 @@ from fontTools.pens.basePen import BasePen
 from matplotlib import font_manager
 
 import string
+from genome_tools.data.pwm import relative_info_content
 
 
 class MultiPolygonPen(BasePen):
@@ -232,7 +233,7 @@ def add_letter_to_axis(ax, multipolygon, col, x, y, height, width_scale=1.0):
         ax.add_patch(polygon_patch)
 
 
-def seq_plot(letter_heights, ax=None, vocab="dna", offset=0, width_scale=1.0, font=default_font, **kwargs):
+def seq_plot(letter_heights: np.ndarray, ax=None, vocab="dna", offset=0, width_scale=1.0, font=default_font, **kwargs):
     if font == default_font:
         letter_polygons = default_letter_polygons
     else:
@@ -278,3 +279,10 @@ def seq_plot(letter_heights, ax=None, vocab="dna", offset=0, width_scale=1.0, fo
 
     ax.set_xlim(left=offset, right=len(letter_heights) + offset)
     ax.set_ylim(bottom=min_neg_h, top=max_pos_h)
+
+
+def plot_motif_logo(pfm: np.ndarray, ax=None, offset=-0.5, rc=False, **kwargs):
+    if rc:
+        pwm = pfm[::-1, ::-1]
+    seq_plot(relative_info_content(pwm.T), ax=ax, offset=offset, **kwargs)
+    return ax
