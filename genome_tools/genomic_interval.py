@@ -206,13 +206,13 @@ class VariantInterval(GenomicInterval):
         )
     
     def widen(self, x, inplace=False):
-        raise NotImplementedError("Cannot widen a variant interval. Convert to GenomicInterval  with to_genomic_interval() method first.")
+        raise NotImplementedError("Cannot widen a variant interval. Convert to GenomicInterval  with gi() method first.")
     
     def shift(self, x, inplace=False):
-        raise NotImplementedError("Cannot shift a variant interval. Convert to GenomicInterval  with to_genomic_interval() method first.")
+        raise NotImplementedError("Cannot shift a variant interval. Convert to GenomicInterval  with gi() method first.")
     
     def zoom(self, zoom_factor, inplace=False):
-        raise NotImplementedError("Cannot zoom a variant interval. Convert to GenomicInterval  with to_genomic_interval() method first.")
+        raise NotImplementedError("Cannot zoom a variant interval. Convert to GenomicInterval  with gi() method first.")
 
 
 
@@ -231,7 +231,7 @@ def filter_df_to_interval(df: pd.DataFrame, interval: GenomicInterval):
         if 'ref' in df.columns and 'alt' in df.columns:
             df_slice = df_slice.query(f'ref == "{interval.ref}" & alt == "{interval.alt}"')
         else:
-            raise ValueError("DataFrame does not contain 'ref' and 'alt' columns required to filter by VariantInterval. Convert provided interval to GenomicInterval (interval.to_genomic_interval()) if you intend to filter only by position.")
+            raise ValueError("DataFrame does not contain 'ref' and 'alt' columns required to filter by VariantInterval. Convert provided interval to GenomicInterval (var_interval.gi()) if you intend to filter only by position.")
     return df_slice
 
 
