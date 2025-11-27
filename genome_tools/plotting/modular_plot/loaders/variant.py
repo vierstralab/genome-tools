@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from genome_tools import filter_df_to_interval, df_to_variant_intervals, VariantInterval
 
@@ -137,7 +138,7 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
         cram_paths = samples_metadata.loc[sample_ids, 'cram_file']
         extractor = BamFile(cram_path)
         reads = {}
-        for sample_id, cram_path in zip(sample_ids, cram_paths):
+        for sample_id, cram_path in tqdm(zip(sample_ids, cram_paths), total=len(sample_ids)):
             # TODO replace with extractor
             reads[sample_id] = extractor.lookup_allelic(
                 chrom=variant_interval.chrom,
