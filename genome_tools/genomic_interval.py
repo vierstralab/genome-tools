@@ -153,6 +153,10 @@ class GenomicInterval(object):
             value=args["value"],
             **self.extra_kwargs
         )
+    
+    def vi(self, ref=None, alt=None, value=None):
+        """Shortcut for to_variant_interval"""
+        return self.to_variant_interval(ref=ref, alt=alt, value=value)
 
     def overlaps(self, other: 'GenomicInterval'):
         """Returns whether two intervals overlap"""
@@ -181,7 +185,7 @@ class VariantInterval(GenomicInterval):
     def from_str(variant_str: str):
         chrom, pos, ref, alt = variant_str.split(":")
         return VariantInterval(chrom, int(pos) - 1, int(pos), ref, alt)
-
+    
     def to_genomic_interval(self):
         return GenomicInterval(
             self.chrom, self.start, self.end, self.name,
@@ -190,6 +194,10 @@ class VariantInterval(GenomicInterval):
             value=self.value,
             **self.extra_kwargs
         )
+    
+    def gi(self):
+        """Shortcut for to_genomic_interval"""
+        return self.to_genomic_interval()
 
     def copy(self):
         """Returns a copy of the object"""
@@ -223,7 +231,7 @@ def filter_df_to_interval(df: pd.DataFrame, interval: GenomicInterval):
         if 'ref' in df.columns and 'alt' in df.columns:
             df_slice = df_slice.query(f'ref == "{interval.ref}" & alt == "{interval.alt}"')
         else:
-            raise ValueError("DataFrame does not contain 'ref' and 'alt' columns required to filter by VariantInterval. Convert to GenomicInterval (.to_genomic_interval()) if you intend to filter only by position.")
+            raise ValueError("DataFrame does not contain 'ref' and 'alt' columns required to filter by VariantInterval. Convert provided interval to GenomicInterval (interval.to_genomic_interval()) if you intend to filter only by position.")
     return df_slice
 
 
