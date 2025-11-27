@@ -167,7 +167,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
             pfm_matrix=pfm_matrix,
             motif_start=row['start'],
             motif_end=row['end'],
-            sequence=row['sequence'],
+            sequence=row['seq'],
             orient=row['orient'],
             variant_interval=variant_interval
         )
