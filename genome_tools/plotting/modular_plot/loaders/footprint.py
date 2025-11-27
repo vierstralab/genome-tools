@@ -159,12 +159,11 @@ class FootprintDatasetLoader(PlotDataLoader):
 
 class FootprintsDataLoader(PlotDataLoader):
     def _load(self, data: DataBundle, footprints_metadata: pd.DataFrame, calc_posteriors=True):
-        variant_genotype = pd.DataFrame(data.variant_genotype)
+        variant_genotype = pd.DataFrame(data.variant_genotype) # indiv_id, variant pairs
 
-        samples_with_genotype = variant_genotype.merge(  # explode by ag_id
-            footprints_metadata, 
-            left_index=True, 
-            right_on='indiv_id'
+        samples_with_genotype = variant_genotype.merge(  # ag_id, variant pairs
+            footprints_metadata.dropna(subset='indiv_id'),
+            on='indiv_id'
         ).set_index(
             "ag_id"
         ).sort_values(
