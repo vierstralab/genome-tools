@@ -174,6 +174,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
 
     @staticmethod
     def _select_hits(motif_hits: pd.DataFrame, metric_name: str, threshold: float | None):
+        print(threshold)
         if threshold is None:
             result = (
                 motif_hits

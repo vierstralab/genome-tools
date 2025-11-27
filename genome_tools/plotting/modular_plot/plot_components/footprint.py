@@ -178,4 +178,5 @@ FPWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
     AnnotationRegionsLoader,
     MotifHitsLoader,
     MotifHitsSelectorLoader,
+    new_class_name="FPWeightedMotifHitsComponent",
 )
