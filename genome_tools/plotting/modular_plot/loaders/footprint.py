@@ -126,35 +126,35 @@ class ProtectedNucleotidesLoader(PlotDataLoader):
 
 
 # TODO: sample data file actually is not needed, it should be any pandas df file whatsoever
-class FootprintDatasetLoader(PlotDataLoader):
+# class FootprintDatasetLoader(PlotDataLoader):
 
-    def _load(self, data: DataBundle, fp_sample_data_file, fp_sample_data, fp_samples, fdr_cutoff=0.05):
-        dl = PosteriorStats(
-            fp_sample_data_file,
-            fp_sample_data.loc[fp_samples],
-            fdr_cutoff=fdr_cutoff,
-        )
-        dl._open_tabix_files()
-        obs, exp, fdr, w = dl._load_data(data.interval)
+#     def _load(self, data: DataBundle, fp_sample_data_file, fp_sample_data, fp_samples, fdr_cutoff=0.05):
+#         dl = PosteriorStats(
+#             fp_sample_data_file,
+#             fp_sample_data.loc[fp_samples],
+#             fdr_cutoff=fdr_cutoff,
+#         )
+#         dl._open_tabix_files()
+#         obs, exp, fdr, w = dl._load_data(data.interval)
 
-        prior = posterior.compute_prior_weighted(fdr, w, cutoff=0.05) #????
-        delta = posterior.compute_delta_prior(
-            obs, exp, fdr, dl.betas, cutoff=0.1 #????
-        )
+#         prior = posterior.compute_prior_weighted(fdr, w, cutoff=0.05) #????
+#         delta = posterior.compute_delta_prior(
+#             obs, exp, fdr, dl.betas, cutoff=0.1 #????
+#         )
         
-        ll_on = posterior.log_likelihood(obs, exp, dl.disp_models, delta=delta, w=3)
-        ll_off = posterior.log_likelihood(obs, exp, dl.disp_models, w=3)
+#         ll_on = posterior.log_likelihood(obs, exp, dl.disp_models, delta=delta, w=3)
+#         ll_off = posterior.log_likelihood(obs, exp, dl.disp_models, w=3)
 
-        post = -posterior.posterior(prior, ll_on, ll_off)
-        post[post <= 0] = 0.0
+#         post = -posterior.posterior(prior, ll_on, ll_off)
+#         post[post <= 0] = 0.0
 
-        z = 1 - np.exp(-post)
+#         z = 1 - np.exp(-post)
 
-        data.pp = z
-        data.obs = obs
-        data.exp = exp
+#         data.pp = z
+#         data.obs = obs
+#         data.exp = exp
 
-        return data
+#         return data
 
 
 class FootprintsDataLoader(PlotDataLoader):
@@ -256,6 +256,7 @@ class DifferentialFootprintLoader(PlotDataLoader):
         variance = np.var(log2_obs_over_exp[:,:], axis = 0)
         variance = variance[np.isfinite(variance)]
         variance = variance[variance > 0]
+        print(variance)
         
         obj = lambda p: -invchi2.log_likelihood(variance, p[0], p[1])
         nu_0, sig2_0 = scipy.optimize.fmin(obj, x0=[1.0, 1.0], disp=False)
