@@ -4,7 +4,7 @@ import numpy as np
 
 from genome_tools import df_to_genomic_intervals, filter_df_to_interval, GenomicInterval, VariantInterval
 from genome_tools.data.extractors import TabixExtractor, FastaExtractor
-from genome_tools.data.pwm import read_pfm, get_allelic_scores
+from genome_tools.data.pwm import read_pfm, get_allelic_scores, seq_logp
 
 
 from genome_tools.plotting.modular_plot import PlotDataLoader
@@ -91,6 +91,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
         choose_by : {'dg', 'ddg', 'concordant_ddg'}
             Scoring metric to use for selecting motif hits:
             - 'dg': Use the motif delta G score from the motif hits file.
+            - 'weighted_dg': Weight the motif delta G score by per-position weights provided in data.seqeunce_weights
             - 'ddg': Compute absolute difference of motif scores between reference and alternate alleles.
             - 'concordant_ddg': Same as 'ddg', but keep only ddg values that match the direction of the variant effect (sign is taken from `variant_interval.value`).
 
@@ -112,6 +113,19 @@ class MotifHitsSelectorLoader(PlotDataLoader):
 
         if choose_by == 'dg':
             metric_name = 'dg'
+        
+        elif choose_by == 'weighted_dg':
+            metric_name = 'weighted_dg'
+            
+            if not hasattr(data, 'sequence_weights'):
+                raise ValueError("data.sequence_weights is required for weighted_dg scoring")
+            motif_hits = filter_df_to_interval(motif_hits, data.interval, strict=True)
+            motif_hits['weighted_dg'] = motif_hits.apply(
+                self.get_weighted_dg,
+                axis=1,
+                interval=data.interval,
+                sequence_weights=data.sequence_weights,
+            )
 
         elif choose_by in ('ddg', 'concordant_ddg'):
             if variant_interval is None:
@@ -146,6 +160,17 @@ class MotifHitsSelectorLoader(PlotDataLoader):
             extra_columns=['orient', 'region', 'tf_name', 'pfm_matrix']
         )
         return data
+    
+    def get_weighted_dg(self, row, interval: GenomicInterval, sequence_weights):
+        pfm_matrix = read_pfm(row['pfm'])
+        weights = sequence_weights[
+            row['start'] - interval.start: row['end'] - interval.end
+        ]
+        return seq_logp(
+            mat=pfm_matrix,
+            seq=row['seq'],
+            weights=weights
+        )
 
     @staticmethod
     def _select_hits(motif_hits: pd.DataFrame, metric_name: str, threshold: float | None):

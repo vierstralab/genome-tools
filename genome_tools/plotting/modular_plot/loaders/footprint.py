@@ -125,6 +125,14 @@ class ProtectedNucleotidesLoader(PlotDataLoader):
             if base in letter_to_index:
                 mat[i, letter_to_index[base]] = h
         return mat #mat.T  
+    
+
+class SequenceWeightsFromProtectedNucleotidesLoader(PlotDataLoader):
+    def _load(self, data: DataBundle):
+        if not hasattr(data, 'matrix'):
+            raise ValueError("data.matrix is required to compute sequence weights")
+        data.sequence_weights = data.matrix.sum(axis=0).astype(float)
+        return data
 
 
 class FootprintsDataLoader(PlotDataLoader):

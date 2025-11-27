@@ -230,18 +230,21 @@ class genomic_interval(GenomicInterval):
         super().__init__(chrom, start, end, name, **kwargs)
 
 
-def filter_df_to_interval(df: pd.DataFrame, interval: GenomicInterval):
+def filter_df_to_interval(df: pd.DataFrame, interval: GenomicInterval, strict: bool = False):
     chromosome_col = 'chrom' if 'chrom' in df.columns else '#chr'
     df_slice = df.loc[df[chromosome_col] == interval.chrom].query(
         f'end > {interval.start} & start < {interval.end}'
     )
+    if strict:
+        df_slice = df_slice.query(
+            f'start >= {interval.start} & end <= {interval.end}'
+        )
     if isinstance(interval, VariantInterval):
         if 'ref' in df.columns and 'alt' in df.columns:
             df_slice = df_slice.query(f'ref == "{interval.ref}" & alt == "{interval.alt}"')
         else:
             raise ValueError("DataFrame does not contain 'ref' and 'alt' columns required to filter by VariantInterval. Convert provided interval to GenomicInterval (var_interval.gi()) if you intend to filter only by position.")
     return df_slice
-
 
 
 def _sanitize_df(df: pd.DataFrame, interval: GenomicInterval):
