@@ -15,7 +15,7 @@ class VariantGenotypeLoader(PlotDataLoader):
     def _load(self, data: DataBundle, genotypes_vcf_path):
         with VariantGenotypeExtractor(genotypes_vcf_path) as extractor:
             variants = extractor[data.interval].rename(columns={'pos': 'end'})
-        variants['start'] = variants['end'] + 1
+        variants['start'] = variants['end'] - 1
         
         gt_mapping = {
             (0, 0): "A",
