@@ -3,7 +3,7 @@
 from typing import List
 import pandas as pd
 from tqdm import tqdm
-
+import warnings
 
 class GenomicInterval(object):
     """Class that implements BED-style object"""
@@ -226,7 +226,13 @@ class VariantInterval(GenomicInterval):
 
 class genomic_interval(GenomicInterval):
     def __init__(self, chrom, start, end, name=".", **kwargs):
-        print('[DEPRECATION WARNING] genomic_interval is deprecated. Please use GenomicInterval instead.')
+        with warnings.catch_warnings():
+            warnings.simplefilter("once", DeprecationWarning)
+            warnings.warn(
+                "genomic_interval is deprecated; use GenomicInterval instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         super().__init__(chrom, start, end, name, **kwargs)
 
 
