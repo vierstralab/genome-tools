@@ -225,14 +225,16 @@ class VariantInterval(GenomicInterval):
 
 
 class genomic_interval(GenomicInterval):
+
+    _warned = False
     def __init__(self, chrom, start, end, name=".", **kwargs):
-        with warnings.catch_warnings():
-            warnings.simplefilter("once", DeprecationWarning)
+        if not genomic_interval._warned:
             warnings.warn(
                 "genomic_interval is deprecated; use GenomicInterval instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
+            genomic_interval._warned = True
         super().__init__(chrom, start, end, name, **kwargs)
 
 
