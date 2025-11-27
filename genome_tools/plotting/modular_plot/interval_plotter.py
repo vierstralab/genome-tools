@@ -9,6 +9,7 @@ import pandas as pd
 from genome_tools.plotting.modular_plot.api import PlotComponent, IntervalPlotComponent
 from genome_tools.plotting.modular_plot.utils import LoggerMixin, DataBundle
 from genome_tools.plotting.connectors import connect_axes_lines, connect_axes_area
+from genome_tools.plotting.utils import format_axes_to_interval
 
 
 class PlotComponentManager(LoggerMixin):
@@ -381,7 +382,7 @@ class IntervalPlotter(VerticalConnectorMixin):
         for gs, component, data_bundle in zip(gridspecs, self.plot_components, filtered_data):
             component: IntervalPlotComponent
             ax = fig.add_subplot(gs)
-            component.set_xlim_interval(data_bundle.interval, ax)
+            format_axes_to_interval(ax, data_bundle.interval)
             component_axes.append(component.plot(data_bundle, ax=ax, **kwargs))
         component_axes = self.CompTuple(*component_axes)
 
