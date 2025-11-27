@@ -124,9 +124,21 @@ class AllelicReadsLoader(PlotDataLoader):
         reads = {}
         for sample_id, cram_path in zip(sample_ids, cram_paths):
             # TODO replace with extractor
-            reads[sample_id] = extract_allelic_reads(cram_path, variant_interval, data.interval)
+            extracted_reads = extract_allelic_reads(cram_path, variant_interval, data.interval)
+            if not self.check_reads(extracted_reads, variant_interval):
+                continue
+            reads[sample_id] = extracted_reads
         data.reads = reads
         return data
+    
+    def check_reads(self, extracted_reads, variant_interval: VariantInterval):
+        n_ref, n_alt = 0, 0
+        for read_allele, _ in extracted_reads:
+            n_ref += read_allele == variant_interval.ref
+            n_alt += read_allele == variant_interval.alt
+        if n_ref > 0 and n_alt > 0:
+            return True
+        return False
 
 
 class AllelicReadsLoaderFPTools(PlotDataLoader):
@@ -163,7 +175,7 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
             sample_alt_cuts = allelic_reads[variant_interval.alt]["+"] + allelic_reads[variant_interval.alt]["-"]
             # TODO: check the actual genotype
             if sum(sample_ref_cuts) == 0 or sum(sample_alt_cuts) == 0:
-                print(f"Skipping sample {sample_id} due to no reads for one allele")
+                #print(f"Skipping sample {sample_id} due to no reads for one allele")
                 continue
             ref_cuts += sample_ref_cuts
             alt_cuts += sample_alt_cuts
