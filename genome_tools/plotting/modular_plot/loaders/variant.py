@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from typing import List
 
-from genome_tools import filter_df_to_interval, df_to_variant_intervals, VariantInterval
+from genome_tools import filter_df_to_interval, df_to_variant_intervals, VariantInterval, GenomicInterval
 
 from genome_tools.data.extractors import TabixExtractor, VariantGenotypeExtractor
 from genome_tools.data.get_variant_resolved_reads import extract_allelic_reads
@@ -131,11 +132,11 @@ class AllelicReadsLoader(PlotDataLoader):
         data.reads = reads
         return data
     
-    def check_reads(self, extracted_reads, variant_interval: VariantInterval):
+    def check_reads(self, extracted_reads: List[GenomicInterval], variant_interval: VariantInterval):
         n_ref, n_alt = 0, 0
-        for read_allele, _ in extracted_reads:
-            n_ref += read_allele == variant_interval.ref
-            n_alt += read_allele == variant_interval.alt
+        for read in extracted_reads:
+            n_ref += read.base == variant_interval.ref
+            n_alt += read.base == variant_interval.alt
         if n_ref > 0 and n_alt > 0:
             return True
         return False
