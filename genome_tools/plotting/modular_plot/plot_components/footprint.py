@@ -107,7 +107,7 @@ class TFProtectedNucleotidesComponent(IntervalPlotComponent):
 
 
 @uses_loaders(VariantGenotypeLoader, FootprintsDataLoader, DifferentialFootprintLoader)
-class DifferentialPerNucleotides(IntervalPlotComponent):
+class DifferentialFootprintsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data: DataBundle, ax: plt.Axes, **kwargs):
