@@ -146,8 +146,8 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
             # TODO replace with extractor
             reads[sample_id] = extractor.lookup_allelic(
                 chrom=variant_interval.chrom,
-                start=variant_interval.start,
-                end=variant_interval.end,
+                start=data.interval.start,
+                end=data.interval.end,
                 pos=variant_interval.pos,
                 ref=variant_interval.ref,
                 alt=variant_interval.alt
