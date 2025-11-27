@@ -163,7 +163,7 @@ class GenomicInterval(object):
     
 
 class VariantInterval(GenomicInterval):
-    def __init__(self, chrom, start, end, ref=None, alt=None, value=None, **kwargs):
+    def __init__(self, chrom, start, end, ref, alt, value=None, **kwargs):
         assert end - start == 1
         super().__init__(chrom, start, end, **kwargs)
         super().__setattr__('_initialized', False)

@@ -116,6 +116,8 @@ class MotifHitsSelectorLoader(PlotDataLoader):
         elif choose_by in ('ddg', 'concordant_ddg'):
             if variant_interval is None:
                 raise ValueError("variant_interval required for ddg scoring")
+            if not isinstance(variant_interval, VariantInterval):
+                raise ValueError("variant_interval must be an instance of genome_tools.VariantInterval")
             metric_name = 'abs_ddg'
 
             motif_hits = filter_df_to_interval(motif_hits, variant_interval)
