@@ -130,6 +130,8 @@ class ProtectedNucleotidesLoader(PlotDataLoader):
 class FootprintsDataLoader(PlotDataLoader):
     def _load(self, data: DataBundle, footprints_metadata: pd.DataFrame, variant_interval: VariantInterval, calc_posteriors=False):
         variant_genotypes: pd.DataFrame = data.variant_genotypes # indiv_id, variant pairs
+
+        # TODO: change filter_df_to_interval to accept VariantInterval
         variant_genotypes = filter_df_to_interval(variant_genotypes, variant_interval)
 
         samples_with_genotype = footprints_metadata.dropna(
@@ -182,7 +184,7 @@ class FootprintsDataLoader(PlotDataLoader):
         w = np.zeros((n, m), dtype=np.float64)
 
 
-        for tabix_path in tabix_files:
+        for i, tabix_path in enumerate(tabix_files):
             with TabixExtractor(
                 tabix_path,
                 columns=[
@@ -193,10 +195,10 @@ class FootprintsDataLoader(PlotDataLoader):
             ) as extractor:
                 tabix_data = extractor[interval]
                 interval_index = tabix_data['start'].values - interval.start
-                obs[:, interval_index] = tabix_data['obs']
-                exp[:, interval_index] = tabix_data['exp']
-                fdr[:, interval_index] = tabix_data['fdr']
-                w[:, interval_index] = 1
+                obs[i, interval_index] = tabix_data['obs']
+                exp[i, interval_index] = tabix_data['exp']
+                fdr[i, interval_index] = tabix_data['fdr']
+                w[i, interval_index] = 1
 
         return obs, exp, fdr, w
 
