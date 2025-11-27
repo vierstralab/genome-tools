@@ -149,7 +149,7 @@ class DifferentialFootprintsComponent(IntervalPlotComponent):
 
         color = mappable.to_rgba(neglog_pval)
         
-        x = np.arange(data.interval.start, data.interval.end)
+        x = np.arange(data.interval.start, data.interval.end) + 0.5 # center bars
         ax.bar(x, foldchange, width=1, color=color)
         ax.axhline(0, ls='dashed', color='k')
 
