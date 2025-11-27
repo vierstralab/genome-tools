@@ -369,9 +369,16 @@ class IntervalPlotter(VerticalConnectorMixin):
         if gridspecs is None:
             gridspecs = self.get_all_component_gridspecs()
 
-        assert len(gridspecs) == len(self.plot_components) == len(data)
+        assert len(gridspecs) == len(self.plot_components)
 
-        for gs, component, data_bundle in zip(gridspecs, self.plot_components, data):
+        try:
+            filtered_data = [getattr(data, c) for c in self.component_names]
+        except AttributeError:
+            missing_components = [c for c in self.component_names if not hasattr(data, c)]
+            self.logger.error("Provided data does not have the correct attributes for the following components: " + ", ".join(missing_components))
+            raise
+
+        for gs, component, data_bundle in zip(gridspecs, self.plot_components, filtered_data):
             ax = fig.add_subplot(gs)
             component_axes.append(component.plot(data_bundle, ax=ax, **kwargs))
         component_axes = self.CompTuple(*component_axes)
