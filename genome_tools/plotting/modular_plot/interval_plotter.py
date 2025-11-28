@@ -44,7 +44,7 @@ class PlotComponentManager(LoggerMixin):
         for component in self.plot_components:
             component: PlotComponent
             comp_name = component.name
-            kwarg_set = inspect.signature(component.__loader_kwargs_signature__)
+            kwarg_set = component.__loader_kwargs_signature__
 
             for kw in kwarg_set:
                 kwarg_to_components.setdefault(kw, []).append(comp_name)
@@ -53,7 +53,6 @@ class PlotComponentManager(LoggerMixin):
             kw: comps for kw, comps in kwarg_to_components.items()
             if len(comps) > 1
         }
-        print(kwarg_to_components)
 
         if len(overlapping) > 0:
             msg_lines = ["Found overlapping component loader kwargs:"]
