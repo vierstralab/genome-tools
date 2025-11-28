@@ -186,23 +186,21 @@ class AllelicReadsComponent(IntervalPlotComponent):
             reads = [reads[i] for i in idx]
 
         _, reads = pack_rows(reads, pad=pad_bp)
-        
-        axis_x_size = 1.0
-        axis_y_size = 1.0
+
         letter_x_size = letter_size
         letter_y_size = letter_size
 
         nrows = max(read.row_index for read in reads) + 1
         dx_bp = self.frac_axis_height_to_bp_x(
-            frac=axis_y_size / nrows,
+            frac=1.0 / nrows,
             ax=ax,
-        ) * axis_x_size
+        )
 
         letter_intervals = [
             GenomicInterval(
                 chrom=variant_interval.chrom,
                 start=variant_interval.start + 0.5 - dx_bp / 2.0,
-                end=variant_interval.start + 0.5 + dx_bp / 2.0,
+                end=variant_interval.end + 0.5 + dx_bp / 2.0,
                 row_index=read.row_index,
                 base=read.base,
             ) for read in reads
@@ -212,7 +210,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
         letter_axes = add_axes_at_intervals(
             letter_intervals,
             data.interval,
-            row_pad=(1 - axis_y_size) / 2,
+            row_pad=0.0,
             ax=ax,
         )
         for letter_interval, letter_ax in zip(letter_intervals, letter_axes):
@@ -237,9 +235,6 @@ class AllelicReadsComponent(IntervalPlotComponent):
             )
             letter_ax.set_xlim(0, 1.0)
             letter_ax.set_ylim(0, 1.0)
-            # letter_ax.patch.set_color('white')
-            # letter_ax.patch.set_alpha(1.0)
-            # letter_ax.patch.set_visible(True)
             letter_ax.set_xticks([])
             letter_ax.set_yticks([])
             for s in letter_ax.spines.values():
