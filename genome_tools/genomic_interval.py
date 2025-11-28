@@ -175,8 +175,8 @@ class VariantInterval(GenomicInterval):
         assert end - start == 1
         super().__init__(chrom, start, end, **kwargs)
         super().__setattr__('_initialized', False)
-        self.ref = ref
-        self.alt = alt
+        self.ref = str(ref)
+        self.alt = str(alt)
         self.value = value
         self.req_fields += ["ref", "alt", "value"]
         self.pos = end
