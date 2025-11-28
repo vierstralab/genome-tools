@@ -6,6 +6,7 @@ from typing import List
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.offsetbox import AnnotationBbox, TextArea, HPacker
+import matplotlib.transforms as mtransforms
 
 from genome_tools import VariantInterval, GenomicInterval
 from genome_tools.plotting.colors.cm import get_vocab_color
@@ -159,7 +160,7 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
 class AllelicReadsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, reads_count_tr=120, max_distance_to_read_ends=200, pad_bp=5, rect_height=0.4, **kwargs):
+    def _plot(self, data, ax, reads_count_tr=120, max_distance_to_read_ends=200, pad_bp=5, rect_height=0.4, seed=42, **kwargs):
         ref_reads: List[GenomicInterval] = data.ref_reads#, key=lambda x: x.start + x.end)
         alt_reads: List[GenomicInterval] = data.alt_reads#, key=lambda x: x.start + x.end)
         variant_interval: VariantInterval = data.variant_interval
@@ -179,7 +180,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
         ]
 
         if len(reads) > reads_count_tr: # subsample
-            rng = np.random.default_rng(seed=42)
+            rng = np.random.default_rng(seed=seed)
             idx = rng.choice(len(reads), size=reads_count_tr, replace=False)
             idx.sort()
             reads = [reads[i] for i in idx]
@@ -189,11 +190,17 @@ class AllelicReadsComponent(IntervalPlotComponent):
         letter_height = 1 - 2 * letter_pad
         letter_width = 0.7
 
+        nrows = max(read.row_index for read in reads) + 1
+        dx_bp = self.frac_axis_height_to_bp_x(
+            frac=1.0 / nrows,
+            ax=ax,
+        )
+
         letter_intervals = [
             GenomicInterval(
                 chrom=variant_interval.chrom,
-                start=variant_interval.start,
-                end=variant_interval.end,
+                start=variant_interval.start + 0.5 - dx_bp / 2.0,
+                end=variant_interval.start + 0.5 - dx_bp / 2.0 + dx_bp,
                 row_index=read.row_index,
                 base=read.base,
             ) for read in reads
@@ -228,3 +235,28 @@ class AllelicReadsComponent(IntervalPlotComponent):
         
         ax.set_yticks([])
         return ax
+
+    @staticmethod
+    def frac_axis_height_to_bp_x(frac, ax):
+        fig = ax.figure
+        fig.canvas.draw_idle()
+
+        bbox = ax.get_window_extent()
+        height_px = bbox.height
+        disp_len_px = frac * height_px
+
+        x0, x1 = ax.get_xlim()
+        x_ref = 0.5 * (x0 + x1)
+        y0, y1 = ax.get_ylim()
+        y_ref = 0.5 * (y0 + y1)
+
+        trans = ax.transData
+        inv   = trans.inverted()
+
+        p0_disp = trans.transform((x_ref, y_ref))
+        p1_disp = (p0_disp[0] + disp_len_px, p0_disp[1])
+
+        (x1_data, _) = inv.transform(p1_disp)
+
+        dx_bp = x1_data - x_ref
+        return dx_bp
