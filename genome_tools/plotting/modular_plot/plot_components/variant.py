@@ -14,7 +14,7 @@ from genome_tools.plotting import segment_plot
 from genome_tools.plotting.utils import format_axes_to_interval
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
-from genome_tools.plotting.modular_plot.loaders.variant import FinemapLoader, AggregatedCAVLoader, PerSampleCAVLoader, AllelicReadsLoader, AllelicReadsLoaderFPTools, VariantGenotypeLoader
+from genome_tools.plotting.modular_plot.loaders.variant import FinemapLoader, AggregatedCAVLoader, PerSampleCAVLoader, AllelicReadsLoaderFPTools, VariantGenotypeLoader
 
 
 class LolipopVariantsComponent(IntervalPlotComponent):
@@ -166,9 +166,9 @@ class AllelicReadsComponent(IntervalPlotComponent):
         alt_reads: List[GenomicInterval] = data.alt_reads#, key=lambda x: x.start + x.end)
         variant_interval: VariantInterval = data.variant_interval
         for r in ref_reads:
-            r.rectprops = dict(color=get_vocab_color(variant_interval.ref, 'dna', default='grey'))
+            r.rectprops = dict(color=get_vocab_color(r.base, 'dna', default='grey'))
         for r in alt_reads:
-            r.rectprops = dict(color=get_vocab_color(variant_interval.alt, 'dna', default='grey'))
+            r.rectprops = dict(color=get_vocab_color(r.base, 'dna', default='grey'))
         reads = ref_reads + alt_reads
 
 
@@ -178,7 +178,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
                 abs(read.center.start - variant_interval.start) < 25
         ]
 
-        if len(reads) > reads_count_tr:
+        if len(reads) > reads_count_tr: # subsample
             idx = np.random.choice(len(reads), size=reads_count_tr, replace=False)
             idx.sort()
             reads = [reads[i] for i in idx]

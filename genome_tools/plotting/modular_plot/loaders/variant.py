@@ -162,7 +162,7 @@ class AllelicReadsLoader(PlotDataLoader):
 class AllelicReadsLoaderFPTools(PlotDataLoader):
 
     def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval, sample_ids=None):
-        from footprint_tools.cutcounts import bamfile as BamFile
+        from footprint_tools.cutcounts import BamFileExtractor
         assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval. Got {variant_interval.to_str()} and {data.interval.to_ucsc()}"
 
         variant_data: pd.DataFrame = data.variant_genotypes.query('parsed_genotype == "AB"')
@@ -183,7 +183,7 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
             total=len(sample_ids),
             desc="Allelic reads loader fp-tools"
         ):
-            extractor = BamFile(cram_path)
+            extractor = BamFileExtractor(cram_path)
             reads[sample_id] = extractor.lookup_allelic(
                 chrom=variant_interval.chrom,
                 start=data.interval.start,
@@ -194,22 +194,18 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
             )
             extractor.close()
         
-        ref_cuts = np.zeros(len(data.interval))
-        alt_cuts = np.zeros(len(data.interval))
-        data.ref_reads = [
-            x for sample_id in sample_ids for x in reads[sample_id][variant_interval.ref]['fragments']
-        ]
-        data.alt_reads = [
-            x for sample_id in sample_ids for x in reads[sample_id][variant_interval.alt]['fragments']
-        ]
-        for sample_id, allelic_reads in reads.items():
-
-            sample_ref_cuts = allelic_reads[variant_interval.ref]["+"] + allelic_reads[variant_interval.ref]["-"]
-            sample_alt_cuts = allelic_reads[variant_interval.alt]["+"] + allelic_reads[variant_interval.alt]["-"]
-
-            ref_cuts += sample_ref_cuts
-            alt_cuts += sample_alt_cuts
-        data.ref_cutcounts = ref_cuts
-        data.alt_cutcounts = alt_cuts
+        data.ref_reads = self.convert_reads_to_list(reads, variant_interval.ref)
+        data.alt_reads = self.convert_reads_to_list(reads, variant_interval.alt)
         data.variant_interval = variant_interval
         return data
+    
+    @staticmethod
+    def convert_reads_to_list(reads_dict, allele: str):
+        reads = []
+        for sample_id, sample_reads_dict in reads_dict.items():
+            for read in sample_reads_dict[allele]['fragments']:
+                assert hasattr(read, 'is_reverse')
+                read.sample_id = sample_id
+                read.base = allele
+                reads.append(read)
+        return reads
