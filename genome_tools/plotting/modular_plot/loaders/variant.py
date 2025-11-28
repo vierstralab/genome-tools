@@ -20,10 +20,10 @@ class VariantGenotypeLoader(PlotDataLoader):
         variants['start'] = variants['end'] - 1
         
         gt_mapping = {
-            (0, 0): "A",
-            (1, 1): "B",
-            (0, 1): "H",
-            (1, 0): "H",
+            (0, 0): "AA",
+            (1, 1): "BB",
+            (0, 1): "AB",
+            (1, 0): "AB",
         }
         
         variants["parsed_genotype"] = variants["gt"].map(gt_mapping)
@@ -55,7 +55,7 @@ class GroupsByGenotypeLoader(PlotDataLoader):
         variant_genotypes = variant_genotypes.rename(
             columns={'parsed_genotype': 'group'}
         ).query(
-            'group == "A" or group == "B"'
+            'group == "AA" or group == "BB"'
         ).sort_values(
             by="group"
         )
@@ -126,7 +126,7 @@ class AllelicReadsLoader(PlotDataLoader):
     def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval, sample_ids=None):
         assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval. Got {variant_interval.to_str()} and {data.interval.to_ucsc()}"
 
-        variant_data: pd.DataFrame = data.variant_genotypes.query('parsed_genotype == "H"')
+        variant_data: pd.DataFrame = data.variant_genotypes.query('parsed_genotype == "AB"')
         variant_data = filter_df_to_interval(variant_data, variant_interval)
         if variant_data.empty:
             raise ValueError("No heterozygous genotypes found for the specified variant_interval.")
@@ -163,8 +163,18 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
     def _load(self, data: DataBundle, sample_ids, samples_metadata: pd.DataFrame, variant_interval: VariantInterval):
         from footprint_tools.cutcounts import bamfile as BamFile
         assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval. Got {variant_interval.to_str()} and {data.interval.to_ucsc()}"
-        if isinstance(sample_ids, (str, int, float)):
+
+        variant_data: pd.DataFrame = data.variant_genotypes.query('parsed_genotype == "AB"')
+        variant_data = filter_df_to_interval(variant_data, variant_interval)
+        if variant_data.empty:
+            raise ValueError("No heterozygous genotypes found for the specified variant_interval.")
+        assert variant_data.index.is_unique
+
+        if sample_ids is None:
+            sample_ids = variant_data.index.tolist()
+        elif isinstance(sample_ids, (str, int, float)):
             sample_ids = [sample_ids]
+
         cram_paths = samples_metadata.loc[sample_ids, 'cram_file']
         reads = {}
         for sample_id, cram_path in tqdm(

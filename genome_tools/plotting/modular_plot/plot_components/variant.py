@@ -105,26 +105,7 @@ class NonAggregatedCAVComponent(CAVComponent):
     ...
 
 
-@uses_loaders(VariantGenotypeLoader, AllelicReadsLoader)
-class AllelicReadsComponent(IntervalPlotComponent):
-
-    @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, only_variant_overlap=False, **kwargs):
-        reads = []
-        for sample_id, sample_reads in data.reads.items():
-            reads.extend(sample_reads)
-        reads = sorted(reads, key=lambda x: x.base.replace('N', 'Z'))
-        for r in reads:
-            r.rectprops = dict(color=get_vocab_color(r.base, 'dna', default='grey'))
-        if only_variant_overlap:
-            reads = [r for r in reads if r.base != 'N']
-        segment_plot(data.interval, reads, ax=ax, **kwargs)
-        ax.set_yticks([])
-        format_axes_to_interval(ax, data.interval)
-        return ax
-
-
-@uses_loaders(AllelicReadsLoaderFPTools)
+@uses_loaders(VariantGenotypeLoader, AllelicReadsLoaderFPTools)
 class AllelicCutcountsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
@@ -172,3 +153,22 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
         ax.legend(loc='upper right', fontsize='small')
                     
         return ax, axes
+
+
+@uses_loaders(VariantGenotypeLoader, AllelicReadsLoader)
+class AllelicReadsComponent(IntervalPlotComponent):
+
+    @IntervalPlotComponent.set_xlim_interval
+    def _plot(self, data, ax, only_variant_overlap=False, **kwargs):
+        reads = []
+        for sample_id, sample_reads in data.reads.items():
+            reads.extend(sample_reads)
+        reads = sorted(reads, key=lambda x: x.base.replace('N', 'Z'))
+        for r in reads:
+            r.rectprops = dict(color=get_vocab_color(r.base, 'dna', default='grey'))
+        if only_variant_overlap:
+            reads = [r for r in reads if r.base != 'N']
+        segment_plot(data.interval, reads, ax=ax, **kwargs)
+        ax.set_yticks([])
+        format_axes_to_interval(ax, data.interval)
+        return ax
