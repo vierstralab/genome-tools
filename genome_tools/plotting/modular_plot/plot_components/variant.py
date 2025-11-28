@@ -222,9 +222,9 @@ class AllelicReadsComponent(IntervalPlotComponent):
                 facecolor='white',
                 edgecolor='k',
                 linewidth=0.3,
-                transform=ax.transAxes,
+                transform=letter_ax.transAxes,
             )
-            ax.add_patch(circ)
+            letter_ax.add_patch(circ)
             plot_letter(
                 letter=letter_interval.base,
                 x=(1 - letter_x_size) / 2,
