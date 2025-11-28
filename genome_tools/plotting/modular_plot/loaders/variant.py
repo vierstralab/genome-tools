@@ -141,7 +141,6 @@ class AllelicReadsLoader(PlotDataLoader):
 
         reads = {}
         for sample_id, cram_path in tqdm(zip(sample_ids, cram_paths), total=len(sample_ids), desc="Allelic reads loader"):
-            # TODO replace with extractor
             extracted_reads = extract_allelic_reads(cram_path, variant_interval, data.interval)
             if not self.check_reads(extracted_reads, variant_interval):
                 continue
@@ -186,7 +185,7 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
         
         ref_cuts = np.zeros(len(data.interval))
         alt_cuts = np.zeros(len(data.interval))
-        # data.reads = reads
+        data.reads = reads
         for sample_id, allelic_reads in reads.items():
 
             sample_ref_cuts = allelic_reads[variant_interval.ref]["+"] + allelic_reads[variant_interval.ref]["-"]
