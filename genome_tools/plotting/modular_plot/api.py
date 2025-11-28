@@ -114,16 +114,17 @@ class PlotComponent(LoggerMixin):
     """
     __loader_kwargs_signature__ = {} # contains all loader kwargs for updated signature
     __required_loaders__: List[Type[PlotDataLoader]] = []
+    __loader_arg_sources__ = {} # maps loader args to the loaders that use them
     __original_init__ = None
 
     def __init__(self, name=None, logger_level=None, **kwargs):
-        LoggerMixin.__init__(self, logger_level=logger_level)
-
+        super().__init__(logger_level=logger_level)
         if name is None:
             name = self.__class__.__name__
         self.name = name
 
         # Separate loader kwargs from plot kwargs
+        self._validate_loader_arg_sources()
         self.loader_kwargs = {
             key: value
             for key, value in kwargs.items()
@@ -131,6 +132,20 @@ class PlotComponent(LoggerMixin):
         }
 
         self.plot_kwargs = kwargs
+
+    
+    def _validate_loader_arg_sources(self):
+        """
+        Validate that the loader arg sources are consistent with the required loaders.
+        """
+        for arg, entry in self.__loader_arg_sources__.items():
+            if len(entry['loaders']) > 1:
+                overlapping_loaders = ', '.join([loader.__name__ for loader in entry['loaders']])
+                self.logger.warning(
+                    f"Argument '{arg}' is used by multiple loaders "
+                    f"({overlapping_loaders}). "
+                    "The same value will be passed to all of them."
+                )
 
     @classmethod
     def with_loaders(cls, *loaders, new_class_name=None):
@@ -369,7 +384,8 @@ def uses_loaders(*loaders):
     """
     def decorator(cls: Type[PlotComponent]):
         cls.__required_loaders__ = loaders
-        loader_kwargs = _collect_all_kwargs(*loaders)
+        loader_kwargs, args_info = _collect_all_kwargs(*loaders)
+        cls.__loader_arg_sources__ = args_info
         cls.__loader_kwargs_signature__ = {**cls.__loader_kwargs_signature__, **loader_kwargs}
         if cls.__original_init__ is None:
             cls.__original_init__ = cls.__init__
@@ -399,8 +415,9 @@ def _collect_all_kwargs(*loaders):
             entry["loaders"].append(loader)
             args_info[arg] = entry
 
-    loader_kwargs = _resolve_loader_kwargs(args_info)
-    return loader_kwargs
+    loader_kwargs = {arg: entry["default"] for arg, entry in args_info.items()}
+
+    return loader_kwargs, args_info
 
 
 def _resolve_loader_kwargs(args_info: dict):
