@@ -192,9 +192,9 @@ class AllelicReadsComponent(IntervalPlotComponent):
 
         nrows = max(read.row_index for read in reads) + 1
         dx_bp = self.frac_axis_height_to_bp_x(
-            frac=1.0 / nrows,
+            frac=letter_height / nrows,
             ax=ax,
-        )
+        ) * letter_width
 
         letter_intervals = [
             GenomicInterval(
@@ -210,15 +210,16 @@ class AllelicReadsComponent(IntervalPlotComponent):
         letter_axes = add_axes_at_intervals(
             letter_intervals,
             data.interval,
+            row_pad=letter_pad,
             ax=ax,
         )
         for letter_interval, letter_ax in zip(letter_intervals, letter_axes):
             plot_letter(
                 letter=letter_interval.base,
-                x=(1.0 - letter_width) / 2.0,
-                y=letter_pad,
-                height=letter_height,
-                width=letter_width,
+                x=0.0,
+                y=0.0,
+                height=1.0,
+                width=1.0,
                 ax=letter_ax,
             )
             letter_ax.set_xlim(0, 1.0)
