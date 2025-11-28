@@ -1,7 +1,7 @@
 from typing import List
 from genome_tools import GenomicInterval
 
-
+from genome_tools.plotting.utils import add_axes_at_intervals
 from genome_tools.plotting.sequence import plot_motif_logo
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
@@ -17,7 +17,7 @@ class MotifHitsComponent(IntervalPlotComponent):
     @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax, **kwargs):
         ax.axis('off')
-        axes = self.add_axes_at_intervals(data.motif_intervals, data.interval, ax=ax)
+        axes = add_axes_at_intervals(data.motif_intervals, data.interval, ax=ax)
         self.plot_motifs_for_intervals(data.motif_intervals, axes)
         return ax, axes
     
