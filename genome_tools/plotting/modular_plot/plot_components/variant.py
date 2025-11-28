@@ -170,6 +170,9 @@ class AllelicReadsComponent(IntervalPlotComponent):
         for r in alt_reads:
             r.rectprops = dict(color=get_vocab_color(variant_interval.alt, 'dna', default='grey'))
         reads = ref_reads + alt_reads
+
+        reads = [read for read in reads if abs(read.center.start - variant_interval.start) < 40]
+
         if len(reads) > reads_count_tr:
             idx = np.random.choice(len(reads), size=reads_count_tr, replace=False)
             idx.sort()
