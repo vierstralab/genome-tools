@@ -6,7 +6,7 @@ from typing import List
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.offsetbox import AnnotationBbox, TextArea, HPacker
-import matplotlib.transforms as mtransforms
+import matplotlib.patches as mpatches
 
 from genome_tools import VariantInterval, GenomicInterval
 from genome_tools.plotting.colors.cm import get_vocab_color
@@ -160,7 +160,7 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
 class AllelicReadsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, reads_count_tr=120, max_distance_to_read_ends=200, pad_bp=5, rect_height=0.4, seed=42, **kwargs):
+    def _plot(self, data, ax, reads_count_tr=120, max_distance_to_read_ends=200, pad_bp=5, rect_height=0.4, circle_size=0.95, letter_size=0.7, seed=42, **kwargs):
         ref_reads: List[GenomicInterval] = data.ref_reads#, key=lambda x: x.start + x.end)
         alt_reads: List[GenomicInterval] = data.alt_reads#, key=lambda x: x.start + x.end)
         variant_interval: VariantInterval = data.variant_interval
@@ -187,10 +187,10 @@ class AllelicReadsComponent(IntervalPlotComponent):
 
         _, reads = pack_rows(reads, pad=pad_bp)
         
-        axis_x_size = 0.9
-        axis_y_size = 0.9
-        letter_x_size = 0.8
-        letter_y_size = 0.8
+        axis_x_size = circle_size
+        axis_y_size = circle_size
+        letter_x_size = letter_size
+        letter_y_size = letter_size
 
         nrows = max(read.row_index for read in reads) + 1
         dx_bp = self.frac_axis_height_to_bp_x(
@@ -216,6 +216,15 @@ class AllelicReadsComponent(IntervalPlotComponent):
             ax=ax,
         )
         for letter_interval, letter_ax in zip(letter_intervals, letter_axes):
+            circ = mpatches.Circle(
+                (0.5, 0.5),
+                0.5,
+                facecolor='white',
+                edgecolor='k',
+                linewidth=0.3,
+                transform=ax.transAxes,
+            )
+            ax.add_patch(circ)
             plot_letter(
                 letter=letter_interval.base,
                 x=(1 - letter_x_size) / 2,
@@ -226,14 +235,15 @@ class AllelicReadsComponent(IntervalPlotComponent):
             )
             letter_ax.set_xlim(0, 1.0)
             letter_ax.set_ylim(0, 1.0)
-            letter_ax.patch.set_color('white')
-            letter_ax.patch.set_alpha(1.0)
-            letter_ax.patch.set_visible(True)
+            # letter_ax.patch.set_color('white')
+            # letter_ax.patch.set_alpha(1.0)
+            # letter_ax.patch.set_visible(True)
             letter_ax.set_xticks([])
             letter_ax.set_yticks([])
             for s in letter_ax.spines.values():
                 s.set_visible(True)
                 s.set_linewidth(0.5)
+
             
 
         segment_plot(data.interval, reads, rect_height=rect_height, pack=False, ax=ax, **kwargs)
