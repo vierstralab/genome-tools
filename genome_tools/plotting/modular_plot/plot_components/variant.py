@@ -225,7 +225,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
             letter_ax.set_ylim(0, 1.0)
             letter_ax.patch.set_color('white')
             letter_ax.patch.set_alpha(1.0)
-            letter_ax.set_visible(True)
+            letter_ax.patch.set_visible(True)
             letter_ax.set_xticks([])
             letter_ax.set_yticks([])
             for s in letter_ax.spines.values():
