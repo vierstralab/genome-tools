@@ -177,7 +177,7 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
                 chrom=variant_interval.chrom,
                 start=data.interval.start,
                 end=data.interval.end,
-                pos=variant_interval.pos,
+                pos=variant_interval.pos - 1, # weird 0-based in fp-tools
                 ref=variant_interval.ref,
                 alt=variant_interval.alt
             )
