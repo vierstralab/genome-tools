@@ -102,9 +102,7 @@ class CAVComponent(LolipopVariantsComponent):
         return ax
     
 
-@uses_loaders(PerSampleCAVLoader)
-class NonAggregatedCAVComponent(CAVComponent):
-    ...
+NonAggregatedCAVComponent = CAVComponent.with_loaders(PerSampleCAVLoader, new_class_name="NonAggregatedCAVComponent")
 
 
 @uses_loaders(VariantGenotypeLoader, AllelicReadsLoaderFPTools)
