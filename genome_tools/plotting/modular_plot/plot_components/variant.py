@@ -200,7 +200,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
             GenomicInterval(
                 chrom=variant_interval.chrom,
                 start=variant_interval.start + 0.5 - dx_bp / 2.0,
-                end=variant_interval.start + 0.5 - dx_bp / 2.0 + dx_bp,
+                end=variant_interval.start + 0.5 + dx_bp / 2.0,
                 row_index=read.row_index,
                 base=read.base,
             ) for read in reads
