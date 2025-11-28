@@ -215,7 +215,7 @@ def classify_polygons_by_nesting_depth(polygons):
     return ranked_polygons
 
 
-def add_letter_to_axis(ax, multipolygon, col, x, y, height, width_scale=1.0):
+def add_multipolygon_to_axis(ax, multipolygon, col, x, y, height, width_scale=1.0):
     """
     Add 'let' with position x, y and height height to matplotlib axis 'ax', adjusting width by width_scale.
     """
@@ -231,6 +231,20 @@ def add_letter_to_axis(ax, multipolygon, col, x, y, height, width_scale=1.0):
         transformed_polygon = transform_polygon(polygon, width_scale, height, x, y)
         polygon_patch = Polygon(transformed_polygon, closed=True, edgecolor='none', facecolor=face_color, linewidth=0)
         ax.add_patch(polygon_patch)
+
+
+def plot_letter(letter, x, y, height=1.0, width=1.0, vocab='dna', color=None, font=default_font, ax=None):
+    if ax is None:
+        ax = plt.gca()
+    if font == default_font:
+        letter_polygons = default_letter_polygons
+    else:
+        letter_polygons = get_letter_polygons(font, string.ascii_uppercase + string.ascii_lowercase)
+    multipolygon = letter_polygons[letter]
+    if color is None:
+        color = VOCAB_COLOR_MAPS[vocab].get(letter, 'black')
+    add_multipolygon_to_axis(ax, multipolygon, color, x, y, height, width_scale=width)
+    return ax
 
 
 def seq_plot(letter_heights: np.ndarray, ax=None, vocab="dna", offset=0, width_scale=1.0, font=default_font, **kwargs):
@@ -262,13 +276,13 @@ def seq_plot(letter_heights: np.ndarray, ax=None, vocab="dna", offset=0, width_s
             color = VOCAB_COLOR_MAPS[vocab][letter]
             polygons = letter_polygons[letter]
             if height > 0:
-                add_letter_to_axis(
+                add_multipolygon_to_axis(
                     ax, polygons, color, x_pos + offset, y_pos_pos, height,
                     width_scale=width_scale
                 )
                 y_pos_pos += height
             elif height < 0:
-                add_letter_to_axis(
+                add_multipolygon_to_axis(
                     ax, polygons, color, x_pos + offset, y_neg_pos, height,
                     width_scale=width_scale
                 )

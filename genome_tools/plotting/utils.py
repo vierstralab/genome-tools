@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from genome_tools import GenomicInterval
 from typing import List
 import matplotlib.ticker as mticker
@@ -80,6 +81,59 @@ def rescale_data(interval, data, ax, downsample=0, win_fn=np.mean, **kwargs):
     assert len(x) == len(y)
 
     return x, y
+
+
+def add_axes_at_intervals(
+    genomic_intervals: List[GenomicInterval],
+    interval: GenomicInterval,
+    row_pad=0,
+    ax=None
+):
+    """
+    Add axes at the middle points of the genomic intervals.
+
+    Parameters
+    ----------
+    genomic_intervals : list of GenomicInterval
+        List of genomic intervals.
+    interval : GenomicInterval
+        Interval to restrict the axes.
+    ax : matplotlib.axes.Axes, optional
+        Axes to plot on. If None, use the current axes.
+
+    Returns
+    -------
+    axes : list of matplotlib.axes.Axes
+        List of axes added at the middle points of the genomic intervals.
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    parent_pos = ax.get_position()
+    nrows = max(
+        getattr(gi, "row_index", 0) for gi in genomic_intervals
+    ) + 1
+    row_height = parent_pos.height / nrows * (1 - 2 * row_pad)
+
+    axes = []
+    for genomic_interval in genomic_intervals:
+        # work in start coordinates
+        x0_rel = (genomic_interval.start - interval.start) / (interval.end - interval.start)
+        x1_rel = (genomic_interval.end - interval.start) / (interval.end - interval.start)
+
+        new_axes_width = parent_pos.width * (x1_rel - x0_rel)
+        new_axes_height = row_height
+        new_axes_x = parent_pos.x0 + (x0_rel * parent_pos.width)
+        r = getattr(genomic_interval, "row_index", 0)
+        new_axes_y = parent_pos.y0 + (nrows - 1 - r) * row_height + row_pad
+
+        new_ax = ax.get_figure().add_axes([new_axes_x, new_axes_y, new_axes_width, new_axes_height])
+        new_ax.set_xticks([])
+        new_ax.set_yticks([])
+        clear_spines(new_ax)
+
+        axes.append(new_ax)
+    return axes
 
 
 class RowElement:

@@ -470,7 +470,20 @@ def grouped_heatmap_plot(
 # ------------------------
 
 
-def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], pad_points=1, ax=None, rect_height=0.4, **kwargs):
+def _infer_pad_bp(pad_points, interval, ax):
+    trans_left = ax.transData + mtransforms.ScaledTranslation(
+    -1 * pad_points / 72.0, 0, ax.figure.dpi_scale_trans
+    )
+    trans_right = ax.transData + mtransforms.ScaledTranslation(
+        pad_points / 72.0, 0, ax.figure.dpi_scale_trans
+    )
+    x0 = ax.transData.inverted().transform(trans_left.transform((interval.start, 0)))[0]
+    x1 = ax.transData.inverted().transform(trans_right.transform((interval.start, 0)))[0]
+    pad_bp = (x1 - x0) // 2
+    return pad_bp
+    
+
+def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], rect_height=0.4, pack=True, pad_points=1, pad_bp=None, ax=None, **kwargs):
     if not ax:
         ax = plt.gca()
 
@@ -484,34 +497,28 @@ def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], pad
 
     ax.set_xlim(interval.start, interval.end)
 
-    trans_left = ax.transData + mtransforms.ScaledTranslation(
-        -1 * pad_points / 72.0, 0, ax.figure.dpi_scale_trans
-    )
-    trans_right = ax.transData + mtransforms.ScaledTranslation(
-        pad_points / 72.0, 0, ax.figure.dpi_scale_trans
-    )
+    if pack:
+        if pad_bp is None:
+            pad_bp = _infer_pad_bp(pad_points, interval, ax)
 
-    x0 = ax.transData.inverted().transform(trans_left.transform((interval.start, 0)))[0]
-    x1 = ax.transData.inverted().transform(trans_right.transform((interval.start, 0)))[0]
-
-    pad_bp = (x1 - x0) // 2
-    row_indices, _ = pack_rows(segments, pad=pad_bp)
+        _, segments = pack_rows(segments, pad=pad_bp)
 
     summit_lines = []
     patches = []
-    for interval_i, row_index in row_indices.items():
+    for segment in segments:
+        start, end, row_index = segment.start, segment.end, segment.row_index
         interval_rectprops = rectprops.copy()
-        interval_rectprops.update(getattr(interval_i, "rectprops", {}))
+        interval_rectprops.update(getattr(segment, "rectprops", {}))
         patches.append(
             mpatches.Rectangle(
-                (interval_i.start, row_index + rect_pad), interval_i.end - interval_i.start, rect_height, **interval_rectprops
+                (start, row_index + rect_pad), end - start, rect_height, **interval_rectprops
             )
         )
-        if hasattr(interval_i, "summit"):
+        if hasattr(segment, "summit"):
             summit_lines.append(
                 mlines.Line2D(
-                    [interval_i.summit, interval_i.summit],
-                    [row_index + rect_pad - rect_height*0.2, row_index + rect_pad + rect_height*1.2],
+                    [segment.summit, segment.summit],
+                    [row_index + rect_pad - rect_height * 0.2, row_index + rect_pad + rect_height * 1.2],
                     color="k",
                     lw=0.25,
                 )
@@ -524,7 +531,7 @@ def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], pad
         ax.add_line(line)
 
     ax.set_ylim(
-        min(row_indices.values(), default=0),
+        min([segment.row_index for segment in segments], default=0),
         max(row_indices.values(), default=1) + 1
     )
     ax.invert_yaxis()

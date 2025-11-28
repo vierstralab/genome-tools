@@ -8,10 +8,10 @@ from matplotlib import gridspec
 from matplotlib.offsetbox import AnnotationBbox, TextArea, HPacker
 
 from genome_tools import VariantInterval, GenomicInterval
-from genome_tools.plotting.utils import format_axes_to_interval
 from genome_tools.plotting.colors.cm import get_vocab_color
 from genome_tools.plotting import segment_plot
-from genome_tools.plotting.utils import format_axes_to_interval
+from genome_tools.plotting.sequence import plot_letter
+from genome_tools.plotting.utils import format_axes_to_interval, pack_rows, add_axes_at_intervals
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 from genome_tools.plotting.modular_plot.loaders.variant import FinemapLoader, AggregatedCAVLoader, PerSampleCAVLoader, AllelicReadsLoaderFPTools, VariantGenotypeLoader
@@ -159,7 +159,7 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
 class AllelicReadsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, reads_count_tr=120, **kwargs):
+    def _plot(self, data, ax, reads_count_tr=120, max_distance_to_read_ends=200, pad_bp=5, rect_height=0.4, **kwargs):
         ref_reads: List[GenomicInterval] = data.ref_reads#, key=lambda x: x.start + x.end)
         alt_reads: List[GenomicInterval] = data.alt_reads#, key=lambda x: x.start + x.end)
         variant_interval: VariantInterval = data.variant_interval
@@ -172,15 +172,49 @@ class AllelicReadsComponent(IntervalPlotComponent):
 
         reads = [
             read for read in reads 
-            if (read.end > read.start) and
-                abs(read.center.start - variant_interval.start) < 25
+            if (
+                abs(read.start - variant_interval.start) <= max_distance_to_read_ends and
+                abs(read.end - variant_interval.end) <= max_distance_to_read_ends
+            )
         ]
 
         if len(reads) > reads_count_tr: # subsample
-            idx = np.random.choice(len(reads), size=reads_count_tr, replace=False)
+            rng = np.random.default_rng(seed=42)
+            idx = rng.choice(len(reads), size=reads_count_tr, replace=False)
             idx.sort()
             reads = [reads[i] for i in idx]
-        segment_plot(data.interval, reads, ax=ax, **kwargs)
+
+        _, reads = pack_rows(reads, pad_bp=pad_bp)
+        letter_pad = (1.0 - rect_height) / 2.0 / 2.0
+        letter_height = 1 - 2 * letter_pad
+        letter_width = 0.7
+
+        # Add axes for letters
+        letter_axes = add_axes_at_intervals(
+            reads,
+            data.interval,
+            ax=ax,
+        )
+        for read, letter_ax in zip(reads, letter_axes):
+            plot_letter(
+                letter=read.base,
+                x=1.0 - letter_width / 2.0,
+                y=letter_pad,
+                height=letter_height,
+                width=letter_width,
+                ax=letter_ax,
+            )
+            letter_ax.set_xlim(0, 1.0)
+            letter_ax.set_ylim(0, 1.0)
+            letter_ax.patch.set_color('white')
+            letter_ax.set_xticks([])
+            letter_ax.set_yticks([])
+            for s in letter_ax.spines.values():
+                s.set_visible(True)
+                s.set_linewidth(0.5)
+            
+
+        segment_plot(data.interval, reads, rect_height=rect_height, pack=False, ax=ax, **kwargs)
         
         ax.set_yticks([])
         return ax

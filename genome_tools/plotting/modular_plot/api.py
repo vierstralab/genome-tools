@@ -7,7 +7,7 @@ from makefun import wraps, add_signature_parameters, remove_signature_parameters
 import warnings
 
 
-from genome_tools.plotting.utils import clear_spines, format_axes_to_interval
+from genome_tools.plotting.utils import format_axes_to_interval, add_axes_at_intervals
 from genome_tools import GenomicInterval
 
 from genome_tools.plotting.modular_plot.utils import LoggerMixin, DataBundle, RequiredArgument
@@ -360,57 +360,11 @@ class IntervalPlotComponent(PlotComponent):
                     summit + 1
                 ).widen((bp_width - 1) // 2)
             )
-        return self.add_axes_at_intervals(
+        return add_axes_at_intervals(
             modified_genomic_intervals,
             interval,
             ax=ax
         )
-
-    @staticmethod
-    def add_axes_at_intervals(
-        genomic_intervals: List[GenomicInterval],
-        interval: GenomicInterval,
-        ax=None
-    ):
-        """
-        Add axes at the middle points of the genomic intervals.
-
-        Parameters
-        ----------
-        genomic_intervals : list of GenomicInterval
-            List of genomic intervals.
-        interval : GenomicInterval
-            Interval to restrict the axes.
-        ax : matplotlib.axes.Axes, optional
-            Axes to plot on. If None, use the current axes.
-
-        Returns
-        -------
-        axes : list of matplotlib.axes.Axes
-            List of axes added at the middle points of the genomic intervals.
-        """
-        if ax is None:
-            ax = plt.gca()
-
-        axes = []
-        for genomic_interval in genomic_intervals:
-            parent_pos = ax.get_position()
-            # work in start coordinates
-            x0_rel = (genomic_interval.start - interval.start) / (interval.end - interval.start)
-            x1_rel = (genomic_interval.end - interval.start) / (interval.end - interval.start)
-
-            new_axes_width = parent_pos.width * (x1_rel - x0_rel)
-            new_axes_height = parent_pos.height
-            new_axes_x = parent_pos.x0 + (x0_rel * parent_pos.width)
-            new_axes_y = parent_pos.y0
-
-            new_ax = ax.get_figure().add_axes([new_axes_x, new_axes_y, new_axes_width, new_axes_height])
-            new_ax.set_xticks([])
-            new_ax.set_yticks([])
-            clear_spines(new_ax)
-
-            axes.append(new_ax)
-        return axes
 
 
 def uses_loaders(*loaders):
