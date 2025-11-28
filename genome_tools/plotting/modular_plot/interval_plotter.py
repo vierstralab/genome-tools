@@ -53,8 +53,9 @@ class PlotComponentManager(LoggerMixin):
             kw: comps for kw, comps in kwarg_to_components.items()
             if len(comps) > 1
         }
+        print(kwarg_to_components)
 
-        if overlapping:
+        if len(overlapping) > 0:
             msg_lines = ["Found overlapping component loader kwargs:"]
             for kw, comps in overlapping.items():
                 msg_lines.append(f"Argument '{kw}' used by: {', '.join(comps)}")
