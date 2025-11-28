@@ -171,7 +171,9 @@ class AllelicReadsComponent(IntervalPlotComponent):
             r.rectprops = dict(color=get_vocab_color(variant_interval.alt, 'dna', default='grey'))
         reads = ref_reads + alt_reads
         if len(reads) > reads_count_tr:
-            reads = np.random.choice(reads, size=reads_count_tr, replace=False)
+            idx = np.random.choice(len(reads), size=reads_count_tr, replace=False)
+            idx.sort()=
+            reads = [reads[i] for i in idx]
         segment_plot(data.interval, reads, ax=ax, **kwargs)
         ax.set_yticks([])
         format_axes_to_interval(ax, data.interval)
