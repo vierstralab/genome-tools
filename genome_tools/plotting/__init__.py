@@ -505,6 +505,12 @@ def segment_plot(interval, segments, pad_points=1, ax=None, rect_height=0.4, **k
                 (interval_i.start, row_index + rect_pad), interval_i.end - interval_i.start, rect_height, **interval_rectprops
             )
         )
+        ax.annotate(
+            '',
+            xy=(interval_i.end, row_index + rect_height/2),
+            xytext=(interval_i.start, row_index + rect_height/2),
+            arrowprops=dict(arrowstyle='-|>', lw=0.8, color='k'),
+        )
         if hasattr(interval_i, "summit"):
             summit_lines.append(
                 mlines.Line2D(

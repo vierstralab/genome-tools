@@ -183,6 +183,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
             idx.sort()
             reads = [reads[i] for i in idx]
         segment_plot(data.interval, reads, ax=ax, **kwargs)
+        
         ax.set_yticks([])
         format_axes_to_interval(ax, data.interval)
         return ax
