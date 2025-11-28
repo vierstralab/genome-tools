@@ -146,7 +146,7 @@ class PlotComponent(LoggerMixin):
                 self.logger.warning(
                     f"Argument '{arg}' is used by multiple loaders "
                     f"({overlapping_loaders}). "
-                    f"The same value will be passed to all of them. Or you can specify loader-specific overrides e.g. ({example})."
+                    f"The same value will be passed to all of them.\nOr you can specify loader-specific overrides as follows ({example})."
                 )
     
     def _extract_loader_specific_overrides(self, kwargs: dict):
