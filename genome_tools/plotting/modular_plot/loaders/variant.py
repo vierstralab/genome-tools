@@ -196,12 +196,12 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
         
         ref_cuts = np.zeros(len(data.interval))
         alt_cuts = np.zeros(len(data.interval))
-        data.ref_reads = np.array([
+        data.ref_reads = [
             x for sample_id in sample_ids for x in reads[sample_id][variant_interval.ref]['fragments']
-        ])
-        data.alt_reads = np.array([
+        ]
+        data.alt_reads = [
             x for sample_id in sample_ids for x in reads[sample_id][variant_interval.alt]['fragments']
-        ])
+        ]
         for sample_id, allelic_reads in reads.items():
 
             sample_ref_cuts = allelic_reads[variant_interval.ref]["+"] + allelic_reads[variant_interval.ref]["-"]
