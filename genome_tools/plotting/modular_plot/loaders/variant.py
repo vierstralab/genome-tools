@@ -44,7 +44,7 @@ class VariantGenotypeLoader(PlotDataLoader):
 
 
 class GroupsByGenotypeLoader(PlotDataLoader):
-    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval):
+    def _load(self, data: DataBundle, variant_interval: VariantInterval, groups=["AA", "BB"]):
         ### Refactor to work with arbitrary groups
         variant_genotypes: pd.DataFrame = data.variant_genotypes # indiv_id, variant pairs
 
@@ -54,9 +54,10 @@ class GroupsByGenotypeLoader(PlotDataLoader):
             raise ValueError("No genotypes found for the specified variant interval.")
         variant_genotypes = variant_genotypes.rename(
             columns={'parsed_genotype': 'group'}
-        ).query(
-            'group == "AA" or group == "BB"'
-        ).sort_values(
+        )
+        variant_genotypes = variant_genotypes[
+            variant_genotypes['group'].isin(groups)
+        ].sort_values(
             by="group"
         )
 

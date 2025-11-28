@@ -221,6 +221,7 @@ class DifferentialFootprintLoader(PlotDataLoader):
         # Store number of samples
         groups_data: pd.Series = data.groups_data
         L_a = (groups_data == "AA").sum()
+        assert L_a < len(groups_data), "Both groups must have at least one sample"
 
         obs = np.ascontiguousarray(data.obs.loc[groups_data.index, :])
         exp = np.ascontiguousarray(data.exp.loc[groups_data.index, :])
