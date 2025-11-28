@@ -124,12 +124,14 @@ class PlotComponent(LoggerMixin):
         self.name = name
 
         # Separate loader kwargs from plot kwargs
-        self._validate_loader_arg_sources()
         self.loader_overrides = self._extract_loader_specific_overrides(kwargs)
         self.loader_kwargs = {
             k: kwargs.pop(k) for k in list(kwargs)
             if k in self.__class__.__loader_kwargs_signature__
         }
+
+        if len(self.loader_overrides) == 0:
+            self._validate_loader_arg_sources()
 
         self.plot_kwargs = kwargs
 
@@ -142,7 +144,7 @@ class PlotComponent(LoggerMixin):
             if len(entry['loaders']) > 1:
                 overlapping_loaders = ', '.join([loader.__name__ for loader in entry['loaders']])
                 val = {arg: 'some_value'}
-                example = f"{entry['loaders'][0].__name__}: {val}"
+                example = f"{entry['loaders'][0].__name__}={val}"
                 self.logger.warning(
                     f"Argument '{arg}' is used by multiple loaders "
                     f"({overlapping_loaders}). "
