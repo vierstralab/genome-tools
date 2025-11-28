@@ -187,8 +187,8 @@ class AllelicReadsComponent(IntervalPlotComponent):
 
         _, reads = pack_rows(reads, pad=pad_bp)
         
-        axis_x_size = circle_size
-        axis_y_size = circle_size
+        axis_x_size = 1.0
+        axis_y_size = 1.0
         letter_x_size = letter_size
         letter_y_size = letter_size
 
@@ -218,13 +218,14 @@ class AllelicReadsComponent(IntervalPlotComponent):
         for letter_interval, letter_ax in zip(letter_intervals, letter_axes):
             circ = mpatches.Circle(
                 (0.5, 0.5),
-                0.5,
+                0.5 * circle_size,
                 facecolor='white',
                 edgecolor='k',
                 linewidth=0.3,
                 transform=letter_ax.transAxes,
                 clip_on=False,
             )
+            circ.set_clip_on(False)
             letter_ax.add_patch(circ)
             plot_letter(
                 letter=letter_interval.base,
