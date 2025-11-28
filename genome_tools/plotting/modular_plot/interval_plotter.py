@@ -2,6 +2,7 @@ from typing import Sequence, List
 from collections import namedtuple
 from matplotlib import gridspec
 from matplotlib import pyplot as plt
+import inspect
 
 from genome_tools import GenomicInterval
 import pandas as pd
@@ -32,6 +33,32 @@ class PlotComponentManager(LoggerMixin):
 
         self.plot_components = self.CompTuple(*plot_components)
     
+    def _validate_overlapping_component_kwargs(self):
+        """
+        Validate that there are no overlapping kwargs between components.
+        """
+        kwarg_to_components = {}
+
+        for component in self.plot_components:
+            component: PlotComponent
+            comp_name = component.name
+            kwarg_set = inspect.signature(component._plot)
+
+            for kw in kwarg_set:
+                kwarg_to_components.setdefault(kw, []).append(comp_name)
+        overlapping = {
+            kw: comps for kw, comps in kwarg_to_components.items()
+            if len(comps) > 1
+        }
+
+        if overlapping:
+            msg_lines = ["Found overlapping component loader kwargs:"]
+            for kw, comps in overlapping.items():
+                msg_lines.append(f"Argument '{kw}' used by: {', '.join(comps)}")
+            
+            full_msg = "\n".join(msg_lines)
+            self.logger.warning(full_msg)
+
     @staticmethod
     def _check_unique_component_names(names):
         """
