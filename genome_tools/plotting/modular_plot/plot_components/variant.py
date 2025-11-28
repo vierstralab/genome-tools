@@ -215,7 +215,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
         for letter_interval, letter_ax in zip(letter_intervals, letter_axes):
             plot_letter(
                 letter=letter_interval.base,
-                x=0.5,
+                x=(1.0 - letter_width) / 2.0,
                 y=letter_pad,
                 height=letter_height,
                 width=letter_width,
