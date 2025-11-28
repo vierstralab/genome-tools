@@ -184,7 +184,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
             idx.sort()
             reads = [reads[i] for i in idx]
 
-        _, reads = pack_rows(reads, pad_bp=pad_bp)
+        _, reads = pack_rows(reads, pad=pad_bp)
         letter_pad = (1.0 - rect_height) / 2.0 / 2.0
         letter_height = 1 - 2 * letter_pad
         letter_width = 0.7
