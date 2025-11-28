@@ -175,7 +175,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
         reads = [
             read for read in reads 
             if (read.end > read.start) and
-                abs(read.center.start - variant_interval.start) < 40
+                abs(read.center.start - variant_interval.start) < 25
         ]
 
         if len(reads) > reads_count_tr:
