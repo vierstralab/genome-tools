@@ -125,6 +125,7 @@ class PlotComponent(LoggerMixin):
 
         # Separate loader kwargs from plot kwargs
         self._validate_loader_arg_sources()
+        self.loader_overrides = self._extract_loader_specific_overrides(kwargs)
         self.loader_kwargs = {
             k: kwargs.pop(k) for k in list(kwargs)
             if k in self.__class__.__loader_kwargs_signature__
@@ -140,11 +141,43 @@ class PlotComponent(LoggerMixin):
         for arg, entry in self.__loader_arg_sources__.items():
             if len(entry['loaders']) > 1:
                 overlapping_loaders = ', '.join([loader.__name__ for loader in entry['loaders']])
+                val = {arg: 'some_value'}
+                example = f"{entry['loaders'][0].__name__}: {val}"
                 self.logger.warning(
                     f"Argument '{arg}' is used by multiple loaders "
                     f"({overlapping_loaders}). "
-                    "The same value will be passed to all of them."
+                    f"The same value will be passed to all of them. Or you can specify loader-specific overrides e.g. ({example})."
                 )
+    
+    def _extract_loader_specific_overrides(self, kwargs: dict):
+        """
+        Extract loader-specific override dicts from kwargs.
+
+        Example:
+        kwargs = {"SomeLoader": {"a": 1}, "color": "red"}
+        returns {SomeLoaderClass: {"a": 1}}
+        and kwargs becomes {"color": "red"}
+
+        Returns
+        -------
+        dict : {LoaderClass: override_dict}
+        """
+        overrides = {}
+
+        for key in list(kwargs.keys()):
+            for LoaderClass in self.__required_loaders__:
+                name = LoaderClass.__name__
+                if key == name:
+                    val = kwargs.pop(key)
+                    if not isinstance(val, dict):
+                        raise TypeError(
+                            f"Loader-specific override for '{key}' must be a dict, "
+                            f"got {type(val).__name__}"
+                        )
+                    overrides[name] = val
+                    break
+
+        return overrides
 
     @classmethod
     def with_loaders(cls, *loaders, new_class_name=None):
@@ -161,7 +194,7 @@ class PlotComponent(LoggerMixin):
         )
         return uses_loaders(*loaders)(new_class)
     
-    def load_data(self, data: DataBundle, **runtime_loader_overrides):
+    def load_data(self, data: DataBundle, **runtime_overrides):
         """
         Modifies data for the plot component using the required loaders.
 
@@ -173,11 +206,15 @@ class PlotComponent(LoggerMixin):
         for LoaderClass in self.__required_loaders__:
             loader_defaults = LoaderClass.get_fullargspec()
             component_overrides = self.loader_kwargs
+            component_loader_specific_overrides = self.loader_overrides.get(LoaderClass.__name__, {})
+            runtime_loader_specific_overrides = runtime_overrides.get(LoaderClass.__name__, {})
     
             kwargs_for_loader = {
                 **loader_defaults,
                 **component_overrides,
-                **runtime_loader_overrides,
+                **runtime_overrides,
+                **component_loader_specific_overrides,
+                **runtime_loader_specific_overrides,
             }
 
             # Keep only args that loader actually accepts
