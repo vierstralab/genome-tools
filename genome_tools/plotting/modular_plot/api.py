@@ -448,6 +448,7 @@ def _collect_all_kwargs(*loaders):
         if not issubclass(loader, PlotDataLoader):
             raise ValueError(f"Loader {loader} is not a subclass of PlotDataLoader.")
         
+        # Default is not really used
         spec = loader.get_fullargspec()
         for arg, default in spec.items():
             entry = args_info.get(
