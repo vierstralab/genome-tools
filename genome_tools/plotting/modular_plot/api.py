@@ -420,25 +420,6 @@ def _collect_all_kwargs(*loaders):
     return loader_kwargs, args_info
 
 
-def _resolve_loader_kwargs(args_info: dict):
-    """
-    Build final loader kwargs and warn on overlaps.
-    """
-    loader_kwargs = {}
-
-    for arg, entry in args_info.items():
-        if len(entry["loaders"]) > 1:
-            overlapping_loaders = ', '.join([loader.__name__ for loader in entry["loaders"]])
-            LoggerMixin().logger.warning(
-                f"Argument '{arg}' is used by multiple loaders "
-                f"({overlapping_loaders}). "
-                "The same value will be passed to all of them."
-            )
-        loader_kwargs[arg] = entry["default"]
-
-    return loader_kwargs
-
-
 def _update_signature(original_init, loader_kwargs: dict):
     """
     A decorator to dynamically update the init signature of a class
