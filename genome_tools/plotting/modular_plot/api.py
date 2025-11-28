@@ -366,15 +366,44 @@ def uses_loaders(*loaders):
     return decorator
 
 
-
-
 # Helpers funcs
 def _collect_all_kwargs(*loaders):
-    loader_kwargs = {}
+    args_info = {}
     for loader in loaders[::-1]:
         if not issubclass(loader, PlotDataLoader):
             raise ValueError(f"Loader {loader} is not a subclass of PlotDataLoader.")
-        loader_kwargs.update(loader.get_fullargspec())
+        
+        spec = loader.get_fullargspec()
+        for arg, default in spec.items():
+            entry = args_info.get(
+                arg,
+                {"default": default, "loaders": []}
+            )
+            if isinstance(entry["default"], RequiredArgument):
+                entry["default"] = default
+            entry["loaders"].append(loader)
+            args_info[arg] = entry
+
+    loader_kwargs = _resolve_loader_kwargs(args_info)
+    return loader_kwargs
+
+
+def _resolve_loader_kwargs(args_info: dict):
+    """
+    Build final loader kwargs and warn on overlaps.
+    """
+    loader_kwargs = {}
+
+    for arg, entry in args_info.items():
+        if len(entry["loaders"]) > 1:
+            overlapping_loaders = ', '.join([loader.__name__ for loader in entry["loaders"]])
+            warnings.warn(
+                f"Argument '{arg}' is used by multiple loaders "
+                f"({overlapping_loaders}). "
+                "The same value will be passed to all of them."
+            )
+        loader_kwargs[arg] = entry["default"]
+
     return loader_kwargs
 
 
