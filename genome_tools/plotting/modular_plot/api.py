@@ -381,11 +381,6 @@ class IntervalPlotComponent(PlotComponent):
             List of genomic intervals.
         interval : GenomicInterval
             Interval to restrict the axes.
-        bp_width : float, optional
-            Width in base pairs around the summit to plot. If None, plot the whole genomic interval.
-        summit_field : str, optional
-            Field of the genominc_intervals to use as the summit
-            to plot around. Default is 'dhs_summit'. Only used if bp_width is not None.
         ax : matplotlib.axes.Axes, optional
             Axes to plot on. If None, use the current axes.
 
