@@ -79,7 +79,7 @@ class PlotComponentManager(LoggerMixin):
                 # workaround when PlotComponent returns multiple axes
                 assert len(axes) > 0
                 assert isinstance(axes[0], plt.Axes)
-                self.logger.warning(f"Component {component} returned multiple axes. Using the first one when adding a connector.")
+                self.logger.warning(f"PlotComponent {component} returned multiple axes. Using the first one when adding a connector.")
                 return axes[0]
             return axes
         except AttributeError:

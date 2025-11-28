@@ -23,7 +23,7 @@ class PlotDataLoader(LoggerMixin):
     required_loader_kwargs = []
 
     def __init__(self, logger_level=None):
-        LoggerMixin.__init__(self, logger_level=logger_level)
+        super().__init__(logger_level=logger_level)
 
     @classmethod
     def __init_subclass__(cls, **kwargs):
@@ -412,7 +412,7 @@ def _resolve_loader_kwargs(args_info: dict):
     for arg, entry in args_info.items():
         if len(entry["loaders"]) > 1:
             overlapping_loaders = ', '.join([loader.__name__ for loader in entry["loaders"]])
-            warnings.warn(
+            LoggerMixin().logger.warning(
                 f"Argument '{arg}' is used by multiple loaders "
                 f"({overlapping_loaders}). "
                 "The same value will be passed to all of them."
