@@ -160,7 +160,7 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
 class AllelicReadsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, reads_count_tr=120, max_distance_to_read_ends=200, pad_bp=5, rect_height=0.4, circle_size=0.9, letter_size=0.6, seed=42, **kwargs):
+    def _plot(self, data, ax, reads_count_tr=120, max_distance_to_read_ends=200, pad_bp=5, rect_height=0.4, circle_size=0.9, letter_size=0.5, font='IBM Plex Mono', seed=42, **kwargs):
         ref_reads: List[GenomicInterval] = data.ref_reads#, key=lambda x: x.start + x.end)
         alt_reads: List[GenomicInterval] = data.alt_reads#, key=lambda x: x.start + x.end)
         variant_interval: VariantInterval = data.variant_interval
@@ -231,6 +231,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
                 y=(1 - letter_y_size) / 2,
                 height=letter_y_size,
                 width=letter_x_size,
+                font=font,
                 ax=letter_ax,
             )
             letter_ax.set_xlim(0, 1.0)
