@@ -125,7 +125,7 @@ def add_axes_at_intervals(
         new_axes_height = row_height
         new_axes_x = parent_pos.x0 + (x0_rel * parent_pos.width)
         r = getattr(genomic_interval, "row_index", 0)
-        new_axes_y = parent_pos.y0 + (nrows - 1 - r) + row_pad
+        new_axes_y = parent_pos.y0 + ((nrows - 1 - r) + row_pad) * (parent_pos.height / nrows)
 
         new_ax = ax.get_figure().add_axes([new_axes_x, new_axes_y, new_axes_width, new_axes_height])
         new_ax.set_xticks([])
