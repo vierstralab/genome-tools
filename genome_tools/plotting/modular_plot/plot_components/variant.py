@@ -162,8 +162,8 @@ class AllelicReadsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax, reads_count_tr=120, **kwargs):
-        ref_reads: List[GenomicInterval] = sorted(data.ref_reads, key=lambda x: x.start + x.end)
-        alt_reads: List[GenomicInterval] = sorted(data.alt_reads, key=lambda x: x.start + x.end)
+        ref_reads: List[GenomicInterval] = data.ref_reads#, key=lambda x: x.start + x.end)
+        alt_reads: List[GenomicInterval] = data.alt_reads#, key=lambda x: x.start + x.end)
         variant_interval: VariantInterval = data.variant_interval
         for r in ref_reads:
             r.rectprops = dict(color=get_vocab_color(variant_interval.ref, 'dna', default='grey'))
