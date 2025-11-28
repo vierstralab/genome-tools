@@ -126,9 +126,8 @@ class PlotComponent(LoggerMixin):
         # Separate loader kwargs from plot kwargs
         self._validate_loader_arg_sources()
         self.loader_kwargs = {
-            key: value
-            for key, value in kwargs.items()
-            if key in self.__class__.__loader_kwargs_signature__
+            k: kwargs.pop(k) for k in list(kwargs)
+            if k in self.__class__.__loader_kwargs_signature__
         }
 
         self.plot_kwargs = kwargs
