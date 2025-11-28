@@ -46,6 +46,8 @@ class PlotComponentManager(LoggerMixin):
 
             for kw in kwarg_set:
                 kwarg_to_components.setdefault(kw, []).append(comp_name)
+        
+        print(kwarg_to_components)
         overlapping = {
             kw: comps for kw, comps in kwarg_to_components.items()
             if len(comps) > 1
