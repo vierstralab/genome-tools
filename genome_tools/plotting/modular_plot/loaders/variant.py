@@ -184,14 +184,18 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
             desc="Allelic reads loader fp-tools"
         ):
             extractor = BamFileExtractor(cram_path)
-            reads[sample_id] = extractor.lookup_allelic(
-                chrom=variant_interval.chrom,
-                start=data.interval.start,
-                end=data.interval.end,
-                pos=variant_interval.pos - 1, # weird 0-based in fp-tools
-                ref=variant_interval.ref,
-                alt=variant_interval.alt
-            )
+            try:
+                reads[sample_id] = extractor.lookup_allelic(
+                    chrom=variant_interval.chrom,
+                    start=data.interval.start,
+                    end=data.interval.end,
+                    pos=variant_interval.pos - 1, # weird 0-based in fp-tools
+                    ref=variant_interval.ref,
+                    alt=variant_interval.alt
+                )
+            except ValueError as e:
+                print(e, 'sample_id', sample_id, cram_path)
+                continue
             extractor.close()
         
         data.ref_reads = self.convert_reads_to_list(reads, variant_interval.ref)
