@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from collections.abc import Iterable, Sequence, Mapping
+from typing import List
 
 from matplotlib.projections import register_projection
 
@@ -23,6 +24,7 @@ from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from .utils import rescale_data, format_axes_to_interval, clear_spines, pack_rows
 
 from .gene_annotation import gene_annotation_plot
+from genome_tools import GenomicInterval
 
 
 class AxisAnnotation(mtext.Annotation):
@@ -468,7 +470,7 @@ def grouped_heatmap_plot(
 # ------------------------
 
 
-def segment_plot(interval, segments, pad_points=1, ax=None, rect_height=0.4, **kwargs):
+def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], pad_points=1, ax=None, rect_height=0.4, **kwargs):
     if not ax:
         ax = plt.gca()
 
