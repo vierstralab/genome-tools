@@ -215,7 +215,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
         for letter_interval, letter_ax in zip(letter_intervals, letter_axes):
             plot_letter(
                 letter=letter_interval.base,
-                x=1.0 - letter_width / 2.0,
+                x=0.0,
                 y=letter_pad,
                 height=letter_height,
                 width=letter_width,
@@ -224,6 +224,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
             letter_ax.set_xlim(0, 1.0)
             letter_ax.set_ylim(0, 1.0)
             letter_ax.patch.set_color('white')
+            letter_ax.patch.set_alpha(1.0)
             letter_ax.set_xticks([])
             letter_ax.set_yticks([])
             for s in letter_ax.spines.values():
@@ -234,7 +235,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
         segment_plot(data.interval, reads, rect_height=rect_height, pack=False, ax=ax, **kwargs)
         
         ax.set_yticks([])
-        return ax
+        return ax, letter_axes
 
     @staticmethod
     def frac_axis_height_to_bp_x(frac, ax):
