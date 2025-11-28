@@ -129,9 +129,7 @@ class PlotComponent(LoggerMixin):
             k: kwargs.pop(k) for k in list(kwargs)
             if k in self.__class__.__loader_kwargs_signature__
         }
-
-        if len(self.loader_overrides) == 0:
-            self._validate_loader_arg_sources()
+        self._validate_loader_arg_sources()
 
         self.plot_kwargs = kwargs
 
