@@ -149,23 +149,26 @@ class PlotComponent(LoggerMixin):
                     f"The same value will be passed to all of them.\nOr you can specify loader-specific overrides as follows ({example})."
                 )
     
-    def _extract_loader_specific_overrides(self, kwargs: dict):
+    def _extract_loader_specific_overrides(self, kwargs: dict, loaders: List[PlotDataLoader]=None):
         """
         Extract loader-specific override dicts from kwargs.
 
         Example:
-        kwargs = {"SomeLoader": {"a": 1}, "color": "red"}
-        returns {SomeLoaderClass: {"a": 1}}
-        and kwargs becomes {"color": "red"}
+            kwargs = {"SomeLoader": {"a": 1}, "color": "red"}
+            returns {"SomeLoader": {"a": 1}}
+            and kwargs becomes {"color": "red"}
 
         Returns
         -------
-        dict : {LoaderClass: override_dict}
+        dict : Dict[str, dict]
+            A dictionary mapping loader class names to their specific override dictionaries.
         """
         overrides = {}
+        if loaders is None:
+            loaders = self.__required_loaders__
 
         for key in list(kwargs.keys()):
-            for LoaderClass in self.__required_loaders__:
+            for LoaderClass in loaders:
                 name = LoaderClass.__name__
                 if key == name:
                     val = kwargs.pop(key)
@@ -202,19 +205,24 @@ class PlotComponent(LoggerMixin):
             1. loader defaults     (lowest)
             2. component overrides (self.loader_kwargs)
             3. runtime overrides   (**runtime_loader_kwargs)
+            4. component loader-specific overrides (self.loader_overrides)
+            5. runtime loader-specific overrides (_extract_loader_specific_overrides(runtime_overrides)) (highest)
         """
         for LoaderClass in self.__required_loaders__:
             loader_defaults = LoaderClass.get_fullargspec()
             component_overrides = self.loader_kwargs
             component_loader_specific_overrides = self.loader_overrides.get(LoaderClass.__name__, {})
-            runtime_loader_specific_overrides = runtime_overrides.get(LoaderClass.__name__, {})
-    
+            runtime_loader_specific_overrides = self._extract_loader_specific_overrides(
+                runtime_overrides,
+                loaders=[LoaderClass]
+            )
+
             kwargs_for_loader = {
                 **loader_defaults,
-                **component_overrides,
-                **runtime_overrides,
-                **component_loader_specific_overrides,
-                **runtime_loader_specific_overrides,
+                **component_overrides, # specify during component init
+                **runtime_overrides, # specify during load_data_for_interval
+                **component_loader_specific_overrides, # specify during component init
+                **runtime_loader_specific_overrides, # specify during load_data_for_interval
             }
 
             # Keep only args that loader actually accepts
