@@ -125,8 +125,9 @@ class PlotComponent(LoggerMixin):
 
         # Separate loader kwargs from plot kwargs
         self.loader_kwargs = {
-            key: kwargs.pop(key, v)
-            for key, v in self.__class__.__loader_kwargs_signature__.items()
+            key: value
+            for key, value in kwargs.items()
+            if key in self.__class__.__loader_kwargs_signature__
         }
 
         self.plot_kwargs = kwargs
@@ -146,21 +147,35 @@ class PlotComponent(LoggerMixin):
         )
         return uses_loaders(*loaders)(new_class)
     
-    def load_data(self, data: DataBundle, **loader_kwargs):
+    def load_data(self, data: DataBundle, **runtime_loader_overrides):
         """
-        Modifies data for the plot component using the required loaders load function.
+        Modifies data for the plot component using the required loaders.
+
+        Merge priority:
+            1. loader defaults     (lowest)
+            2. component overrides (self.loader_kwargs)
+            3. runtime overrides   (**runtime_loader_kwargs)
         """
         for LoaderClass in self.__required_loaders__:
-            all_loader_kwargs = {**self.loader_kwargs, **loader_kwargs}
-            all_loader_kwargs = {
-                k: v for k, v in all_loader_kwargs.items()
-                if k in LoaderClass.get_fullargspec()
+            loader_defaults = LoaderClass.get_fullargspec()
+            component_overrides = self.loader_kwargs
+    
+            kwargs_for_loader = {
+                **loader_defaults,
+                **component_overrides,
+                **runtime_loader_overrides,
+            }
+
+            # Keep only args that loader actually accepts
+            kwargs_for_loader = {
+                k: v for k, v in kwargs_for_loader.items()
+                if k in loader_defaults
             }
 
             loader = LoaderClass(
                 logger_level=self.logger.level
             )
-            data = loader.load(data, **all_loader_kwargs)
+            data = loader.load(data, **kwargs_for_loader)
             data.processed_loaders.append(LoaderClass)
         return data
 
