@@ -172,7 +172,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
         reads = ref_reads + alt_reads
         if len(reads) > reads_count_tr:
             idx = np.random.choice(len(reads), size=reads_count_tr, replace=False)
-            idx.sort()=
+            idx.sort()
             reads = [reads[i] for i in idx]
         segment_plot(data.interval, reads, ax=ax, **kwargs)
         ax.set_yticks([])
