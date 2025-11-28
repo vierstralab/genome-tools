@@ -1,11 +1,13 @@
+from nbformat import reads
 import numpy as np
 import pandas as pd
+from typing import List
 
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.offsetbox import AnnotationBbox, TextArea, HPacker
 
-from genome_tools import VariantInterval
+from genome_tools import VariantInterval, GenomicInterval
 from genome_tools.plotting.utils import format_axes_to_interval
 from genome_tools.plotting.colors.cm import get_vocab_color
 from genome_tools.plotting import segment_plot
@@ -155,19 +157,21 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
         return ax, axes
 
 
-@uses_loaders(VariantGenotypeLoader, AllelicReadsLoader)
+@uses_loaders(VariantGenotypeLoader, AllelicReadsLoaderFPTools)
 class AllelicReadsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, only_variant_overlap=False, **kwargs):
-        reads = []
-        for sample_id, sample_reads in data.reads.items():
-            reads.extend(sample_reads)
-        reads = sorted(reads, key=lambda x: x.base.replace('N', 'Z'))
-        for r in reads:
-            r.rectprops = dict(color=get_vocab_color(r.base, 'dna', default='grey'))
-        if only_variant_overlap:
-            reads = [r for r in reads if r.base != 'N']
+    def _plot(self, data, ax, reads_count_tr: 120, **kwargs):
+        ref_reads: List[GenomicInterval] = data.ref_reads
+        alt_reads: List[GenomicInterval] = data.alt_reads
+        variant_interval: VariantInterval = data.variant_interval
+        for r in ref_reads:
+            r.rectprops = dict(color=get_vocab_color(variant_interval.ref, 'dna', default='grey'))
+        for r in alt_reads:
+            r.rectprops = dict(color=get_vocab_color(variant_interval.alt, 'dna', default='grey'))
+        reads = ref_reads + alt_reads
+        if len(reads) > reads_count_tr:
+            reads = np.random.choice(reads, size=reads_count_tr, replace=False)
         segment_plot(data.interval, reads, ax=ax, **kwargs)
         ax.set_yticks([])
         format_axes_to_interval(ax, data.interval)

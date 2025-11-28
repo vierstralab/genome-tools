@@ -161,7 +161,7 @@ class AllelicReadsLoader(PlotDataLoader):
 
 class AllelicReadsLoaderFPTools(PlotDataLoader):
 
-    def _load(self, data: DataBundle, sample_ids, samples_metadata: pd.DataFrame, variant_interval: VariantInterval):
+    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval, sample_ids=None):
         from footprint_tools.cutcounts import bamfile as BamFile
         assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval. Got {variant_interval.to_str()} and {data.interval.to_ucsc()}"
 
@@ -196,7 +196,12 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
         
         ref_cuts = np.zeros(len(data.interval))
         alt_cuts = np.zeros(len(data.interval))
-        data.reads = reads
+        data.ref_reads = np.array([
+            x for sample_id in sample_ids for x in reads[sample_id][variant_interval.ref]['fragments']
+        ])
+        data.alt_reads = np.array([
+            x for sample_id in sample_ids for x in reads[sample_id][variant_interval.alt]['fragments']
+        ])
         for sample_id, allelic_reads in reads.items():
 
             sample_ref_cuts = allelic_reads[variant_interval.ref]["+"] + allelic_reads[variant_interval.ref]["-"]
