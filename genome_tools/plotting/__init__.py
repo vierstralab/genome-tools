@@ -532,7 +532,7 @@ def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], rec
 
     ax.set_ylim(
         min([segment.row_index for segment in segments], default=0),
-        max([segment.row_index for segment in segments], default=1) + 1
+        max([segment.row_index for segment in segments], default=0) + 1
     )
     ax.invert_yaxis()
 
