@@ -493,7 +493,7 @@ def segment_plot(interval, segments, pad_points=1, ax=None, rect_height=0.4, **k
     x1 = ax.transData.inverted().transform(trans_right.transform((interval.start, 0)))[0]
 
     pad_bp = (x1 - x0) // 2
-    row_indices = pack_rows(segments, pad=pad_bp)
+    row_indices, _ = pack_rows(segments, pad=pad_bp)
 
     summit_lines = []
     patches = []

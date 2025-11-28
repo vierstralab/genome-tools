@@ -104,7 +104,7 @@ def gene_annotation_plot(interval, annotation_file, ax=None, **kwargs):
         for transcript_id, transcript in gene_transcripts:
             t.append(transcript)
 
-    row_indices = pack_rows(t)
+    row_indices, _ = pack_rows(t)
 
     label_xoffset = len(interval) * 0.04
 

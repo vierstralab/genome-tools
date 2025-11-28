@@ -1,5 +1,6 @@
 import numpy as np
-
+from genome_tools import GenomicInterval
+from typing import List
 import matplotlib.ticker as mticker
 
 __all__ = [
@@ -81,7 +82,7 @@ def rescale_data(interval, data, ax, downsample=0, win_fn=np.mean, **kwargs):
     return x, y
 
 
-class row_element:
+class RowElement:
     def __init__(self, interval, prev=None, next=None, pad=0):
         self.interval = interval
         self.start = interval.start - pad
@@ -90,7 +91,7 @@ class row_element:
         self.next = next
 
 
-class row:
+class Row:
     def __init__(self, i):
         self.i = i
         self.first = None
@@ -138,13 +139,14 @@ class row:
         return 0
 
 
-def pack_rows(intervals, pad=5):
-    rows = []
+def pack_rows(intervals: List[GenomicInterval], pad=5):
+    rows: List[Row] = []
     row_indices = {}
     curr_row = -1
 
+    result_intervals = []
     for interval in intervals:
-        e = row_element(interval, pad=pad)
+        e = RowElement(interval, pad=pad)
 
         placed = False
 
@@ -158,10 +160,13 @@ def pack_rows(intervals, pad=5):
             continue
 
         curr_row += 1
-        r = row(curr_row)
+        r = Row(curr_row)
         r.add(e)
         rows.append(r)
         row_indices[e.interval] = r.i
+        interval_copy = interval.copy()
+        interval_copy.row_index = r.i
+        result_intervals.append(interval_copy)
 
     assert len(row_indices) == len(intervals)
-    return row_indices
+    return row_indices, result_intervals
