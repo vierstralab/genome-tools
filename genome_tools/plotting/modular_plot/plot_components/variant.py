@@ -151,7 +151,7 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
         fig = ax.get_figure()
         # fig.suptitle(data.rs_id)
         axes = []
-        x = np.arange(data.interval.start, data.interval.end)
+        x = np.arange(data.interval.start, data.interval.end) + 0.5 # centering bars
         for i, (cuts, allele, ylim) in enumerate(zip(
             [ref_cuts, alt_cuts],
             [interval.ref, interval.alt],
@@ -163,11 +163,12 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
                 cuts,
                 width=1,
                 color=get_vocab_color(allele, 'dna'), 
-                label=f"{cuts.sum()}\n({round(cuts.sum() / tot_reads * 100, 2)}%)"
+                label=f"{allele}: {cuts.sum()}\n({round(cuts.sum() / tot_reads * 100, 2)}%)"
             )
             ax_bar.set_ylim(0, ylim)
             ax_bar.xaxis.set_visible(False)
             format_axes_to_interval(ax_bar, data.interval, axis='x')
             axes.append(ax_bar)
+        ax.legend(loc='upper right', fontsize='small')
                     
         return ax, axes
