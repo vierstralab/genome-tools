@@ -42,7 +42,7 @@ class PlotComponentManager(LoggerMixin):
         for component in self.plot_components:
             component: PlotComponent
             comp_name = component.name
-            kwarg_set = inspect.signature(component._plot)
+            kwarg_set = inspect.signature(component.__loader_kwargs_signature__)
 
             for kw in kwarg_set:
                 kwarg_to_components.setdefault(kw, []).append(comp_name)
