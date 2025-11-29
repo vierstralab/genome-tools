@@ -1,5 +1,7 @@
+import numpy as np
 from typing import List
 from genome_tools import GenomicInterval
+
 
 from genome_tools.data.pwm import seq_heights_to_matrix
 
@@ -16,7 +18,7 @@ from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLo
 class SequenceComponent(IntervalPlotComponent):
     def _plot(self, data, ax, **kwargs):
         ax.axis('off')
-        matrix = seq_heights_to_matrix(data.sequence, rc=False, normalize=True)
+        matrix = seq_heights_to_matrix(data.sequence, np.ones(len(data.sequence)))
         seq_plot(matrix, ax=ax, **kwargs)
         return ax
 
