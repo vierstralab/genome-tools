@@ -491,8 +491,6 @@ def arrow(x, y_mid, height, dx, **interval_rectprops):
             (x, y_mid + height/2)
         ],
         closed=True,
-        facecolor=interval_rectprops.get("color", "k"),
-        edgecolor=interval_rectprops.get("color", "k"),
         **interval_rectprops,
     )
     return tri
