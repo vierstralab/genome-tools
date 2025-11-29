@@ -545,8 +545,7 @@ def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], rec
                     **interval_rectprops
                 )
             patches.append(arrow_patch)
-            print(arrow_patch)
-
+            
         if hasattr(segment, "summit"):
             summit_lines.append(
                 mlines.Line2D(
