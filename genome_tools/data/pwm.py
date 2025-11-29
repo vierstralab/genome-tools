@@ -5,6 +5,21 @@ from genome_tools import VariantInterval
 LETTERS = "ACGT"
 
 
+# TODO: REPLACE WITH FUNCTION FROM VINSON
+def seq_heights_to_matrix(seq, heights):
+    """
+    Convert a sequence string and a height vector (Series/array)
+    into a (L x 4) matrix suitable for plotting a sequence logo.
+    """
+    vocab = [x for x in LETTERS]
+    letter_to_index = {l: i for i, l in enumerate(vocab)}
+    mat = np.zeros((len(seq), len(vocab)))
+    for i, (base, h) in enumerate(zip(seq, heights)):
+        if base in letter_to_index:
+            mat[i, letter_to_index[base]] = h
+    return mat #mat.T  
+
+
 def read_pfm(file):
     pfm = np.loadtxt(file)
     pfm += 0.001

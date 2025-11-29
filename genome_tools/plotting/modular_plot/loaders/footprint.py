@@ -6,10 +6,10 @@ import scipy.stats as st
 import anndata as ad
 
 from genome_tools.data.extractors import TabixExtractor
-from genome_tools import GenomicInterval, VariantInterval, filter_df_to_interval
+from genome_tools.data.pwm import seq_heights_to_matrix
+from genome_tools import GenomicInterval, filter_df_to_interval
 
 
-from footprint_tools.cli.post import posterior_stats as PosteriorStats
 from footprint_tools.stats.windowing import stouffers_z
 from footprint_tools.stats import posterior, differential
 from footprint_tools.modeling import dispersion
@@ -109,22 +109,8 @@ class ProtectedNucleotidesLoader(PlotDataLoader):
         # normalized based on max value
         normalized = col_sums / col_sums.max()
         # Sequence
-        data.matrix = self.seq_heights_to_matrix(sequence, normalized)
+        data.matrix = seq_heights_to_matrix(sequence, normalized)
         return data
-
-    @staticmethod
-    def seq_heights_to_matrix(seq, heights):
-        """
-        Convert a sequence string and a height vector (Series/array)
-        into a (L x 4) matrix suitable for plotting a sequence logo.
-        """
-        vocab = ["A", "C", "G", "T"]
-        letter_to_index = {l: i for i, l in enumerate(vocab)}
-        mat = np.zeros((len(seq), len(vocab)))
-        for i, (base, h) in enumerate(zip(seq, heights)):
-            if base in letter_to_index:
-                mat[i, letter_to_index[base]] = h
-        return mat #mat.T  
     
 
 class SequenceWeightsFromProtectedNucleotidesLoader(PlotDataLoader):
