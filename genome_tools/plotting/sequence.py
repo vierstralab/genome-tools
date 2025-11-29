@@ -257,7 +257,10 @@ def seq_plot(letter_heights: np.ndarray, ax=None, vocab="dna", offset=0, width_s
         ax = plt.gca()
     fig = ax.figure
 
-    assert letter_heights.shape[1] == len(VOCAB_COLOR_MAPS[vocab])
+    if isinstance(vocab, str):
+        vocab = VOCAB_COLOR_MAPS[vocab]
+
+    assert letter_heights.shape[1] == len(vocab)
     x_range = [0, letter_heights.shape[0]]
     pos_heights = np.copy(letter_heights)
     pos_heights[letter_heights < 0] = 0
@@ -268,12 +271,12 @@ def seq_plot(letter_heights: np.ndarray, ax=None, vocab="dna", offset=0, width_s
     min_neg_h = 0.0
 
     for x_pos, heights in enumerate(letter_heights):
-        letters_and_heights = sorted(zip(heights, list(VOCAB_COLOR_MAPS[vocab].keys())))
+        letters_and_heights = sorted(zip(heights, list(vocab.keys())))
         y_pos_pos = 0.0
         y_neg_pos = 0.0
         # x_pos += interval.start
         for height, letter in letters_and_heights:
-            color = VOCAB_COLOR_MAPS[vocab][letter]
+            color = vocab[letter]
             polygons = letter_polygons[letter]
             if height > 0:
                 add_multipolygon_to_axis(
