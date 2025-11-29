@@ -16,10 +16,11 @@ from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLo
 
 @uses_loaders(FastaLoader)
 class SequenceComponent(IntervalPlotComponent):
+
     def _plot(self, data, ax, **kwargs):
         ax.axis('off')
         matrix = seq_heights_to_matrix(data.sequence, np.ones(len(data.sequence)))
-        seq_plot(matrix, ax=ax, **kwargs)
+        seq_plot(matrix, ax=ax, offset=data.interval.start, **kwargs)
         return ax
 
 @uses_loaders(AnnotationRegionsLoader, MotifHitsLoader, MotifHitsSelectorLoader)
