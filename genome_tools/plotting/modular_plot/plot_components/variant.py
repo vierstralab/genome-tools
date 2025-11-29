@@ -238,15 +238,12 @@ class AllelicReadsComponent(IntervalPlotComponent):
             letter_ax.set_ylim(0, 1.0)
             letter_ax.set_xticks([])
             letter_ax.set_yticks([])
-            for s in letter_ax.spines.values():
-                s.set_visible(True)
-                s.set_linewidth(0.5)
-
-            
+            letter_ax.axis('off')
 
         segment_plot(data.interval, reads, rect_height=rect_height, pack=False, ax=ax, **kwargs)
         
         ax.set_yticks([])
+        ax.axis('off')
         return ax, letter_axes
 
     @staticmethod

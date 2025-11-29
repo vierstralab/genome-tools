@@ -481,9 +481,23 @@ def _infer_pad_bp(pad_points, interval, ax):
     x1 = ax.transData.inverted().transform(trans_right.transform((interval.start, 0)))[0]
     pad_bp = (x1 - x0) // 2
     return pad_bp
+
+
+def arrow(x, y_mid, height, dx, **interval_rectprops):
+    tri = mpatches.Polygon(
+        [
+            (x + dx,          y_mid),
+            (x, y_mid - height/2),
+            (x, y_mid + height/2)
+        ],
+        closed=True,
+        facecolor=interval_rectprops.get("color", "k"),
+        edgecolor=interval_rectprops.get("color", "k"),
+    )
+    return tri
     
 
-def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], rect_height=0.4, pack=True, pad_points=1, pad_bp=None, ax=None, **kwargs):
+def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], rect_height=0.4, pack=True, pad_points=1, pad_bp=None, draw_arrow=False, ax=None, **kwargs):
     if not ax:
         ax = plt.gca()
 
@@ -514,6 +528,25 @@ def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], rec
                 (start, row_index + rect_pad), end - start, rect_height, **interval_rectprops
             )
         )
+        if draw_arrow:
+            if segment.is_reverse:
+                arrow_patch = arrow(
+                    x=start,
+                    y_mid=row_index + 0.5,
+                    height=rect_height,
+                    dx=-rect_height,
+                    **interval_rectprops
+                )
+            else:
+                arrow_patch = arrow(
+                    x=end,
+                    y_mid=row_index + 0.5,
+                    height=rect_height,
+                    dx=rect_height,
+                    **interval_rectprops
+                )
+            patches.append(arrow_patch)
+
         if hasattr(segment, "summit"):
             summit_lines.append(
                 mlines.Line2D(
