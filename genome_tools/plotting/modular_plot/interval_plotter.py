@@ -275,7 +275,9 @@ class IntervalPlotter(VerticalConnectorMixin):
         self.width = width
         self.gridspec = self.setup_default_gridspec()
     
-
+    def __repr__(self):
+        return f"IntervalPlotter(Plotcomponents=[{', '.join(self.component_names)}])"
+    
     def setup_default_gridspec(self):
         """
         Setup the GridSpec for the vertical components in the figure.

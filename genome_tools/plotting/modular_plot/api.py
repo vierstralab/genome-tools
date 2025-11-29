@@ -24,6 +24,9 @@ class PlotDataLoader(LoggerMixin):
 
     def __init__(self, logger_level=None):
         super().__init__(logger_level=logger_level)
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}()"
 
     @classmethod
     def __init_subclass__(cls, **kwargs):
@@ -133,6 +136,8 @@ class PlotComponent(LoggerMixin):
 
         self.plot_kwargs = kwargs
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(name={self.name}, loaders={[loader.__name__ for loader in self.__required_loaders__]})"
     
     def _validate_loader_arg_sources(self):
         """

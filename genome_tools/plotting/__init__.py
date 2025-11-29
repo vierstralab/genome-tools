@@ -23,7 +23,6 @@ from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 # from .colors import cm
 from .utils import rescale_data, format_axes_to_interval, clear_spines, pack_rows
 
-from .gene_annotation import gene_annotation_plot
 from genome_tools import GenomicInterval
 
 

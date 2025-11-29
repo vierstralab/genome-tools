@@ -3,7 +3,7 @@ import numpy as np
 from genome_tools import VariantInterval
 
 LETTERS = "ACGT"
-
+_comp = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
 
 # TODO: REPLACE WITH FUNCTION FROM VINSON
 def seq_heights_to_matrix(seq, heights):
@@ -23,17 +23,15 @@ def seq_heights_to_matrix(seq, heights):
 def read_pfm(file):
     pfm = np.loadtxt(file)
     pfm += 0.001
-    pfm /= pfm.sum(axis=0)[np.newaxis,:]
+    pfm /= pfm.sum(axis=0)[np.newaxis, :]
     return pfm
 
 
 def complement(base):
-    _comp = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
     return _comp[base]
 
 
 def reverse_complement(seq):
-    _comp = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
     # complement each base, then reverse
     return ''.join(_comp[b] for b in reversed(seq))
 
