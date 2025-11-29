@@ -142,7 +142,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
                 variant_interval=variant_interval
             )
             motif_hits[['ref_score', 'alt_score', 'pfm_matrix']] = score_table
-            motif_hits['ddg'] = motif_hits['alt_score'] - motif_hits['ref_score']
+            motif_hits['ddg'] = motif_hits['ref_score'] - motif_hits['alt_score']
             motif_hits['abs_ddg'] = motif_hits['ddg'].abs()
 
             if choose_by == 'concordant_ddg':
