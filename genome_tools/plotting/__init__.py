@@ -498,7 +498,7 @@ def arrow(x, y_mid, height, dx, **interval_rectprops):
     return tri
     
 
-def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], rect_height=0.4, pack=True, pad_points=1, pad_bp=None, draw_arrow=False, ax=None, **kwargs):
+def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], rect_height=0.4, pack=True, pad_points=1, pad_bp=None, draw_arrow=False, arrow_size=1, ax=None, **kwargs):
     if not ax:
         ax = plt.gca()
 
@@ -535,7 +535,7 @@ def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], rec
                     x=start,
                     y_mid=row_index + 0.5,
                     height=rect_height,
-                    dx=-rect_height,
+                    dx=-rect_height * arrow_size,
                     **interval_rectprops
                 )
             else:
@@ -543,7 +543,7 @@ def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], rec
                     x=end,
                     y_mid=row_index + 0.5,
                     height=rect_height,
-                    dx=rect_height,
+                    dx=rect_height * arrow_size,
                     **interval_rectprops
                 )
             patches.append(arrow_patch)
