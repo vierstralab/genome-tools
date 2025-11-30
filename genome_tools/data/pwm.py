@@ -64,6 +64,7 @@ def seq_logp(mat, seq, bg=None, weights=None):
     """
     if weights is None:
         weights = np.ones(len(seq))
+    assert len(seq) == len(weights), f"Sequence length {len(seq)} does not match weights length {len(weights)}"
     if bg is None:
         bg = [0.25, 0.25, 0.25, 0.25]
     res = 0
