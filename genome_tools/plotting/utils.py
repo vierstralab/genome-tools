@@ -206,17 +206,15 @@ def pack_rows(intervals: List[GenomicInterval], pad=5):
 
         for r in rows:
             if r.add(e):
-                row_indices[e.interval] = r.i
                 placed = True
                 break
 
-        if placed:
-            continue
-
-        curr_row += 1
-        r = Row(curr_row)
-        r.add(e)
-        rows.append(r)
+        if not placed:
+            curr_row += 1
+            r = Row(curr_row)
+            r.add(e)
+            rows.append(r)
+        
         row_indices[e.interval] = r.i
         interval_copy = interval.copy()
         interval_copy.row_index = r.i
