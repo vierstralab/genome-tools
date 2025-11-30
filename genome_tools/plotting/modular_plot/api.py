@@ -297,6 +297,10 @@ class IntervalPlotComponent(PlotComponent):
 
         super().__init__(name=name, logger_level=logger_level, **kwargs)
 
+    @property
+    def full_height(self):
+        """Calculate the full height of the plot including margins."""
+        return self.height + self.margin_top + self.margin_bottom
 
     def _parse_margins(self, margins):
         """Helper function to parse margins input."""
