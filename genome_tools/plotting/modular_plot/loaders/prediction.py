@@ -41,7 +41,7 @@ class AttributionsLoader(PlotDataLoader):
             matrix=attrs,
             matrix_interval=interval,
             target_interval=data.interval,
-        )
+        ).T
         return data
     
     @staticmethod
