@@ -2,10 +2,11 @@ import pandas as pd
 from typing import List
 import numpy as np
 
+
+
 from genome_tools import df_to_genomic_intervals, filter_df_to_interval, GenomicInterval, VariantInterval
 from genome_tools.data.extractors import TabixExtractor, FastaExtractor
-from genome_tools.data.pwm import read_pfm, get_allelic_scores, seq_logp
-
+from genome_tools.data.pwm import read_pfm, get_allelic_scores, seq_logp, seq_heights_to_matrix
 
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
@@ -15,6 +16,14 @@ class FastaLoader(PlotDataLoader):
     def _load(self, data: DataBundle, fasta_file):
         with FastaExtractor(fasta_file) as ext:
             data.sequence = ext[data.interval]
+        return data
+    
+
+class OHESequenceLoader(PlotDataLoader):
+    def _load(self, data: DataBundle):
+        seq = data.sequence.upper()
+        matrix = seq_heights_to_matrix(seq, np.ones(len(seq)))
+        data.matrix = matrix
         return data
 
 
