@@ -156,12 +156,8 @@ class DifferentialFootprintsComponent(IntervalPlotComponent):
 
 
 FPWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
-    PosteriorLoader,
-    FastaLoader,
-    ProtectedNucleotidesLoader,
+    *TFProtectedNucleotidesComponent.__required_loaders__,
     SequenceWeightsFromProtectedNucleotidesLoader,
-    AnnotationRegionsLoader,
-    MotifHitsLoader,
-    MotifHitsSelectorLoader,
+    *MotifHitsComponent.__required_loaders__,
     new_class_name="FPWeightedMotifHitsComponent",
 )
