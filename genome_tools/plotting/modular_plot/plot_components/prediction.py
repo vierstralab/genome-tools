@@ -1,4 +1,4 @@
-from genome_tools.data_loaders.prediction import AttributionsLoader
+from genome_tools.plotting.modular_plot.loaders.prediction import AttributionsLoader
 
 from genome_tools.plotting.modular_plot.plot_components.sequence import SequencePlotComponent
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
