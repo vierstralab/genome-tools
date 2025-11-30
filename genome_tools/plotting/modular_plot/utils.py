@@ -46,6 +46,16 @@ class DataBundle(LoggerMixin):
 
     def __repr__(self):
         return f"DataBundle({self._get_display_attributes()})"
+    
+    def __getstate__(self):
+        # Copy minimal state needed for multiprocessing
+        state = self.__dict__.copy()
+        # Avoid walking loader classes (causes recursion)
+        state["processed_loaders"] = []
+        return state
+    
+    def __setstate__(self, state):
+        self.__dict__.update(state)
 
     def copy(self):
         """
