@@ -3,25 +3,25 @@ from typing import List
 from genome_tools import GenomicInterval
 
 
-from genome_tools.data.pwm import seq_heights_to_matrix
-
 from genome_tools.plotting.utils import add_axes_at_intervals
 from genome_tools.plotting.sequence import plot_motif_logo, seq_plot
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 from genome_tools.plotting.modular_plot.loaders.sequence import MotifHitsLoader, MotifHitsSelectorLoader
-from genome_tools.plotting.modular_plot.loaders.sequence import FastaLoader
+from genome_tools.plotting.modular_plot.loaders.sequence import FastaLoader, OHESequenceLoader
 from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLoader
 
+from genome_tools.plotting.sequence import seq_plot
 
-@uses_loaders(FastaLoader)
-class SequenceComponent(IntervalPlotComponent):
+
+@uses_loaders(FastaLoader, OHESequenceLoader)
+class SequencePlotComponent(IntervalPlotComponent):
 
     def _plot(self, data, ax, **kwargs):
         ax.axis('off')
-        matrix = seq_heights_to_matrix(data.sequence, np.ones(len(data.sequence)))
-        seq_plot(matrix, ax=ax, offset=data.interval.start, **kwargs)
+        seq_plot(data.matrix, ax=ax, offset=data.interval.start, **kwargs)
         return ax
+
 
 @uses_loaders(AnnotationRegionsLoader, MotifHitsLoader, MotifHitsSelectorLoader)
 class MotifHitsComponent(IntervalPlotComponent):
@@ -40,4 +40,3 @@ class MotifHitsComponent(IntervalPlotComponent):
             plot_motif_logo(interval.pfm_matrix, rc=interval.orient == '-', font='IBM Plex Mono', ax=ax)
             ax.set_xlabel(interval.tf_name, labelpad=0.5)
         return axes
-

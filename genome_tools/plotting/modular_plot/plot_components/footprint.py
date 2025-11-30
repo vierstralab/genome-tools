@@ -8,8 +8,6 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from genome_tools.plotting.utils import format_axes_to_interval
 
-from genome_tools.plotting.sequence import seq_plot
-
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
@@ -28,7 +26,7 @@ from genome_tools.plotting.modular_plot.loaders.sequence import (
     MotifHitsLoader,
     MotifHitsSelectorLoader
 )
-from genome_tools.plotting.modular_plot.plot_components.sequence import MotifHitsComponent
+from genome_tools.plotting.modular_plot.plot_components.sequence import MotifHitsComponent, SequencePlotComponent
 
 from .basic import SegmentPlotComponent
 
@@ -91,23 +89,10 @@ class PosteriorHeatmapComponent(IntervalPlotComponent):
         return ax
 
 
-# Just use the usual sequence plot with different loaders attached
-@uses_loaders(PosteriorLoader, FastaLoader, ProtectedNucleotidesLoader)
-class TFProtectedNucleotidesComponent(IntervalPlotComponent):
-
-    @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, **kwargs):
-        """
-        main plot function of the component
-        always accepts data, ax, **kwargs
-        kwargs override any fields in init
-        """
-        seq_plot(data.matrix, ax=ax, font="IBM Plex Mono", offset=data.interval.start)
-        ax.axhline(0, color="black", linewidth=0.1)
-        ax.text(-0.02, 0.5, "TF-protected\n nucleotides",
-                rotation=0, ha="right", va="center", transform=ax.transAxes, fontsize="medium")
-        ax.axis("off")
-        return ax
+TFProtectedNucleotidesComponent = SequencePlotComponent.with_loaders(
+    PosteriorLoader, FastaLoader, ProtectedNucleotidesLoader,
+    new_class_name="TFProtectedNucleotidesComponent",
+)
 
 
 @uses_loaders(FootprintsDataLoader)
