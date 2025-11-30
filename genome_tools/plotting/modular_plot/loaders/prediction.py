@@ -23,7 +23,8 @@ class AttributionsLoader(PlotDataLoader):
                 model_config: dict,
                 model_wrapper: ModelWrapper,
                 fasta_file: str,
-                genotype_file: str,  
+                genotype_file: str,
+                print_convergence_deltas=False,
         ):
         X, X_embed, interval = self.make_data_for_model(
             sample_id=sample_id,
@@ -35,7 +36,7 @@ class AttributionsLoader(PlotDataLoader):
         )
         assert interval.overlaps(data.interval)
 
-        attrs = model_wrapper.get_sequence_attributions(X, X_embed).squeeze(0).numpy()
+        attrs = model_wrapper.get_sequence_attributions(X, X_embed, print_convergence_deltas=print_convergence_deltas).squeeze(0).numpy()
 
         data.matrix = self.align_matrix_to_interval(
             matrix=attrs,
