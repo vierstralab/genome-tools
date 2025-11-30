@@ -2,10 +2,12 @@ from typing import Sequence, List, Any
 from collections import namedtuple
 from matplotlib import gridspec
 from matplotlib import pyplot as plt
-import inspect
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import pandas as pd
+
+from tqdm import tqdm
 
 from genome_tools import GenomicInterval
-import pandas as pd
 
 from genome_tools.plotting.modular_plot.api import PlotComponent, IntervalPlotComponent
 from genome_tools.plotting.modular_plot.utils import LoggerMixin, DataBundle
@@ -239,12 +241,8 @@ class IntervalPlotter(VerticalConnectorMixin):
     plot_components : Sequence[VerticalPlotComponent]
         The vertical plot components to plot in the interval.
 
-    inches_per_unit : float, optional
-        The number of inches per unit for the figure size.
-        Default is 1.0.
-
     width : float, optional
-        The width of the figure in inches * inches_per_unit.
+        The width of the figure in inches. It can be changed later when using `plot_interval` or `plot` methods.
         Default is 2.5.
     
     **data_kwargs : dict
@@ -337,6 +335,7 @@ class IntervalPlotter(VerticalConnectorMixin):
     def get_interval_data(
             self,
             interval: GenomicInterval,
+            n_cpus: int=1,
             **data_kwargs
         ):
         """
@@ -348,8 +347,8 @@ class IntervalPlotter(VerticalConnectorMixin):
             The genomic interval to plot.
             If a dict is provided, the component-specific interval key is used to extract the interval.
 
-        plot_components : Sequence[VerticalPlotComponent]
-            The vertical plot components to plot.
+        n_cpus : int, optional
+            Number of CPUs to use for data loading. Default is 1. More than 1 will use multiprocessing. Max is number of components.
 
         **data_kwargs : dict
             Keyword arguments to pass to the loaders function.
@@ -359,15 +358,10 @@ class IntervalPlotter(VerticalConnectorMixin):
         data : Iter[DataBundle]
             A Iter of DataBundle objects containing the data for each plot component
         """
-        common_kwargs = set(data_kwargs) & set(self.data_kwargs)
-        if common_kwargs:
-            self.logger.debug(
-                f"Found {len(common_kwargs)} overlapping data kwargs: {list(common_kwargs)}"
-            )
-            self.logger.debug("Using values passed to get_interval_data function.")
+        self._validate_data_kwargs(**data_kwargs)
+        data_kwargs = {**self.data_kwargs, **data_kwargs}
 
-        result = []
-        # Use multiprocessing or threading here if needed in the future
+        tasks = []
         for component in self.plot_components:
             component: PlotComponent
             component_interval = self._parse_interval(
@@ -375,19 +369,45 @@ class IntervalPlotter(VerticalConnectorMixin):
                 getattr(component, 'interval_key', None)
             )
             if component_interval is None:
-                self.logger.error(f"Component {component.name} requires an interval_key to extract the interval from the provided dict.")
-                raise ValueError(f"Component {component.name} requires an interval_key to extract the interval from the provided dict.")
-
-            data = DataBundle(
-                interval=component_interval
-            )
-            result.append(
-                component.load_data(
-                    data,
-                    **{**self.data_kwargs, **data_kwargs}
+                self.logger.error(
+                    f"Component {component.name} requires an interval_key "
+                    f"to extract the interval from the provided interval dict."
                 )
+                raise ValueError(
+                    f"Component {component.name} requires an interval_key "
+                    f"to extract the interval from the provided interval dict."
+                )
+
+            data = DataBundle(interval=component_interval)
+
+            tasks.append(
+                (component.load_data, data, data_kwargs)
             )
-        return self.CompTuple(*result)
+
+        n_cpus = min(n_cpus, len(tasks))
+        results = [None] * len(tasks)
+        if n_cpus == 1:
+            for i, (func, data, kwargs) in enumerate(tqdm(tasks)):
+                results[i] = func(data, **kwargs)
+        else:
+            with ProcessPoolExecutor(max_workers=n_cpus) as executor:
+                futures = {
+                    executor.submit(func, data, **kwargs): i
+                    for i, (func, data, kwargs) in enumerate(tasks)
+                }
+                for future in tqdm(as_completed(futures), total=len(futures)):
+                    i = futures[future]
+                    results[i] = future.result()
+
+        return self.CompTuple(*results)
+    
+    def _validate_data_kwargs(self, **data_kwargs):
+        common_kwargs = set(data_kwargs) & set(self.data_kwargs)
+        if common_kwargs:
+            self.logger.warning(
+                f"Found {len(common_kwargs)} overlapping data kwargs: {list(common_kwargs)}"
+            )
+            self.logger.warning("Using values passed to get_interval_data function.")
 
     def plot_interval(self, data: Any, fig_width=None, fig_height=None, **plotting_kwargs):
         """
@@ -432,6 +452,8 @@ class IntervalPlotter(VerticalConnectorMixin):
             raise
 
         for gs, component, data_bundle in zip(gridspecs, self.plot_components, filtered_data):
+            # TODO: Add parsing of per-component plotting kwargs here
+            # HARD TODO: use inspect to parse args that are accepted by each component's plot method
             component: IntervalPlotComponent
             ax = fig.add_subplot(gs)
             format_axes_to_interval(ax, data_bundle.interval, axis='x')

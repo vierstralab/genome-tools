@@ -6,7 +6,6 @@ import types
 from makefun import wraps, add_signature_parameters, remove_signature_parameters, with_signature
 import warnings
 
-
 from genome_tools.plotting.utils import format_axes_to_interval, add_axes_at_intervals
 from genome_tools import GenomicInterval
 
