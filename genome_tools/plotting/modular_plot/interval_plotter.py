@@ -410,14 +410,15 @@ class IntervalPlotter(VerticalConnectorMixin):
         else:
             with ProcessPoolExecutor(max_workers=n_cpus) as executor:
                 futures = {}
-                for i, (component, data, kwargs) in enumerate(tqdm(tasks)):
-                    
-                    futures[i] = executor.submit(
+                for i, (component, data, kwargs) in enumerate(tasks):
+
+                    future = executor.submit(
                         component.__class__.load_data,
                         component,
                         data,
                         **kwargs
                     )
+                    futures[future] = i
 
                 for future in tqdm(as_completed(futures), total=len(futures)):
                     i = futures[future]
