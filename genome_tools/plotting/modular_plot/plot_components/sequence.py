@@ -30,7 +30,9 @@ class MotifHitsComponent(IntervalPlotComponent):
     def _plot(self, data, ax, pack=False, pad=1):
         ax.axis('off')
         intervals = data.motif_intervals
-        print('Pack:', pack)
+        if len(intervals) == 0:
+            self.logger.warning(f"No motif hits passing selection criteria for intervals {data.annotation_regions}")
+            return ax, []
         if pack:
            _, intervals = pack_rows(intervals, pad=pad)
         axes = add_axes_at_intervals(intervals, data.interval, ax=ax)

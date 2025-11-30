@@ -88,7 +88,7 @@ class MotifHitsLoader(PlotDataLoader):
 
 class MotifHitsSelectorLoader(PlotDataLoader):
 
-    def _load(self, data, choose_by='dg', motif_hits_threshold=None, variant_interval: VariantInterval=None):
+    def _load(self, data, choose_by='dg', n_top_hits=1, motif_hits_threshold=None, variant_interval: VariantInterval=None):
         """
         Select motif hits based on a scoring metric and an optional selection threshold.
 
@@ -161,7 +161,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
         else:
             raise ValueError(f"Unknown choose_by: {choose_by}")
 
-        selected_hits = self._select_hits(motif_hits, metric_name, motif_hits_threshold)
+        selected_hits = self._select_hits(motif_hits, metric_name, n_top_hits, motif_hits_threshold)
 
         data.motif_intervals = df_to_genomic_intervals(
             selected_hits,
@@ -182,15 +182,16 @@ class MotifHitsSelectorLoader(PlotDataLoader):
         )
 
     @staticmethod
-    def _select_hits(motif_hits: pd.DataFrame, metric_name: str, threshold: float | None):
+    def _select_hits(motif_hits: pd.DataFrame, metric_name: str, top: int, threshold: float | None):
         motif_hits = motif_hits.sort_values(metric_name, ascending=False)
-        if threshold is None:
-            result = (
-                motif_hits
-                .drop_duplicates(subset=['region'], keep='first')
-            )
-        else:
+        if threshold is not None:
             result = motif_hits.query(f"{metric_name} >= {threshold}")
+        result = (
+            motif_hits
+            .groupby("region", group_keys=False)
+            .head(top)
+        )
+            
         if 'pfm_matrix' not in result.columns:
             result['pfm_matrix'] = result['pfm'].apply(read_pfm)
         return result
