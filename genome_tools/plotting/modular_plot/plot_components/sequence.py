@@ -30,6 +30,7 @@ class MotifHitsComponent(IntervalPlotComponent):
     def _plot(self, data, ax, pack=False, pad=1):
         ax.axis('off')
         intervals = data.motif_intervals
+        print('Pack:', pack)
         if pack:
            _, intervals = pack_rows(intervals, pad=pad)
         axes = add_axes_at_intervals(intervals, data.interval, ax=ax)
