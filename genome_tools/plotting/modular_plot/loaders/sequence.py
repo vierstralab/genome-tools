@@ -174,7 +174,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
     def get_weighted_dg(self, row, interval: GenomicInterval, sequence_weights: np.ndarray):
         pfm_matrix = read_pfm(row['pfm'])
         weights = sequence_weights[
-            row['start'] - interval.start: row['end'] - interval.end
+            row['start'] - interval.start: row['end'] - interval.start
         ]
         print(pfm_matrix.shape, len(weights))
         return seq_logp(
