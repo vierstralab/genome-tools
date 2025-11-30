@@ -117,7 +117,7 @@ class SequenceWeightsFromProtectedNucleotidesLoader(PlotDataLoader):
     def _load(self, data: DataBundle):
         if not hasattr(data, 'matrix'):
             raise ValueError("data.matrix is required to compute sequence weights")
-        data.sequence_weights = data.matrix.sum(axis=0).astype(float)
+        data.sequence_weights = data.matrix.sum(axis=1).astype(float)
         return data
 
 
