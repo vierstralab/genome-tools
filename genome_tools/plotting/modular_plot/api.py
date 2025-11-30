@@ -1,4 +1,5 @@
 import inspect
+import sys
 
 from matplotlib import pyplot as plt
 from typing import List, Type, Union, Sequence
@@ -199,7 +200,20 @@ class PlotComponent(LoggerMixin):
             (cls,),
             {}
         )
-        return uses_loaders(*loaders)(new_class)
+        new_class = uses_loaders(*loaders)(new_class)
+        module = sys.modules[cls.__module__]
+
+        # Protect against name collisions
+        if hasattr(module, new_class_name):
+            raise RuntimeError(
+                f"Class name '{new_class_name}' already exists in module {cls.__module__}."
+                " Choose a different new_class_name."
+            )
+
+        # Register class so pickle/multiprocessing can find it
+        setattr(module, new_class_name, new_class)
+        new_class.__module__ = cls.__module__
+        return new_class
     
     def load_data(self, data: DataBundle, **runtime_overrides):
         """
