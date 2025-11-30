@@ -300,7 +300,7 @@ class IntervalPlotComponent(PlotComponent):
     def __init__(self, 
                  name=None,
                  height: float = 1.0, 
-                 margins: Union[float, Sequence[float]] = 0.1, 
+                 margins: Union[float, Sequence[float]] = 0.1,
                  interval_key=None,
                  logger_level=None,
                  **kwargs):

@@ -405,7 +405,7 @@ class IntervalPlotter(VerticalConnectorMixin):
         n_cpus = min(n_cpus, len(tasks))
         results = [None] * len(tasks)
         if n_cpus == 1:
-            for i, (component, data, kwargs) in enumerate(tqdm(tasks)):
+            for i, (component, data, kwargs) in enumerate(tqdm(tasks, desc="Loading data")):
                 results[i] = component.load_data(data, **kwargs)
         else:
             with ProcessPoolExecutor(max_workers=n_cpus) as executor:
@@ -420,7 +420,7 @@ class IntervalPlotter(VerticalConnectorMixin):
                     )
                     futures[future] = i
 
-                for future in tqdm(as_completed(futures), total=len(futures)):
+                for future in tqdm(as_completed(futures), total=len(futures), desc="Loading data"):
                     i = futures[future]
                     results[i] = future.result()
 
