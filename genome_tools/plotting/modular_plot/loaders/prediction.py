@@ -43,6 +43,7 @@ class AttributionsLoader(PlotDataLoader):
             matrix_interval=interval,
             target_interval=data.interval,
         ).T
+        data.sequence_weights = data.matrix.sum(axis=0)
         return data
     
     @staticmethod
