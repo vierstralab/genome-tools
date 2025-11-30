@@ -15,5 +15,6 @@ class AttributionsComponent(SequencePlotComponent):
     
 
 AttributionsWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
-    AttributionsLoader, *MotifHitsComponent.__required_loaders__
+    AttributionsLoader, *MotifHitsComponent.__required_loaders__,
+    new_class_name='AttributionsWeightedMotifHitsComponent',
 )
