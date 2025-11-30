@@ -399,20 +399,26 @@ class IntervalPlotter(VerticalConnectorMixin):
             data = DataBundle(interval=component_interval)
 
             tasks.append(
-                (component.load_data, data, data_kwargs)
+                (component, data, data_kwargs)
             )
 
         n_cpus = min(n_cpus, len(tasks))
         results = [None] * len(tasks)
         if n_cpus == 1:
-            for i, (func, data, kwargs) in enumerate(tqdm(tasks)):
-                results[i] = func(data, **kwargs)
+            for i, (component, data, kwargs) in enumerate(tqdm(tasks)):
+                results[i] = component.load_data(data, **kwargs)
         else:
             with ProcessPoolExecutor(max_workers=n_cpus) as executor:
-                futures = {
-                    executor.submit(func, data, **kwargs): i
-                    for i, (func, data, kwargs) in enumerate(tasks)
-                }
+                futures = {}
+                for i, (component, data, kwargs) in enumerate(tqdm(tasks)):
+                    
+                    futures[i] = executor.submit(
+                        component.__class__.load_data,
+                        component,
+                        data,
+                        **kwargs
+                    )
+
                 for future in tqdm(as_completed(futures), total=len(futures)):
                     i = futures[future]
                     results[i] = future.result()
