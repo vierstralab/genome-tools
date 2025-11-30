@@ -1,6 +1,6 @@
 from genome_tools.plotting.modular_plot.loaders.prediction import AttributionsLoader
 
-from genome_tools.plotting.modular_plot.plot_components.sequence import SequencePlotComponent
+from genome_tools.plotting.modular_plot.plot_components.sequence import SequencePlotComponent, MotifHitsComponent
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 
 
@@ -12,3 +12,8 @@ class AttributionsComponent(SequencePlotComponent):
         ax = super()._plot(data, ax, **kwargs)
         ax.axhline(0, color='black', lw=0.25, ls='--')
         return ax
+    
+
+AttributionsWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
+    AttributionsLoader, *MotifHitsComponent.__required_loaders__
+)
