@@ -234,41 +234,47 @@ class VerticalConnectorMixin(PlotComponentManager):
 
 class IntervalPlotter(VerticalConnectorMixin):
     """
-    Class to plot a genomic interval with multiple vertical plot components.
+    Main class of modular plotting framework.
+    Creates the figure, loads the data for each IntervalPlotComponent and plots them vertically stacked.
 
     Parameters
     ----------
-    plot_components : Sequence[VerticalPlotComponent]
-        The vertical plot components to plot in the interval.
+    plot_components : Sequence[IntervalPlotComponent]
+        The subclasses of IntervalPlotComponent to plot in the interval.
 
     width : float, optional
-        The width of the figure in inches. It can be changed later when using `plot_interval` or `plot` methods.
+        The width of the figure in inches. Can be overridden when using `plot_interval` or `plot` methods.
         Default is 2.5.
     
-    **data_kwargs : dict
+    data_kwargs : dict, optional
         Keyword arguments to pass to the loaders.
 
     Usage
     -----
-
+    from genome_tools.plotting.modular_plot.interval_plotter import IntervalPlotter
+    from genome_tools.plotting.modular_plot.plot_components.basic import (
+        IdeogramComponent,
+        GencodeComponent,
+        TrackComponent,
+    )
     # Define plot components
     plot_components = [
         IdeogramComponent(height=0.1, margins=(0.1, 0.1), interval_key='gene'),
         GencodeComponent(height=0.2, margins=(0.1, 0.1), interval_key='gene'),
-        FinemapComponent(height=0.2, margins=(0.1, 0.1), interval_key='dhs'),
-        DNaseTracksComponent(height=1.5, margins=(0.1, 0.1), interval_key='dhs', component_data=component_data),
-        DHSIndexComponent(height=0.1, margins=(0.1, 0.0), interval_key='dhs'),
-        DHSLoadingsComponent(height=0.2, margins=(0.0, 0.1), interval_key='dhs', component_data=component_data),
-        FootprintsComponent(height=0.1, margins=(0.1, 0.1), interval_key='footprint'),
-        MotifComponent(height=0.2, margins=(0.1, 0.1), interval_key='footprint'),
-        CAVComponent(height=0.2, margins=(0.1, 0.1), interval_key='footprint'),
+        TrackComponent(height=1.5, margins=(0.1, 0.1), interval_key='dhs'),
     ]
 
     # Create an interval plotter
     interval_plotter = IntervalPlotter(plot_components)
 
+    interval = {
+        'gene': GenomicInterval('chr1', 1_000_000, 1_400_000),
+        'dhs': GenomicInterval('chr1', 1_150_000, 1_200_000),
+    } # example interval dict for components with different interval keys 
+    or can be a single GenomicInterval for all components
+
     # plot with just one command
-    component_axes, data, connectors = interval_plotter.plot(interval)
+    component_axes, data = interval_plotter.plot(interval)
 
     # Alternatively you can run 2 separate commands for more control:
     # Get the data for the interval
@@ -276,6 +282,18 @@ class IntervalPlotter(VerticalConnectorMixin):
 
     # Plot the interval
     component_axes = interval_plotter.plot_interval(data)
+
+    # Add connectors between components
+    connectors = interval_plotter.plot_connector(
+        component_axes,
+        interval=interval['dhs'],
+        start_component='IdeogramComponent',
+        end_component='TrackComponent',
+        extend_to_top=False,
+        extend_to_bottom=True,
+        type='area',
+        **kwargs
+    )
     """
     def __init__(self, plot_components: Sequence[IntervalPlotComponent],
                 width=2.5, **data_kwargs):
@@ -411,7 +429,7 @@ class IntervalPlotter(VerticalConnectorMixin):
 
     def plot_interval(self, data: Any, fig_width=None, fig_height=None, **plotting_kwargs):
         """
-        Plot the genomic interval with all the provided vertical plot components.
+        Plot the genomic interval from the provided data for self.component_names. Data is expected to be a named tuple with fields matching self.component_names.
 
         Parameters
         ----------
