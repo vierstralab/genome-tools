@@ -117,7 +117,6 @@ class MotifHitsSelectorLoader(PlotDataLoader):
         DataBundle
             Modified data bundle with `data.motif_intervals` containing the selected motif hits as genomic intervals.
         """
-
         motif_hits = data.all_motifs_df
 
         if choose_by == 'dg':
@@ -128,6 +127,8 @@ class MotifHitsSelectorLoader(PlotDataLoader):
             
             if not hasattr(data, 'sequence_weights'):
                 raise ValueError("data.sequence_weights is required for weighted_dg scoring")
+            assert len(data.sequence_weights) == len(data.interval), f"data.sequence_weights length must match data.interval length, got {len(data.sequence_weights)} vs {data.interval} ({len(data.interval)})"
+            
             motif_hits = filter_df_to_interval(motif_hits, data.interval, strict=True)
             motif_hits['weighted_dg'] = motif_hits.apply(
                 self.get_weighted_dg,
@@ -191,7 +192,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
             .groupby("region", group_keys=False)
             .head(top)
         )
-            
+
         if 'pfm_matrix' not in result.columns:
             result['pfm_matrix'] = result['pfm'].apply(read_pfm)
         return result
