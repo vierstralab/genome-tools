@@ -316,7 +316,7 @@ class IntervalPlotter(VerticalConnectorMixin):
         end = 3 * index + 3 if include_bottom_margin else 3 * index + 2
         return self.gridspec[start: end, :]
     
-    def setup_figure(self, fig_width, fig_height):
+    def _setup_figure(self, fig_width, fig_height):
         """
         Setup a default figure with the appropriate size for the vertical components.
         """
@@ -436,7 +436,7 @@ class IntervalPlotter(VerticalConnectorMixin):
         # Plot the interval
         component_axes = interval_plotter.plot_interval(data)
         """
-        fig: plt.Figure = self.setup_figure(fig_width, fig_height)
+        fig: plt.Figure = self._setup_figure(fig_width, fig_height)
         
         component_axes = []
 
@@ -464,9 +464,10 @@ class IntervalPlotter(VerticalConnectorMixin):
 
         return component_axes
     
-    def plot(self, interval: GenomicInterval, fig_width=None, fig_height=None, data_kwargs=None, **plot_kwargs):
+    def plot(self, interval: GenomicInterval, n_cpus=1, fig_width=None, fig_height=None, data_kwargs=None, **plot_kwargs):
         """
         Plot the genomic interval with all the provided vertical plot components.
+        Convenience method that combines `get_interval_data` and `plot_interval`.
 
         Parameters
         ----------
@@ -474,16 +475,17 @@ class IntervalPlotter(VerticalConnectorMixin):
             The genomic interval to plot.
             If a dict is provided, the component-specific interval key is used to extract the interval.
 
-        fig : Figure, optional
-            The figure to plot the interval.
-            If None, a new figure is created.
+        n_cpus : int, optional
+            Number of CPUs to use for data loading. Default is 1. More than 1 will use multiprocessing. Max is number of components.
+        
+        fig_width : float, optional
+            The width of the figure in inches. If None, uses self.width.
 
-        gridspecs : Sequence[GridSpec], optional
-            The GridSpecs for each vertical plot component.
-            If None, the default GridSpecs are used.
-
-        **data_kwargs : dict
-            Keyword arguments to pass to the loaders function.
+        fig_height : float, optional
+            The height of the figure in inches. If None, uses the sum of component heights.
+        
+        data_kwargs : dict, optional
+            Keyword arguments to pass to the loaders.
 
         Returns
         -------
@@ -501,7 +503,7 @@ class IntervalPlotter(VerticalConnectorMixin):
         if data_kwargs is None:
             data_kwargs = {}
         
-        data = self.get_interval_data(interval, **data_kwargs)
+        data = self.get_interval_data(interval, n_cpus=n_cpus, **data_kwargs)
         component_axes = self.plot_interval(
             data,
             fig_width=fig_width,
