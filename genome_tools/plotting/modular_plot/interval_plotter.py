@@ -135,7 +135,18 @@ class VerticalConnectorMixin(PlotComponentManager):
         components = self._get_interim_components(components[0], components[1])
         return components
 
-    def plot_connector(self, component_axes, positions: List[int]=None, interval: GenomicInterval=None, start_component=None, end_component=None, type='area', extend_to_top=False, extend_to_bottom=False):
+    def plot_connector(
+            self,
+            component_axes,
+            positions: List[int]=None,
+            interval: GenomicInterval=None,
+            start_component=None,
+            end_component=None,
+            type='area',
+            extend_to_top=False,
+            extend_to_bottom=False,
+            **kwargs,
+        ):
         """
         Add a connector between two vertical plot components. Can run multiple times
         
@@ -179,12 +190,13 @@ class VerticalConnectorMixin(PlotComponentManager):
         components = self.get_connecting_components(start_component, end_component)
         n = len(components)
 
-        kwargs = self.parse_kwargs(positions, interval, type)
+        location_kwargs = self.parse_kwargs(positions, interval, type)
         for i in range(n - 1):
             component1 = components[i]
             component2 = components[i + 1]
             connector_kwargs = {
                 **kwargs,
+                **location_kwargs,
                 'extend_to_top': extend_to_top if i == 0 else False,
                 'extend_to_bottom': extend_to_bottom if i == n - 2 else True,
             }
