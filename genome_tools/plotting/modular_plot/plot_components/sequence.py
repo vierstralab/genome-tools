@@ -27,7 +27,7 @@ class SequencePlotComponent(IntervalPlotComponent):
 class MotifHitsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, pack=False, pad=1, **kwargs):
+    def _plot(self, data, ax, pack=False, pad=1):
         ax.axis('off')
         intervals = data.motif_intervals
         if pack:
