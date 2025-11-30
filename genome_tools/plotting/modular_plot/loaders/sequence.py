@@ -127,8 +127,8 @@ class MotifHitsSelectorLoader(PlotDataLoader):
             
             if not hasattr(data, 'sequence_weights'):
                 raise ValueError("data.sequence_weights is required for weighted_dg scoring")
-            assert len(data.sequence_weights) == len(data.interval), f"data.sequence_weights length must match data.interval length, got {len(data.sequence_weights)} vs {data.interval} ({len(data.interval)})"
-            
+            assert data.sequence_weights.shape[1] == len(data.interval), f"data.sequence_weights length must match data.interval length, got {len(data.sequence_weights)} vs {data.interval} ({len(data.interval)})"
+
             motif_hits = filter_df_to_interval(motif_hits, data.interval, strict=True)
             motif_hits['weighted_dg'] = motif_hits.apply(
                 self.get_weighted_dg,
