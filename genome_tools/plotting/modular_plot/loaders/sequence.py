@@ -176,7 +176,6 @@ class MotifHitsSelectorLoader(PlotDataLoader):
         weights = sequence_weights[
             row['start'] - interval.start: row['end'] - interval.start
         ]
-        print(pfm_matrix.shape, len(weights))
         return seq_logp(
             mat=pfm_matrix,
             seq=row['seq'],
