@@ -183,10 +183,10 @@ class MotifHitsSelectorLoader(PlotDataLoader):
 
     @staticmethod
     def _select_hits(motif_hits: pd.DataFrame, metric_name: str, threshold: float | None):
+        motif_hits = motif_hits.sort_values(metric_name, ascending=False)
         if threshold is None:
             result = (
                 motif_hits
-                .sort_values(metric_name, ascending=False)
                 .drop_duplicates(subset=['region'], keep='first')
             )
         else:
