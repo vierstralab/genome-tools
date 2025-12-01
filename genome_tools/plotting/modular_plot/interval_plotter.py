@@ -366,15 +366,16 @@ class IntervalPlotter(VerticalConnectorMixin):
             If a dict is provided, the component-specific interval key is used to extract the interval.
 
         n_cpus : int, optional
-            Number of CPUs to use for data loading. Default is 1. More than 1 will use multiprocessing. Max is number of components.
+            Number of CPUs to use for data loading. Default is 1 (no multiprocessing). More than 1 will use multiprocessing. Max is number of components.
+            Can be slower for fast loaders due to multiprocessing overhead.
 
         **data_kwargs : dict
             Keyword arguments to pass to the loaders function.
 
         Returns
         -------
-        data : Iter[DataBundle]
-            A Iter of DataBundle objects containing the data for each plot component
+        data : CompTuple[DataBundle]
+            A named tuple of DataBundle objects containing the data for each plot component. Field names match self.component_names.
         """
         self._validate_data_kwargs(**data_kwargs)
         data_kwargs = {**self.data_kwargs, **data_kwargs}
@@ -413,8 +414,7 @@ class IntervalPlotter(VerticalConnectorMixin):
                 for i, (component, data, kwargs) in enumerate(tasks):
 
                     future = executor.submit(
-                        component.__class__.load_data,
-                        component,
+                        component.load_data,
                         data,
                         **kwargs
                     )
@@ -477,9 +477,11 @@ class IntervalPlotter(VerticalConnectorMixin):
             raise
 
         for gs, component, data_bundle in zip(gridspecs, self.plot_components, filtered_data):
-            # TODO: Add parsing of per-component plotting kwargs here
-            # HARD TODO: use inspect to parse args that are accepted by each component's plot method
+            # HARD TODO: use inspect to parse named kwargs that are accepted by each component's plot method (except data and ax)
             component: IntervalPlotComponent
+            # TODO: Add parsing of per-component plotting kwargs here
+            component.name
+
             ax = fig.add_subplot(gs)
             format_axes_to_interval(ax, data_bundle.interval, axis='x')
             component_axes.append(
@@ -501,7 +503,8 @@ class IntervalPlotter(VerticalConnectorMixin):
             If a dict is provided, the component-specific interval key is used to extract the interval.
 
         n_cpus : int, optional
-            Number of CPUs to use for data loading. Default is 1. More than 1 will use multiprocessing. Max is number of components.
+            Number of CPUs to use for data loading. Default is 1 (no multiprocessing). More than 1 will use multiprocessing. Max is number of components.
+            Slower for fast loaders due to multiprocessing overhead.
         
         fig_width : float, optional
             The width of the figure in inches. If None, uses self.width.

@@ -21,21 +21,26 @@ class PlotDataLoader(LoggerMixin):
     By default (if not implemented), the _load method is created from the required_loader_kwargs. The generated _load method takes required_loader_kwargs as arguments and sets them as fields of the data object.
     """
     required_loader_kwargs = []
+    uses_custom_load = True
 
     def __init__(self, logger_level=None):
+        self.name = self.__class__.__name__
         super().__init__(logger_level=logger_level)
     
     def __repr__(self):
-        return f"{self.__class__.__name__}()"
+        if self.uses_custom_load:
+            return f"{self.name} with custom _load method"
+        return f"{self.name} sets fields: {', '.join(self.required_loader_kwargs)}"
 
     @classmethod
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if cls._load is PlotDataLoader._load:
             cls._set_default_load()
+            cls.uses_custom_load = False
         elif len(cls.required_loader_kwargs) > 0:
             warnings.warn(
-                f"Both required_loader_kwargs and _load are specified for loader {cls.__name__}. required_loader_kwargs are ignored."
+                f"Both required_loader_kwargs and _load are specified for loader {cls.__name__}. required_loader_kwargs argument is ignored."
             )
 
     @classmethod
@@ -127,7 +132,10 @@ class PlotComponent(LoggerMixin):
         self.name = name
 
         # Separate loader kwargs from plot kwargs
-        self.loader_overrides = self._extract_loader_specific_overrides(kwargs)
+        self.loader_overrides = self._extract_loader_specific_overrides(
+            kwargs,
+            loaders=self.__required_loaders__
+        )
         self.loader_kwargs = {
             k: kwargs.pop(k) for k in list(kwargs)
             if k in self.__class__.__loader_kwargs_signature__
@@ -154,9 +162,18 @@ class PlotComponent(LoggerMixin):
                     f"The same value will be passed to all of them.\nOr you can specify loader-specific overrides as follows ({example})."
                 )
     
-    def _extract_loader_specific_overrides(self, kwargs: dict, loaders: List[PlotDataLoader]=None):
+    @staticmethod
+    def _extract_loader_specific_overrides(kwargs: dict, classes: List[Union[PlotDataLoader, 'PlotComponent']]):
         """
-        Extract loader-specific override dicts from kwargs.
+        Extract loader or component specific override dicts from kwargs.
+
+        Parameters
+        ----------
+        kwargs : dict
+            The keyword arguments passed to the plot component or loader.
+        
+        classes : List[Union[PlotDataLoader, 'PlotComponent']]
+            The list of loader or component classes to extract overrides for.
 
         Example:
             kwargs = {"SomeLoader": {"a": 1}, "color": "red"}
@@ -169,18 +186,16 @@ class PlotComponent(LoggerMixin):
             A dictionary mapping loader class names to their specific override dictionaries.
         """
         overrides = {}
-        if loaders is None:
-            loaders = self.__required_loaders__
 
         for key in list(kwargs.keys()):
-            for LoaderClass in loaders:
-                name = LoaderClass.__name__
+            for class_ in classes:
+                name = class_.name
                 if key == name:
                     val = kwargs.pop(key)
                     if not isinstance(val, dict):
                         raise TypeError(
                             f"Loader-specific override for '{key}' must be a dict, "
-                            f"got {type(val).__name__}"
+                            f"got {val} {type(val).__name__}"
                         )
                     overrides[name] = val
                     break
