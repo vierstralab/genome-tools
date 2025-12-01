@@ -247,7 +247,7 @@ class IntervalPlotter(VerticalConnectorMixin):
         The width of the figure in inches. Can be overridden when using `plot_interval` or `plot` methods.
         Default is 2.5.
     
-    data_kwargs : dict, optional
+    loaders_kwargs : dict, optional
         Keyword arguments to pass to the loaders.
 
     Usage
@@ -297,10 +297,10 @@ class IntervalPlotter(VerticalConnectorMixin):
     )
     """
     def __init__(self, plot_components: Sequence[IntervalPlotComponent],
-                width=2.5, **data_kwargs):
+                width=2.5, **loaders_kwargs):
         super().__init__(plot_components)
-        self.data_kwargs = data_kwargs
-
+        self.loaders_kwargs = loaders_kwargs
+    
         self.width = width
         self.gridspec = self.setup_default_gridspec()
     
@@ -355,7 +355,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             self,
             interval: GenomicInterval,
             n_cpus: int=1,
-            **data_kwargs
+            **loaders_kwargs
         ):
         """
         Get the data for the specified interval(s) and plot components.
@@ -370,7 +370,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             Number of CPUs to use for data loading. Default is 1 (no multiprocessing). More than 1 will use multiprocessing. Max is number of components.
             Can be slower for fast loaders due to multiprocessing overhead.
 
-        **data_kwargs : dict
+        **loaders_kwargs : dict
             Keyword arguments to pass to the loaders function.
 
         Returns
@@ -378,8 +378,8 @@ class IntervalPlotter(VerticalConnectorMixin):
         data : CompTuple[DataBundle]
             A named tuple of DataBundle objects containing the data for each plot component. Field names match self.component_names.
         """
-        self._validate_data_kwargs(**data_kwargs)
-        data_kwargs = {**self.data_kwargs, **data_kwargs}
+        self._validate_loaders_kwargs(**loaders_kwargs)
+        loaders_kwargs = {**self.loaders_kwargs, **loaders_kwargs}
 
         tasks = []
         for component in self.plot_components:
@@ -401,7 +401,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             data = DataBundle(interval=component_interval)
 
             tasks.append(
-                (component, data, data_kwargs)
+                (component, data, loaders_kwargs)
             )
 
         n_cpus = min(n_cpus, len(tasks))
@@ -427,11 +427,11 @@ class IntervalPlotter(VerticalConnectorMixin):
 
         return self.CompTuple(*results)
     
-    def _validate_data_kwargs(self, **data_kwargs):
-        common_kwargs = set(data_kwargs) & set(self.data_kwargs)
+    def _validate_loaders_kwargs(self, **loaders_kwargs):
+        common_kwargs = set(loaders_kwargs) & set(self.loaders_kwargs)
         if common_kwargs:
             self.logger.warning(
-                f"Found {len(common_kwargs)} overlapping data kwargs: {list(common_kwargs)}"
+                f"Found {len(common_kwargs)} overlapping self.loaders_kwargs (passed in init) and loaders kwargs (from get_interval_data): {list(common_kwargs)}"
             )
             self.logger.warning("Using values passed to get_interval_data function.")
 
@@ -497,7 +497,7 @@ class IntervalPlotter(VerticalConnectorMixin):
 
         return component_axes
     
-    def plot(self, interval: GenomicInterval, n_cpus=1, fig_width=None, fig_height=None, data_kwargs=None, **plot_kwargs):
+    def plot(self, interval: GenomicInterval, n_cpus=1, fig_width=None, fig_height=None, loaders_kwargs=None, **plot_kwargs):
         """
         Plot the genomic interval with all the provided vertical plot components.
         Convenience method that combines `get_interval_data` and `plot_interval`.
@@ -518,7 +518,7 @@ class IntervalPlotter(VerticalConnectorMixin):
         fig_height : float, optional
             The height of the figure in inches. If None, uses the sum of component heights.
         
-        data_kwargs : dict, optional
+        loaders_kwargs : dict, optional
             Keyword arguments to pass to the loaders.
 
         Returns
@@ -534,10 +534,10 @@ class IntervalPlotter(VerticalConnectorMixin):
         # Plot the interval
         component_axes, data = interval_plotter.plot(interval)
         """
-        if data_kwargs is None:
-            data_kwargs = {}
+        if loaders_kwargs is None:
+            loaders_kwargs = {}
         
-        data = self.get_interval_data(interval, n_cpus=n_cpus, **data_kwargs)
+        data = self.get_interval_data(interval, n_cpus=n_cpus, **loaders_kwargs)
         component_axes = self.plot_interval(
             data,
             fig_width=fig_width,
