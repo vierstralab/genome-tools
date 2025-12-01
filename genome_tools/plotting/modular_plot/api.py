@@ -40,7 +40,8 @@ class PlotDataLoader(LoggerMixin):
             cls.uses_custom_load = False
         elif len(cls.required_loader_kwargs) > 0:
             warnings.warn(
-                f"Both required_loader_kwargs and _load are specified for loader {cls.__name__}. required_loader_kwargs argument is ignored."
+                f"Both required_loader_kwargs and _load are specified for loader {cls.__name__}. required_loader_kwargs argument is ignored.",
+                stacklevel=3
             )
 
     @classmethod
@@ -50,7 +51,8 @@ class PlotDataLoader(LoggerMixin):
         """
         if len(cls.required_loader_kwargs) == 0:
             warnings.warn(
-                f"Loader {cls.__name__} has no required_loader_kwargs and no _load method implemented. The loader does not modify the data."
+                f"Loader {cls.__name__} has no required_loader_kwargs and no _load method implemented. The loader does not modify the data.",
+                stacklevel=3
             )
 
         args_string = ', '.join(cls.required_loader_kwargs)
