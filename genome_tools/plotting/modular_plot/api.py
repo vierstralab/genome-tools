@@ -24,7 +24,6 @@ class PlotDataLoader(LoggerMixin):
     uses_custom_load = True
 
     def __init__(self, logger_level=None):
-        self.name = self.__class__.__name__
         super().__init__(logger_level=logger_level)
     
     def __repr__(self):
@@ -34,7 +33,9 @@ class PlotDataLoader(LoggerMixin):
 
     @classmethod
     def __init_subclass__(cls, **kwargs):
+        cls.name = cls.__name__
         super().__init_subclass__(**kwargs)
+        
         if cls._load is PlotDataLoader._load:
             cls._set_default_load()
             cls.uses_custom_load = False
