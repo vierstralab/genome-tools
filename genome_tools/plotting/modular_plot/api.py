@@ -33,8 +33,8 @@ class PlotDataLoader(LoggerMixin):
 
     @classmethod
     def __init_subclass__(cls, **kwargs):
-        cls.name = cls.__name__
         super().__init_subclass__(**kwargs)
+        cls.name = cls.__name__
         
         if cls._load is PlotDataLoader._load:
             cls._set_default_load()
