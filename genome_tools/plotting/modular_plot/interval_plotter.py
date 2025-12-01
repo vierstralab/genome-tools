@@ -10,6 +10,7 @@ from tqdm import tqdm
 from genome_tools import GenomicInterval
 
 from genome_tools.plotting.modular_plot.api import PlotComponent, IntervalPlotComponent
+from genome_tools.plotting.modular_plot.api import extract_class_specific_overrides
 from genome_tools.plotting.modular_plot.utils import LoggerMixin, DataBundle
 from genome_tools.plotting.connectors import connect_axes_lines, connect_axes_area
 from genome_tools.plotting.utils import format_axes_to_interval
@@ -204,7 +205,7 @@ class VerticalConnectorMixin(PlotComponentManager):
             }
             ax1 = self.get_component_axes(component_axes, component1)
             ax2 = self.get_component_axes(component_axes, component2)
-            # TODO: resolve component axes here instead of VerticalAxesConnector
+
             if type == 'area':
                 connect_axes_area(ax_top=ax1, ax_bottom=ax2, **connector_kwargs)
             elif type == 'line':
@@ -475,17 +476,22 @@ class IntervalPlotter(VerticalConnectorMixin):
             missing_components = [c for c in self.component_names if not hasattr(data, c)]
             self.logger.error("Provided data does not have the correct attributes for the following components: " + ", ".join(missing_components))
             raise
-
+        
+        per_component_kwargs = extract_class_specific_overrides(
+            plotting_kwargs,
+            self.plot_components
+        )
         for gs, component, data_bundle in zip(gridspecs, self.plot_components, filtered_data):
             # HARD TODO: use inspect to parse named kwargs that are accepted by each component's plot method (except data and ax)
             component: IntervalPlotComponent
-            # TODO: Add parsing of per-component plotting kwargs here
-            component.name
-
+            component_kwargs = {
+                **plotting_kwargs,
+                **per_component_kwargs.get(component.name, {})
+            }
             ax = fig.add_subplot(gs)
             format_axes_to_interval(ax, data_bundle.interval, axis='x')
             component_axes.append(
-                component.plot(data_bundle, ax=ax, **plotting_kwargs)
+                component.plot(data_bundle, ax=ax, **component_kwargs)
             )
         component_axes = self.CompTuple(*component_axes)
 

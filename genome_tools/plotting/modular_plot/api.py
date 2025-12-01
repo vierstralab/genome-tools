@@ -134,9 +134,9 @@ class PlotComponent(LoggerMixin):
         self.name = name
 
         # Separate loader kwargs from plot kwargs
-        self.loader_overrides = self._extract_loader_specific_overrides(
+        self.loader_overrides = extract_class_specific_overrides(
             kwargs,
-            loaders=self.__required_loaders__
+            classes=self.__required_loaders__
         )
         self.loader_kwargs = {
             k: kwargs.pop(k) for k in list(kwargs)
@@ -163,46 +163,6 @@ class PlotComponent(LoggerMixin):
                     f"({overlapping_loaders}). "
                     f"The same value will be passed to all of them.\nOr you can specify loader-specific overrides as follows ({example})."
                 )
-    
-    @staticmethod
-    def _extract_loader_specific_overrides(kwargs: dict, classes: List[Union[PlotDataLoader, 'PlotComponent']]):
-        """
-        Extract loader or component specific override dicts from kwargs.
-
-        Parameters
-        ----------
-        kwargs : dict
-            The keyword arguments passed to the plot component or loader.
-        
-        classes : List[Union[PlotDataLoader, 'PlotComponent']]
-            The list of loader or component classes to extract overrides for.
-
-        Example:
-            kwargs = {"SomeLoader": {"a": 1}, "color": "red"}
-            returns {"SomeLoader": {"a": 1}}
-            and kwargs becomes {"color": "red"}
-
-        Returns
-        -------
-        dict : Dict[str, dict]
-            A dictionary mapping loader class names to their specific override dictionaries.
-        """
-        overrides = {}
-
-        for key in list(kwargs.keys()):
-            for class_ in classes:
-                name = class_.name
-                if key == name:
-                    val = kwargs.pop(key)
-                    if not isinstance(val, dict):
-                        raise TypeError(
-                            f"Loader-specific override for '{key}' must be a dict, "
-                            f"got {val} {type(val).__name__}"
-                        )
-                    overrides[name] = val
-                    break
-
-        return overrides
 
     @classmethod
     def with_loaders(cls, *loaders, new_class_name=None):
@@ -247,9 +207,9 @@ class PlotComponent(LoggerMixin):
             loader_defaults = LoaderClass.get_fullargspec()
             component_overrides = self.loader_kwargs
             component_loader_specific_overrides = self.loader_overrides.get(LoaderClass.__name__, {})
-            runtime_loader_specific_overrides = self._extract_loader_specific_overrides(
+            runtime_loader_specific_overrides = extract_class_specific_overrides(
                 runtime_overrides,
-                loaders=[LoaderClass]
+                classes=[LoaderClass]
             )
 
             kwargs_for_loader = {
@@ -273,7 +233,7 @@ class PlotComponent(LoggerMixin):
             data.processed_loaders.append(LoaderClass)
         return data
 
-    def plot(self, data, ax, **plot_kwargs):
+    def plot(self, data: DataBundle, ax: plt.Axes, **plot_kwargs):
         """
         Wrapper for the plot method to pass the plot_kws to the plot method.
         Also supports axes set methods e.g. xlim -> ax.set_xlim
@@ -292,7 +252,7 @@ class PlotComponent(LoggerMixin):
 
         return axes
 
-    def _plot(self, data, ax, **kwargs):
+    def _plot(self, data: DataBundle, ax: plt.Axes, **kwargs) -> Union[plt.Axes, List[plt.Axes]]:
         """
         Abstract plot method to be implemented by specific plot components.
 
@@ -481,3 +441,43 @@ def _update_signature(original_init, loader_kwargs: dict):
         return original_init(self, *args, **kwargs)
     
     return wrapped_init
+
+
+def extract_class_specific_overrides(kwargs: dict, classes: List[Union[PlotDataLoader, PlotComponent]]):
+        """
+        Extract loader or component specific override dicts from kwargs.
+
+        Parameters
+        ----------
+        kwargs : dict
+            The keyword arguments passed to the plot component or loader.
+        
+        classes : List[Union[PlotDataLoader, 'PlotComponent']]
+            The list of loader or component classes to extract overrides for.
+
+        Example:
+            kwargs = {"SomeLoader": {"a": 1}, "color": "red"}
+            returns {"SomeLoader": {"a": 1}}
+            and kwargs becomes {"color": "red"}
+
+        Returns
+        -------
+        dict : Dict[str, dict]
+            A dictionary mapping loader class names to their specific override dictionaries.
+        """
+        overrides = {}
+
+        for key in list(kwargs.keys()):
+            for class_ in classes:
+                name = class_.name
+                if key == name:
+                    val = kwargs.pop(key)
+                    if not isinstance(val, dict):
+                        raise TypeError(
+                            f"Loader-specific override for '{key}' must be a dict, "
+                            f"got {val} {type(val).__name__}"
+                        )
+                    overrides[name] = val
+                    break
+
+        return overrides
