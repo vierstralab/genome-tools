@@ -350,7 +350,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             fig_height = comps_height
         fig = plt.figure(figsize=(fig_width, fig_height))
         fig.subplots_adjust(0, 0, 1, 1)
-        return 
+        return fig
 
     def get_interval_data(
             self,
