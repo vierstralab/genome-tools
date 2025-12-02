@@ -200,6 +200,7 @@ class FootprintsDataLoader(PlotDataLoader):
         post[post <= 0] = 0.0
         return post
 
+
 class DifferentialFootprintLoader(PlotDataLoader):
 
     def _load(self, data: DataBundle):
@@ -278,7 +279,6 @@ class DifferentialFootprintLoader(PlotDataLoader):
         lrt_pvalue = np.clip(lrt_pvalue, None, 1.0 - 1e-6)
         data.neglog10_pval = -np.log10(stouffers_z(lrt_pvalue, 3))
         data.lfc = mub - mua
-
         return data
 
     @staticmethod

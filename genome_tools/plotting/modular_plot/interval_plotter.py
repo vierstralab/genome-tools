@@ -348,8 +348,9 @@ class IntervalPlotter(VerticalConnectorMixin):
         )
         if fig_height is None:
             fig_height = comps_height
-        
-        return plt.figure(figsize=(fig_width, fig_height))
+        fig = plt.figure(figsize=(fig_width, fig_height))
+        fig.subplots_adjust(0, 0, 1, 1)
+        return 
 
     def get_interval_data(
             self,

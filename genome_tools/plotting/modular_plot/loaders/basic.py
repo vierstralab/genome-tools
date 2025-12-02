@@ -35,6 +35,7 @@ class SignalLoader(PlotDataLoader):
         data.signal = signal
         return data
 
+
 class AverageSignalLoader(PlotDataLoader):
     
     def _load(self, data, signal_files, smooth=True, step=20, bandwidth=150):
@@ -86,4 +87,3 @@ class SegmentsTabixLoader(SegmentsLoader):
             extra_columns=extra_columns,
             rectprops_columns=rectprops_columns
         )
-

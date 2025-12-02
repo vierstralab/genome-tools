@@ -2,10 +2,8 @@ import pandas as pd
 
 from genome_tools.utils.signal import smooth_and_aggregate_per_nucleotide_signal
 
-
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
-
 from .basic import SegmentsLoader
 
 

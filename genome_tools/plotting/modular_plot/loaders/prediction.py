@@ -6,7 +6,6 @@ from torch.utils.data import DataLoader
 
 from vinson.datasets.sequence import SequenceEmbedDataset
 from vinson.utils.data_formatting import extract_data_from_backed_anndata
-
 from vinson.postprocessing.interpretation import ModelWrapper
 
 from genome_tools import GenomicInterval

@@ -19,14 +19,9 @@ from genome_tools.plotting.modular_plot.loaders.footprint import (
     FootprintsDataLoader,
     SequenceWeightsFromProtectedNucleotidesLoader,
 )
-from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLoader
 from genome_tools.plotting.modular_plot.loaders.variant import VariantGenotypeLoader, GroupsByGenotypeLoader
-from genome_tools.plotting.modular_plot.loaders.sequence import (
-    FastaLoader,
-    MotifHitsLoader,
-    MotifHitsSelectorLoader
-)
-from genome_tools.plotting.modular_plot.plot_components.sequence import MotifHitsComponent, SequencePlotComponent
+
+from genome_tools.plotting.modular_plot.plot_components.sequence import FastaLoader, MotifHitsComponent, SequencePlotComponent
 
 from .basic import SegmentPlotComponent
 
@@ -39,6 +34,7 @@ class FootprintsIndexComponent(SegmentPlotComponent):
         super()._plot(data, ax, **kwargs)
         ax.set_ylabel('Footprint\nindex')
         return ax
+
 
 @uses_loaders(PosteriorLoader)
 class PosteriorHeatmapComponent(IntervalPlotComponent):
