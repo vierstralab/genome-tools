@@ -349,12 +349,12 @@ class IntervalPlotter(VerticalConnectorMixin):
         
         comps_height = sum(
             c.full_height for c in self.plot_components
-        ) * height_scale
+        )
         if fig_height is None:
             fig_height = comps_height
             if height_scale is None:
                 height_scale = 1.0
-            fig_height = comps_height * height_scale
+            fig_height *= height_scale
         else:
             if height_scale is not None:
                 print("Warning: fig_height is provided, ignoring height_scale.")
