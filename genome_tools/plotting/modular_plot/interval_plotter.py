@@ -447,7 +447,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             )
             self.logger.warning("Using values passed to get_interval_data function.")
 
-    def plot_interval(self, data: Any, fig_width=None, fig_height=None, height_scale=1.0, **plotting_kwargs):
+    def plot_interval(self, data: Any, fig_width=None, fig_height=None, height_scale=None, **plotting_kwargs):
         """
         Plot the genomic interval from the provided data for self.component_names. Data is expected to be a named tuple with fields matching self.component_names.
 
@@ -465,7 +465,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             The height of the figure in inches. If None, uses the sum of component heights.
         
         height_scale : float, optional
-            Scale factor to apply to the figure height. Default is 1.0.
+            Scale factor to apply to the figure height. If None, defaults to 1.0.
             Ignored if fig_height is provided.
         
         plotting_kwargs : dict
