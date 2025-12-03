@@ -92,10 +92,17 @@ class GenomicInterval(object):
     def __itruediv__(self, x: float):
         return self.zoom(1 / x, inplace=True)
 
-    def widen(self, x, inplace=False):
+    def widen(self, x=None, *, inplace=False, left=None, right=None):
         """Expands the coordinates"""
-        new_start = max(self.start - x, 0)
-        new_end = self.end + x
+        if left is not None:
+            assert right is not None, "If left is specified, right must also be specified"
+            if x is not None:
+                raise ValueError("Either x or both left and right must be specified, not both")
+        else:
+            left = right = x
+
+        new_start = max(self.start - left, 0)
+        new_end = self.end + right
         if new_end < new_start:
             mid = (new_start + new_end) // 2
             new_start = mid
@@ -127,13 +134,7 @@ class GenomicInterval(object):
         if not isinstance(x, int):
             raise TypeError("shift must be an integer")
         """Shifts the coordinates"""
-        if inplace:
-            self.start += x
-            self.end += x
-            return self
-        return GenomicInterval(
-            self.chrom, self.start + x, self.end + x, self.name, **self.extra_kwargs
-        )
+        return self.widen(left=-x, right=x, inplace=inplace)
     
     def to_variant_interval(self, ref=None, alt=None, value=None):
         args = {"ref": ref, "alt": alt, "value": value}
