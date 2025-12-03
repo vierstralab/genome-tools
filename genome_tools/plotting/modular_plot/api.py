@@ -166,13 +166,11 @@ class PlotComponent(LoggerMixin):
                 )
 
     @classmethod
-    def with_loaders(cls, *loaders, new_class_name=None):
+    def with_loaders(cls, *loaders, new_class_name):
         """
         Create a new class that inherits from the current class
         but requires the specified loaders.
         """
-        if new_class_name is None:
-            new_class_name = cls.__name__
         new_class = type(
             new_class_name,
             (cls,),
@@ -301,7 +299,6 @@ class IntervalPlotComponent(PlotComponent):
             else:
                 raise ValueError("If margins is a sequence, it must have exactly two elements.")
         return margins, margins
-
 
     @staticmethod
     def set_xlim_interval(func):

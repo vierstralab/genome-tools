@@ -303,6 +303,9 @@ class IntervalPlotter(VerticalConnectorMixin):
     
         self.width = width
         self.gridspec = self.setup_default_gridspec()
+        self.full_height = sum(
+            c.full_height for c in self.plot_components
+        )
     
     def __repr__(self):
         return f"IntervalPlotter(Plotcomponents=[{', '.join(self.component_names)}])"
@@ -323,7 +326,9 @@ class IntervalPlotter(VerticalConnectorMixin):
         """
         Get the GridSpecs for each vertical plot component.
         """
-        return self.CompTuple(*[self.gridspec[3 * i + 1, :] for i in range(len(self.plot_components))])
+        return self.CompTuple(*[
+            self.gridspec[3 * i + 1, :] for i in range(len(self.plot_components))
+        ])
     
     def get_gridspec_for_component(self, component, include_top_margin=False,
                                    include_bottom_margin=False):  # get rid of gridspec
@@ -335,7 +340,7 @@ class IntervalPlotter(VerticalConnectorMixin):
         end = 3 * index + 3 if include_bottom_margin else 3 * index + 2
         return self.gridspec[start: end, :]
     
-    def _setup_figure(self, fig_width, fig_height):
+    def _setup_figure(self, fig_width, fig_height, height_scale):
         """
         Setup a default figure with the appropriate size for the vertical components.
         """
@@ -344,10 +349,16 @@ class IntervalPlotter(VerticalConnectorMixin):
         
         comps_height = sum(
             c.full_height for c in self.plot_components
-            
-        )
+        ) * height_scale
         if fig_height is None:
             fig_height = comps_height
+            if height_scale is None:
+                height_scale = 1.0
+            fig_height = comps_height * height_scale
+        else:
+            if height_scale is not None:
+                print("Warning: fig_height is provided, ignoring height_scale.")
+
         fig = plt.figure(figsize=(fig_width, fig_height))
         fig.subplots_adjust(0, 0, 1, 1)
         return fig
@@ -436,7 +447,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             )
             self.logger.warning("Using values passed to get_interval_data function.")
 
-    def plot_interval(self, data: Any, fig_width=None, fig_height=None, **plotting_kwargs):
+    def plot_interval(self, data: Any, fig_width=None, fig_height=None, height_scale=1.0, **plotting_kwargs):
         """
         Plot the genomic interval from the provided data for self.component_names. Data is expected to be a named tuple with fields matching self.component_names.
 
@@ -453,6 +464,10 @@ class IntervalPlotter(VerticalConnectorMixin):
         fig_height : float, optional
             The height of the figure in inches. If None, uses the sum of component heights.
         
+        height_scale : float, optional
+            Scale factor to apply to the figure height. Default is 1.0.
+            Ignored if fig_height is provided.
+        
         plotting_kwargs : dict
             Additional keyword arguments to pass to each component's plot method.
 
@@ -463,7 +478,7 @@ class IntervalPlotter(VerticalConnectorMixin):
         # Plot the interval
         component_axes = interval_plotter.plot_interval(data)
         """
-        fig: plt.Figure = self._setup_figure(fig_width, fig_height)
+        fig: plt.Figure = self._setup_figure(fig_width, fig_height, height_scale)
         
         component_axes = []
 
@@ -498,7 +513,7 @@ class IntervalPlotter(VerticalConnectorMixin):
 
         return component_axes
     
-    def plot(self, interval: GenomicInterval, n_cpus=1, fig_width=None, fig_height=None, loaders_kwargs=None, **plot_kwargs):
+    def plot(self, interval: GenomicInterval, n_cpus=1, fig_width=None, fig_height=None, height_scale=1.0, loaders_kwargs=None, **plot_kwargs):
         """
         Plot the genomic interval with all the provided vertical plot components.
         Convenience method that combines `get_interval_data` and `plot_interval`.
@@ -518,6 +533,10 @@ class IntervalPlotter(VerticalConnectorMixin):
 
         fig_height : float, optional
             The height of the figure in inches. If None, uses the sum of component heights.
+        
+        height_scale : float, optional
+            Scale factor to apply to the figure height. Default is 1.0.
+            Ignored if fig_height is provided.
         
         loaders_kwargs : dict, optional
             Keyword arguments to pass to the loaders.
@@ -543,6 +562,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             data,
             fig_width=fig_width,
             fig_height=fig_height,
+            height_scale=height_scale,
             **plot_kwargs
         )
         return data, component_axes

@@ -161,55 +161,98 @@ class AllelicReadsLoader(PlotDataLoader):
 
 class AllelicReadsLoaderFPTools(PlotDataLoader):
 
-    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval, sample_ids=None):
+    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval, sample_ids=None, gt="AB"):
         from footprint_tools.cutcounts import BamFileExtractor
-        assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval. Got {variant_interval.to_str()} and {data.interval.to_ucsc()}"
 
-        variant_data: pd.DataFrame = data.variant_genotypes.query('parsed_genotype == "AB"')
-        variant_data = filter_df_to_interval(variant_data, variant_interval)
+        assert variant_interval.overlaps(data.interval)
+        assert gt in ("AB", "AA", "BB")
+
+        variant_genotypes: pd.DataFrame = data.variant_genotypes
+        # Filter variant data
+        variant_data = (
+            variant_genotypes
+            .query(f'parsed_genotype == "{gt}"')
+            .pipe(filter_df_to_interval, variant_interval)
+        )
         if variant_data.empty:
-            raise ValueError("No heterozygous genotypes found for the specified variant_interval.")
-        assert variant_data.index.is_unique
+            gts = variant_genotypes['parsed_genotype'].unique().tolist()
+            raise ValueError(f"No samples with GT={gt} in interval. Available genotypes: {gts}")
 
+        # Resolve sample IDs
         if sample_ids is None:
             sample_ids = variant_data.index.tolist()
         elif isinstance(sample_ids, (str, int, float)):
             sample_ids = [sample_ids]
 
-        cram_paths = samples_metadata.loc[sample_ids, 'cram_file']
+        # Extract allelic reads
         reads = {}
-        for sample_id, cram_path in tqdm(
-            zip(sample_ids, cram_paths),
-            total=len(sample_ids),
-            desc="Allelic reads loader fp-tools"
-        ):
-            extractor = BamFileExtractor(cram_path)
+        for sid in sample_ids:
+            cram_path = samples_metadata.loc[sid, "cram_file"]
+            extractor = BamFileExtractor(cram_path, variant_5p_proximity=-1)
             try:
-                reads[sample_id] = extractor.lookup_allelic(
+                reads[sid] = extractor.lookup_allelic(
                     chrom=variant_interval.chrom,
                     start=data.interval.start,
                     end=data.interval.end,
-                    pos=variant_interval.pos - 1, # weird 0-based in fp-tools
+                    pos=variant_interval.pos - 1,
                     ref=variant_interval.ref,
-                    alt=variant_interval.alt
+                    alt=variant_interval.alt,
                 )
             except ValueError as e:
-                print(e, 'sample_id', sample_id, cram_path)
-                continue
-            extractor.close()
-        
-        data.ref_reads = self.convert_reads_to_list(reads, variant_interval.ref)
-        data.alt_reads = self.convert_reads_to_list(reads, variant_interval.alt)
-        data.variant_interval = variant_interval
+                print(e)
+            finally:
+                extractor.close()
+
+        # -----------------------
+        # Convert to cutcounts
+        # -----------------------
+        allele_ref = variant_interval.ref
+        allele_alt = variant_interval.alt
+
+        ref_cuts = self._convert_cutcounts(reads, allele_ref, data.interval)
+        alt_cuts = self._convert_cutcounts(reads, allele_alt, data.interval)
+
+        if gt == "AA":
+            cutcount_tracks = [
+                {"allele": allele_ref, "cutcounts": ref_cuts}
+            ]
+        elif gt == "BB":
+            cutcount_tracks = [
+                {"allele": allele_alt, "cutcounts": alt_cuts}
+            ]
+        else:
+            cutcount_tracks = [
+                {"allele": allele_ref, "cutcounts": ref_cuts},
+                {"allele": allele_alt, "cutcounts": alt_cuts}
+            ]
+
+        flat_reads = (
+            self._convert_read_list(reads, allele_ref)
+            + self._convert_read_list(reads, allele_alt)
+        )
+
+        # Store in data
+        interval = variant_interval.copy()
+        data.variant_interval = interval
+        data.cutcount_tracks = cutcount_tracks
+        data.reads = flat_reads
+
         return data
-    
+
     @staticmethod
-    def convert_reads_to_list(reads_dict, allele: str):
-        reads = []
-        for sample_id, sample_reads_dict in reads_dict.items():
-            for read in sample_reads_dict[allele]['fragments']:
-                assert hasattr(read, 'is_reverse')
-                read.sample_id = sample_id
+    def _convert_cutcounts(reads_dict, allele, interval):
+        cuts = np.zeros(len(interval), dtype=int)
+        for sample_reads in reads_dict.values():
+            cuts += sample_reads[allele]['+']
+            cuts += sample_reads[allele]['-']
+        return cuts
+
+    @staticmethod
+    def _convert_read_list(reads_dict, allele):
+        out = []
+        for sid, sample_reads in reads_dict.items():
+            for read in sample_reads[allele]["fragments"]:
+                read.sample_id = sid
                 read.base = allele
-                reads.append(read)
-        return reads
+                out.append(read)
+        return out
