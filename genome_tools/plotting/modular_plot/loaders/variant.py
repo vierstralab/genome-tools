@@ -230,10 +230,7 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
             self._convert_read_list(reads, allele_ref)
             + self._convert_read_list(reads, allele_alt)
         )
-
-        # Store in data
-        interval = variant_interval.copy()
-        data.variant_interval = interval
+        data.variant_interval = variant_interval
         data.cutcount_tracks = cutcount_tracks
         data.reads = flat_reads
 
