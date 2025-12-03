@@ -5,6 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 import warnings
 
+
 class GenomicInterval(object):
     """Class that implements BED-style object"""
 
@@ -222,7 +223,6 @@ class VariantInterval(GenomicInterval):
     
     def zoom(self, zoom_factor, inplace=False):
         raise NotImplementedError("Cannot zoom a variant interval. Convert to GenomicInterval  with gi() method first.")
-
 
 
 class genomic_interval(GenomicInterval):
