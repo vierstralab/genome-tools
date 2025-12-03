@@ -13,7 +13,7 @@ from genome_tools.plotting.sequence import plot_letter
 from genome_tools.plotting.utils import format_axes_to_interval, pack_rows, add_axes_at_intervals
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
-from genome_tools.plotting.modular_plot.loaders.variant import FinemapLoader, AggregatedCAVLoader, PerSampleCAVLoader, AllelicReadsLoaderFPTools, AllelicReadsToCutcounts, VariantGenotypeLoader
+from genome_tools.plotting.modular_plot.loaders.variant import FinemapLoader, AggregatedCAVLoader, PerSampleCAVLoader, AllelicReadsLoaderFPTools, VariantGenotypeLoader
 
 
 
@@ -105,7 +105,7 @@ class CAVComponent(LolipopVariantsComponent):
 NonAggregatedCAVComponent = CAVComponent.with_loaders(PerSampleCAVLoader, new_class_name="NonAggregatedCAVComponent")
 
 
-@uses_loaders(VariantGenotypeLoader, AllelicReadsLoaderFPTools, AllelicReadsToCutcounts)
+@uses_loaders(VariantGenotypeLoader, AllelicReadsLoaderFPTools)
 class AllelicCutcountsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
@@ -154,7 +154,7 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
             axes.append(ax_bar)
         return ax, axes
 
-@uses_loaders(VariantGenotypeLoader, AllelicReadsLoaderFPTools, AllelicReadsToCutcounts)
+@uses_loaders(VariantGenotypeLoader, AllelicReadsLoaderFPTools)
 class AllelicReadsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
