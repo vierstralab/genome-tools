@@ -238,7 +238,7 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
 
     @staticmethod
     def _convert_cutcounts(reads_dict, allele, interval):
-        cuts = np.zeros(len(interval), dtype=int)
+        cuts = np.zeros(len(interval), dtype=np.float32)
         for sample_reads in reads_dict.values():
             cuts += sample_reads[allele]['+']
             cuts += sample_reads[allele]['-']
