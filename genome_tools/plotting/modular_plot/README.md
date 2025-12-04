@@ -1,9 +1,7 @@
 # Modular Plot Framework
-
-The modular plot framework provides a flexible, composable system for creating complex genomic interval visualizations. It separates data loading from plotting logic, enabling reusable components that can be easily combined and configured.
+The modular plot framework provides a flexible, composable system for creating complex genomic interval visualizations. It separates data loading from plotting logic, enabling reusable components that can be easily combined and configured. Details on individual components along with examples can be found in PlotComponents section
 
 # Key concepts
-
 - **IntervalPlotter**: The main orchestrator that manages components and creates figures
 
 - **IntervalPlotComponent**: A plot component that renders data for a genomic interval
@@ -151,13 +149,13 @@ data, axes = plotter.plot(
 
 ## Basic Components
 
-### TrackComponent
-Plots signal tracks from bigWig files.
+### **TrackComponent**
+Plots signal track from bigWig files.
 
 **Loaders:** `SignalLoader`
 
 **Required arguments:**
-- `signal_file` (str): Path to bigWig file
+- `signal_file` (str): Path to bigwig file
 
 **Example:**
 ```python
@@ -170,16 +168,17 @@ TrackComponent(
 )
 ```
 
-### IdeogramComponent
+### **IdeogramComponent**
 Displays chromosome ideogram with cytobands.
 
 **Loaders:** `IdeogramLoader`
 
 **Required arguments:**
-- `ideogram_data` dict: Result of `genome_tools.plotting.ideogram.read_ideogram` on path to ideogram data file
+- `ideogram_data` dict: Result of `genome_tools.plotting.ideogram.read_ideogram()`
 
 **Example:**
 ```python
+from genome_tools.plotting.modular_plot.plot_components.basic import IdeogramComponent
 IdeogramComponent(
     height=0.1,
     margins=(0.1, 0.0),
@@ -187,7 +186,7 @@ IdeogramComponent(
 )
 ```
 
-### GencodeComponent
+### **GencodeComponent**
 Plots gene annotations from GENCODE GTF files.
 
 **Loaders:** `GencodeLoader`
@@ -200,6 +199,7 @@ Plots gene annotations from GENCODE GTF files.
 
 **Example:**
 ```python
+from genome_tools.plotting.modular_plot.plot_components.basic import GencodeComponent
 GencodeComponent(
     height=0.3,
     margins=(0.05, 0.05),
@@ -210,13 +210,16 @@ GencodeComponent(
 
 ## Sequence Components
 
-### SequencePlotComponent
+### **SequencePlotComponent**
 Plots DNA sequence as colored nucleotides.
 
 **Loaders:** `FastaLoader`, `OHESequenceLoader`
 
 **Required arguments:**
 - `fasta_file` (str): Path to genome FASTA file
+
+**Optional arguments:**
+- `vocab` (dict): Dictionary for vocabulary ({letter: color}). Keys should go in order of ACGT. E.g. `vocab = {x: 'k' for x in ACGT}` to plot all letters as black
 
 **Example:**
 ```python
@@ -275,7 +278,7 @@ DHSIndexComponent(
 )
 ```
 
-### NMFTracksComponent
+### NMFTracksComponent (not used)
 Plots multiple NMF component tracks stacked vertically.
 
 **Loaders:** `ComponentTracksLoader`
@@ -319,7 +322,7 @@ axes.H3K27ac
 axes.H3K4me3
 ```
 
-### Debugging Data Loading
+# Debugging Data Loading
 
 The `DataBundle` tracks which loaders have processed it:
 
@@ -336,3 +339,5 @@ print(component_data.interval)
 print(component_data.signal)
 ```
 
+# Adding additional objects on axes
+Use returned axes object

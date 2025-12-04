@@ -1,5 +1,5 @@
 from genome_tools.plotting.utils import clear_spines
-from genome_tools.plotting import signal_plot, segment_plot
+from genome_tools.plotting import signal_plot
 from genome_tools.plotting.gene_annotation import gene_annotation_plot
 from genome_tools.plotting.ideogram import ideogram_plot
 from genome_tools.plotting.utils import clear_spines
@@ -19,10 +19,7 @@ class TrackComponent(IntervalPlotComponent):
     Required loader args (via ``SignalLoader``):
     - ``signal_file``: path to a bigWig file
 
-    Plot kwargs (examples):
-    - ``color``: line/fill color
-    - ``lw``: line width
-    - other kwargs passed to ``signal_plot``
+    Plot kwargs passed to `genome_tools.plotting.signal_plot`
 
     Returns: ``matplotlib.axes.Axes``
     """
@@ -40,9 +37,9 @@ class IdeogramComponent(IntervalPlotComponent):
     Loaders: ``IdeogramLoader``
 
     Required loader args:
-    - ``ideogram_data``: pre-loaded ideogram data (see ``read_ideogram``)
+    - ``ideogram_data``: pre-loaded ideogram data (see `genome_tools.plotting.ideogram.read_ideogram`)
 
-    Plot kwargs: forwarded to ``ideogram_plot`` (e.g., ``band_colors``).
+    Plot kwargs passed to `genome_tools.plotting.ideogram.ideogram_plot`
 
     Returns: ``matplotlib.axes.Axes``
     """
@@ -51,7 +48,7 @@ class IdeogramComponent(IntervalPlotComponent):
         ideogram_plot(data.ideogram_data, data.interval.chrom, pos=data.interval.start, ax=ax, **kwargs)
         return ax
 
-
+# TODO fix other components
 @uses_loaders(GencodeLoader)
 class GencodeComponent(IntervalPlotComponent):
     """Plot GENCODE gene annotations overlapping the interval.

@@ -16,6 +16,7 @@ from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loade
 from genome_tools.plotting.modular_plot.loaders.variant import FinemapLoader, AggregatedCAVLoader, PerSampleCAVLoader, AllelicReadsLoaderFPTools, VariantGenotypeLoader
 
 
+# TODO fix other components
 class LolipopVariantsComponent(IntervalPlotComponent):
     """
     A vertical plot component that plots single base pair objects

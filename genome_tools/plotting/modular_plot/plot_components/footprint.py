@@ -25,7 +25,7 @@ from genome_tools.plotting.modular_plot.plot_components.sequence import FastaLoa
 
 from .abstract import SegmentPlotComponent
 
-
+# TODO fix other components
 @uses_loaders(FootprintsIndexLoader)
 class FootprintsIndexComponent(SegmentPlotComponent):
     __intervals_attr__ = FootprintsIndexLoader.__intervals_attr__

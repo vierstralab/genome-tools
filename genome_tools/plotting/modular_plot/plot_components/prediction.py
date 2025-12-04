@@ -3,7 +3,7 @@ from genome_tools.plotting.modular_plot.loaders.prediction import AttributionsLo
 from genome_tools.plotting.modular_plot.plot_components.sequence import SequencePlotComponent, MotifHitsComponent
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 
-
+# TODO fix other components
 @uses_loaders(AttributionsLoader)
 class AttributionsComponent(SequencePlotComponent):
     

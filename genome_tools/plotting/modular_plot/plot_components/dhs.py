@@ -8,7 +8,7 @@ from genome_tools.plotting.modular_plot.loaders.dhs import ComponentTracksLoader
 
 from .abstract import SegmentPlotComponent
 
-
+# TODO fix other components
 @uses_loaders(DHSIndexLoader)
 class DHSIndexComponent(SegmentPlotComponent):
     """Plot DHS index segments within the interval.

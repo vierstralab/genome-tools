@@ -13,7 +13,7 @@ from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLo
 
 from genome_tools.plotting.sequence import seq_plot
 
-
+# TODO fix other components
 @uses_loaders(FastaLoader, OHESequenceLoader)
 class SequencePlotComponent(IntervalPlotComponent):
     """Render DNA sequence (one-hot encoded) for the interval.
