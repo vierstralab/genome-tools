@@ -232,7 +232,7 @@ TrackComponent(
 ```
 ![TrackComponent](example_images/TrackComponent.png)
 
-## Sequence Components
+## Sequence Components. API might be not up to date
 
 ### **SequencePlotComponent**
 Plots DNA sequence as colored nucleotides.
