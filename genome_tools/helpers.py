@@ -42,7 +42,7 @@ def read_starch(filename, columns=None):
     return bed_data
 
 
-def df_to_tabix(df: pd.DataFrame, tabix_path):
+def df_to_tabix(df: pd.DataFrame, tabix_path, **kwargs):
     """
     Convert a DataFrame to a tabix-indexed file.
     Renames 'chrom' column to '#chr' if exists.
@@ -50,12 +50,13 @@ def df_to_tabix(df: pd.DataFrame, tabix_path):
     Parameters:
         - df: DataFrame to convert to bed format. First columns are expected to be bed-like (chr start end).
         - tabix_path: Path to the tabix-indexed file.
+        - **kwargs: Additional keyword arguments to pass to pandas.DataFrame.to_csv
 
     Returns:
         - None
     """
     with pysam.BGZFile(tabix_path, 'w') as bgzip_out:
         with TextIOWrapper(bgzip_out, encoding='utf-8') as text_out:
-            df.rename(columns={'chrom': '#chr'}).to_csv(text_out, sep='\t', index=False)
+            df.rename(columns={'chrom': '#chr'}).to_csv(text_out, sep='\t', index=False, **kwargs)
 
     pysam.tabix_index(tabix_path, preset='bed', force=True)
