@@ -24,28 +24,34 @@ from genome_tools.plotting.modular_plot.plot_components.basic import (
 from genome_tools.plotting.ideogram import read_ideogram
 
 # Define the genomic interval to visualize
-interval = GenomicInterval('chr1', 1_000_000, 1_400_000)
+interval = GenomicInterval('chr1', 1_350_000, 1_400_000)
+
+signal_file = '/net/seq/data2/projects/ENCODE4Plus/REGULOME/per_sample//AG80080/AG80080.normalized_density.bw'
+gencode_file = '/home/sabramov/projects/ENCODE4/gencode/gencode.v42.basic.annotation.gtf.gz'
+ideogram_file = '/home/sabramov/projects/extraData/cytoBandIdeo.txt'
 
 # Define plot components with their heights and margins
 plot_components = [
-    IdeogramComponent(height=0.1, margins=(0.1, 0.1)),
-    GencodeComponent(height=0.2, margins=(0.1, 0.1)),
-    TrackComponent(height=1.5, margins=(0.1, 0.1)),
+    IdeogramComponent(height=0.1, margins=0),
+    GencodeComponent(height=0.2, margins=0),
+    TrackComponent(height=0.5, margins=(0.1, 0.1)),
 ]
 
 # Create the plotter
-plotter = IntervalPlotter(plot_components, width=12)
+plotter = IntervalPlotter(
+    plot_components,
+    signal_file=signal_file,  # Required by TrackComponent
+    gencode_annotation_file=gencode_file,  # Required by GencodeComponent
+    ideogram_data=read_ideogram(ideogram_file),  # Required by IdeogramComponent (pre-loaded object)
+)
 
 # Plot in one step (load data + plot)
 data, axes = plotter.plot(
     interval,
-    loader_kwargs=dict(
-        signal_file='path/to/signal.bw',  # Required by TrackComponent
-        gencode_annotation_file='path/to/gencode.gtf',  # Required by GencodeComponent
-        ideogram_data=read_ideogram('path/to/ideogram.txt'),  # Required by IdeogramComponent (pre-loaded object)
-    )
+    fig_width=3
 )
 ```
+![PlotExample1](example_images/PlotExample1.png)
 
 ## Two-step workflow (load then plot)
 
@@ -55,14 +61,12 @@ For more control, separate data loading from plotting:
 # Step 1: Load data
 data = plotter.get_interval_data(
     interval,
-    signal_file='path/to/signal.bw',
-    gencode_annotation_file='path/to/gencode.gtf',
-    ideogram_data=read_ideogram('path/to/ideogram.txt'),
 )
 
 # Step 2: Plot the data
-axes = plotter.plot_interval(data, fig_width=12, height_scale=1.0)
+axes = plotter.plot_interval(data, fig_width=3)
 ```
+![PlotExample1](example_images/PlotExample1.png)
 
 This is useful when you want to either cache data for interactive exploration
 or debug data loading separately from plotting
@@ -74,26 +78,29 @@ Components can visualize different genomic intervals using `interval_key`:
 ```python
 # Components with different interval keys
 plot_components = [
-    IdeogramComponent(height=0.1, interval_key='gene'),
-    GencodeComponent(height=0.2, interval_key='gene'),
-    TrackComponent(height=1.5, interval_key='dhs'),
+    IdeogramComponent(height=0.1, interval_key='gene', margins=0),
+    GencodeComponent(height=0.2, interval_key='gene', margins=0),
+    TrackComponent(height=0.3, interval_key='zoomed'),
 ]
 
-plotter = IntervalPlotter(plot_components)
+plotter = IntervalPlotter(
+    plot_components,
+    signal_file=signal_file,
+    gencode_annotation_file=gencode_file,
+    ideogram_data=read_ideogram(ideogram_file),
+)
 
 # Provide a dict of intervals
 intervals = {
-    'gene': GenomicInterval('chr1', 1_000_000, 1_400_000),
-    'dhs': GenomicInterval('chr1', 1_150_000, 1_200_000),  # Zoomed in
+    'gene': GenomicInterval('chr1', 1_350_000, 1_400_000),
+    'zoomed': GenomicInterval('chr1', 1_385_000, 1_395_000),  # Zoomed in
 }
 
 data, axes = plotter.plot(
     intervals,
-    signal_file='path/to/signal.bw',
-    gencode_annotation_file='path/to/gencode.gtf',
-    ideogram_data=read_ideogram('path/to/ideogram.txt'),
 )
 ```
+![PlotExample2](example_images/PlotExample2.png)
 
 ## Adding connectors
 
@@ -101,13 +108,13 @@ Connect components with lines or shaded areas to highlight specific regions:
 
 ```python
 # Plot the interval
-data, axes = plotter.plot(interval, **loader_kwargs)
+data, axes = plotter.plot(intervals)
+highlight_interval = intervals['zoomed'].zoom(2)
 
 # Add an area connector highlighting a regulatory region
 plotter.plot_connector(
     axes,
-    interval=GenomicInterval('chr1', 1_180_000, 1_190_000),
-    start_component='GencodeComponent',
+    interval=highlight_interval,
     end_component='TrackComponent',
     type='area',
     alpha=0.2,
@@ -115,17 +122,28 @@ plotter.plot_connector(
     extend_to_bottom=True,
 )
 
+plotter.plot_connector(
+    axes,
+    interval=highlight_interval,
+    end_component='TrackComponent',
+    type='line',
+    ls='--',
+    linewidth=0.5,
+    c='grey',
+    extend_to_bottom=True,
+)
+
 # Add line connectors at specific positions
 plotter.plot_connector(
     axes,
-    positions=[1_185_000, 1_195_000, 1_205_000],
-    start_component='GencodeComponent',
-    end_component='TrackComponent',
+    positions=[1_388_000, 1_389_000],
+    extend_to_bottom=True,
+    extend_to_top=False,
     type='line',
-    color='blue',
-    linewidth=1,
+    c='red'
 )
 ```
+![PlotExample3](example_images/PlotExample3.png)
 
 **Connector types:**
 - `'area'` - Shaded region between two x-coordinates (requires `interval` or `positions=[start, end]`)
