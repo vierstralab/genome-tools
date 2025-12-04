@@ -6,11 +6,23 @@ from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loade
 
 from genome_tools.plotting.modular_plot.loaders.dhs import ComponentTracksLoader, DHSIndexLoader, DHSLoadingsLoader
 
-from .basic import SegmentPlotComponent
+from .abstract import SegmentPlotComponent
 
 
 @uses_loaders(DHSIndexLoader)
 class DHSIndexComponent(SegmentPlotComponent):
+    """Plot DHS index segments within the interval.
+
+    Loaders: ``DHSIndexLoader`` (inherits ``SegmentsLoader``)
+
+    Required loader args:
+    - ``dhs_index``: DataFrame of DHS rows overlapping the interval
+      (extra columns may be attached as rectprops)
+
+    Plot kwargs: forwarded to ``segment_plot``.
+
+    Returns: ``matplotlib.axes.Axes``
+    """
     __intervals_attr__ = DHSIndexLoader.__intervals_attr__
 
     def _plot(self, data, ax, **kwargs):
@@ -21,6 +33,21 @@ class DHSIndexComponent(SegmentPlotComponent):
 
 @uses_loaders(ComponentTracksLoader)
 class NMFTracksComponent(IntervalPlotComponent):
+    """Stacked DNase density tracks for NMF components.
+
+    Loaders: ``ComponentTracksLoader``
+
+    Required loader args:
+    - ``cutcounts_files``: dict[int, list[str]] mapping component index -> bigWig files
+    - ``nmf_components``: list of component indices to plot
+    - optional ``smooth``, ``step``, ``bandwidth`` for aggregation
+
+    Plot kwargs:
+    - ``component_data``: DataFrame with columns ``index``, ``color``, ``name``
+    - ``common_lim``: share y-limits across tracks
+
+    Returns: tuple (top axes, list of density axes)
+    """
     @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax, component_data, **kwargs):
         density_axes = self.plot_component_tracks(data.interval, data.nmf_components,
@@ -36,6 +63,19 @@ class NMFTracksComponent(IntervalPlotComponent):
     @staticmethod
     def plot_component_tracks(interval, components, component_tracks, component_data,
                               gridspec_ax, common_lim=False, **kwargs):
+        """Helper to render per-component density subplots.
+
+        Parameters:
+        - interval: GenomicInterval
+        - components: list[int]
+        - component_tracks: list[np.ndarray] densities per component
+        - component_data: pd.DataFrame with color/name per component
+        - gridspec_ax: parent Axes to host subplots
+        - common_lim: bool to unify y-limits
+        - **kwargs: forwarded to ``signal_plot``
+
+        Returns: list[matplotlib.axes.Axes]
+        """
         assert len(components) == len(component_tracks)
         gss = gridspec.GridSpecFromSubplotSpec(len(components), 1, subplot_spec=gridspec_ax, hspace=0.05)
         axes = []
@@ -62,6 +102,20 @@ class NMFTracksComponent(IntervalPlotComponent):
 
 @uses_loaders(DHSIndexLoader, DHSLoadingsLoader)
 class DHSLoadingsComponent(IntervalPlotComponent):
+    """Per-DHS NMF loadings barplots centered at DHS summits.
+
+    Loaders: ``DHSIndexLoader``, ``DHSLoadingsLoader``
+
+    Required loader args:
+    - ``dhs_index``: DataFrame of DHS rows
+    - ``H``: NMF loadings matrix (components x DHS)
+
+    Plot kwargs:
+    - ``component_data``: DataFrame describing components (color/name)
+    - ``bp_width``: width around each summit to display
+
+    Returns: tuple (top axes, list of per-DHS axes)
+    """
 
     @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax, component_data, bp_width=50, **kwargs):

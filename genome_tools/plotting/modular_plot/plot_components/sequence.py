@@ -16,6 +16,17 @@ from genome_tools.plotting.sequence import seq_plot
 
 @uses_loaders(FastaLoader, OHESequenceLoader)
 class SequencePlotComponent(IntervalPlotComponent):
+    """Render DNA sequence (one-hot encoded) for the interval.
+
+    Loaders: ``FastaLoader``, ``OHESequenceLoader``
+
+    Required loader args:
+    - ``fasta_file``: path to the genome FASTA
+
+    Plot kwargs: forwarded to ``seq_plot`` (e.g., color mapping).
+
+    Returns: ``matplotlib.axes.Axes``
+    """
 
     def _plot(self, data, ax, **kwargs):
         ax.axis('off')
@@ -25,6 +36,26 @@ class SequencePlotComponent(IntervalPlotComponent):
 
 @uses_loaders(AnnotationRegionsLoader, MotifHitsLoader, MotifHitsSelectorLoader)
 class MotifHitsComponent(IntervalPlotComponent):
+    """Plot motif logos at selected hits within annotation regions.
+
+    Loaders: ``AnnotationRegionsLoader``, ``MotifHitsLoader``, ``MotifHitsSelectorLoader``
+
+    Required loader args:
+    - ``annotation_regions``: list[GenomicInterval]
+    - ``motif_annotations_path``: tabix-indexed motif hits file
+    - ``motif_meta``: DataFrame indexed by motif_id with metadata
+
+    Selector loader args (examples):
+    - ``choose_by``: one of {'dg','weighted_dg','ddg','concordant_ddg'}
+    - ``n_top_hits``: int
+    - ``motif_hits_threshold``: float | None
+
+    Plot kwargs:
+    - ``pack``: bool to pack overlapping rows
+    - ``pad``: int padding between packed rows
+
+    Returns: tuple (top axes, list of per-hit axes)
+    """
 
     @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax, pack=False, pad=1):

@@ -1,4 +1,3 @@
-from genome_tools.plotting import segment_plot
 from genome_tools.plotting.utils import clear_spines
 from genome_tools.plotting import signal_plot, segment_plot
 from genome_tools.plotting.gene_annotation import gene_annotation_plot
@@ -11,21 +10,22 @@ from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loade
 from genome_tools.plotting.modular_plot.loaders.basic import IdeogramLoader, GencodeLoader, SignalLoader
 
 
-class SegmentPlotComponent(IntervalPlotComponent):
-    __intervals_attr__ = 'intervals'
-
-    @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, **kwargs):
-        segment_plot(data.interval, getattr(data, self.__intervals_attr__), ax=ax, **kwargs)
-        ax.set_xticks([])
-        ax.set_yticks([])
-        clear_spines(ax)
-        return ax
-    
-
 @uses_loaders(SignalLoader)
 class TrackComponent(IntervalPlotComponent):
+    """Plot a continuous signal track over an interval.
 
+    Loaders: ``SignalLoader``
+
+    Required loader args (via ``SignalLoader``):
+    - ``signal_file``: path to a bigWig file
+
+    Plot kwargs (examples):
+    - ``color``: line/fill color
+    - ``lw``: line width
+    - other kwargs passed to ``signal_plot``
+
+    Returns: ``matplotlib.axes.Axes``
+    """
     @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax, **kwargs):
         ax.set_xlim(data.interval.start, data.interval.end)
@@ -35,6 +35,17 @@ class TrackComponent(IntervalPlotComponent):
 
 @uses_loaders(IdeogramLoader)
 class IdeogramComponent(IntervalPlotComponent):
+    """Render a chromosome ideogram at the interval position.
+
+    Loaders: ``IdeogramLoader``
+
+    Required loader args:
+    - ``ideogram_data``: pre-loaded ideogram data (see ``read_ideogram``)
+
+    Plot kwargs: forwarded to ``ideogram_plot`` (e.g., ``band_colors``).
+
+    Returns: ``matplotlib.axes.Axes``
+    """
     
     def _plot(self, data, ax, **kwargs):
         ideogram_plot(data.ideogram_data, data.interval.chrom, pos=data.interval.start, ax=ax, **kwargs)
@@ -43,6 +54,19 @@ class IdeogramComponent(IntervalPlotComponent):
 
 @uses_loaders(GencodeLoader)
 class GencodeComponent(IntervalPlotComponent):
+    """Plot GENCODE gene annotations overlapping the interval.
+
+    Loaders: ``GencodeLoader``
+
+    Required loader args:
+    - ``gencode_annotation_file``: path to a GENCODE GTF
+
+    Plot kwargs:
+    - ``gene_symbol_exclude_regex``: regex to exclude labels (default provided)
+    - additional kwargs are passed to ``gene_annotation_plot``
+
+    Returns: ``matplotlib.axes.Axes``
+    """
 
     @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax, gene_symbol_exclude_regex=r'^ENSG|^MIR|^LINC|.*-AS.*', **kwargs):

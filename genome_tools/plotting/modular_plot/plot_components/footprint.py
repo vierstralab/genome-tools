@@ -23,7 +23,7 @@ from genome_tools.plotting.modular_plot.loaders.variant import VariantGenotypeLo
 
 from genome_tools.plotting.modular_plot.plot_components.sequence import FastaLoader, MotifHitsComponent, SequencePlotComponent
 
-from .basic import SegmentPlotComponent
+from .abstract import SegmentPlotComponent
 
 
 @uses_loaders(FootprintsIndexLoader)
