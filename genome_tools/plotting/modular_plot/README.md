@@ -149,25 +149,6 @@ data, axes = plotter.plot(
 
 ## Basic Components
 
-### **TrackComponent**
-Plots signal track from bigWig files.
-
-**Loaders:** `SignalLoader`
-
-**Required arguments:**
-- `signal_file` (str): Path to bigwig file
-
-**Example:**
-```python
-TrackComponent(
-    height=1.5,
-    margins=(0.1, 0.1),
-    signal_file='accessibility.bw',
-    color='blue',
-    lw=1,
-)
-```
-
 ### **IdeogramComponent**
 Displays chromosome ideogram with cytobands.
 
@@ -179,13 +160,15 @@ Displays chromosome ideogram with cytobands.
 **Example:**
 ```python
 from genome_tools.plotting.modular_plot.plot_components.basic import IdeogramComponent
+ideogram_file = '/home/sabramov/projects/extraData/cytoBandIdeo.txt'
 IdeogramComponent(
     height=0.1,
     margins=(0.1, 0.0),
-    ideogram_data=read_ideogram('cytoBand.txt'),
+    ideogram_data=read_ideogram(ideogram_file),
 )
 ```
 
+![IdeogramComponent](example_images/IdeogramComponent.png)
 ### **GencodeComponent**
 Plots gene annotations from GENCODE GTF files.
 
@@ -200,13 +183,36 @@ Plots gene annotations from GENCODE GTF files.
 **Example:**
 ```python
 from genome_tools.plotting.modular_plot.plot_components.basic import GencodeComponent
+
+gencode_file = '/home/sabramov/projects/ENCODE4/gencode/gencode.v42.basic.annotation.gtf.gz'
 GencodeComponent(
     height=0.3,
     margins=(0.05, 0.05),
-    gencode_annotation_file='gencode.v43.annotation.gtf',
+    gencode_annotation_file=gencode_file,
     gene_symbol_exclude_regex=r'^ENSG',  # Exclude Ensembl IDs
 )
 ```
+![GencodeComponent](example_images/GencodeComponent.png)
+
+### **TrackComponent**
+Plots signal track from bigWig files.
+
+**Loaders:** `SignalLoader`
+
+**Required arguments:**
+- `signal_file` (str): Path to bigwig file
+
+**Example:**
+```python
+from genome_tools.plotting.modular_plot.plot_components.basic import TrackComponent
+signal_file = '/net/seq/data2/projects/ENCODE4Plus/REGULOME/per_sample//AG80080/AG80080.normalized_density.bw'
+TrackComponent(
+    height=1.5,
+    margins=(0.1, 0.1),
+    signal_file=signal_file,
+)
+```
+![TrackComponent](example_images/TrackComponent.png)
 
 ## Sequence Components
 
