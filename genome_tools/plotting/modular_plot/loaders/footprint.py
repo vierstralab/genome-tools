@@ -213,7 +213,7 @@ class DifferentialFootprintLoader(PlotDataLoader):
         exp: pd.DataFrame = data.exp
         disp_models: pd.Series = data.disp_models
 
-        assert np.all(groups_data.unique().isin(["group1", "group2"]))
+        assert np.all(groups_data.isin(["group1", "group2"]))
         assert groups_data.nunique() == 2, "Exactly two groups are required to do differential footprinting"
 
         groups_data = groups_data.sort_values()
