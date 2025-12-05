@@ -14,6 +14,7 @@ from genome_tools.plotting.modular_plot.utils import DataBundle
 class VariantIntervalLoader(PlotDataLoader):
     required_loader_kwargs = ['variant_interval']
 
+
 class VariantGenotypeLoader(PlotDataLoader):
     
     def _load(self, data: DataBundle, genotypes_vcf_path, samples_metadata: pd.DataFrame):

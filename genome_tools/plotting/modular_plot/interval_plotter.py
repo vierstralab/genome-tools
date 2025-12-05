@@ -556,6 +556,9 @@ class IntervalPlotter(VerticalConnectorMixin):
         if loaders_kwargs is None:
             loaders_kwargs = {}
         
+        if isinstance(interval, DataBundle):
+            raise ValueError("Expected interval to be a GenomicInterval or dict of GenomicIntervals, got DataBundle. Use plot_interval method instead.")
+        
         data = self.get_interval_data(interval, n_cpus=n_cpus, **loaders_kwargs)
         component_axes = self.plot_interval(
             data,

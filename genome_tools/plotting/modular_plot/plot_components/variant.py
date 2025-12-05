@@ -20,7 +20,8 @@ from genome_tools.plotting.modular_plot.loaders.variant import (
     ReadsLoader,
     AllelicReadsLoader,
     VariantGenotypeLoader,
-    VariantIntervalLoader
+    VariantIntervalLoader,
+    GroupsByGenotypeLoader
 )
 from genome_tools.plotting.modular_plot.loaders.footprint import GroupsDataLoader
 
@@ -155,10 +156,10 @@ class CutcountsComponent(IntervalPlotComponent):
         return ax, axes
 
 
-AllelicCutcountsComponent = CutcountsComponent.with_loaders(VariantIntervalLoader, VariantGenotypeLoader, AllelicReadsLoader, new_class_name="AllelicCutcountsComponent")
+AllelicCutcountsComponent = CutcountsComponent.with_loaders(VariantIntervalLoader, VariantGenotypeLoader, GroupsByGenotypeLoader, AllelicReadsLoader, new_class_name="AllelicCutcountsComponent")
 
 
-@uses_loaders(VariantIntervalLoader, VariantGenotypeLoader, AllelicReadsLoader)
+@uses_loaders(VariantIntervalLoader, VariantGenotypeLoader, GroupsByGenotypeLoader, AllelicReadsLoader)
 class AllelicReadsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
