@@ -23,8 +23,9 @@ class PlotDataLoader(LoggerMixin):
     required_loader_kwargs = []
     uses_custom_load = True
 
-    def __init__(self, logger_level=None):
+    def __init__(self, logger_level=None, plot_component_name=None):
         super().__init__(logger_level=logger_level)
+        self.plot_component_name = plot_component_name
     
     def __repr__(self):
         if self.uses_custom_load:
@@ -113,7 +114,7 @@ class PlotDataLoader(LoggerMixin):
             if isinstance(loader_kwargs[arg], RequiredArgument)
         ]
         if missing_args:
-            raise ValueError(f"Loader {self.__class__.__name__} is missing required argument(s): {', '.join(missing_args)}")
+            raise ValueError(f"PlotComponent {self.plot_component_name}: Loader {self.__class__.__name__} is missing required argument(s): {', '.join(missing_args)}")
 
 
 class PlotComponent(LoggerMixin):
@@ -226,7 +227,8 @@ class PlotComponent(LoggerMixin):
             }
 
             loader = LoaderClass(
-                logger_level=self.logger.level
+                logger_level=self.logger.level,
+                plot_component_name=self.name,
             )
             data = loader.load(data, **kwargs_for_loader)
             data.processed_loaders.append(LoaderClass)
