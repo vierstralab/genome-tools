@@ -8,7 +8,7 @@ class LoggerMixin:
         if not self.logger.hasHandlers():
             self.logger.setLevel(logger_level)
 
-
+# TODO: add __repr_markdown__()/__repr_html__() methods for better display in notebooks
 class DataBundle(LoggerMixin):
     """
     A container for holding all data needed by plot components.
@@ -43,6 +43,10 @@ class DataBundle(LoggerMixin):
             for attr in self._initialized_attributes 
             if attr not in ('logger', 'processed_loaders', 'interval')
         }
+
+    def __str__(self):
+        keys = ', '.join(self._get_display_attributes().keys())
+        return f"DataBundle({keys})"
 
     def __repr__(self):
         return f"DataBundle({self._get_display_attributes()})"

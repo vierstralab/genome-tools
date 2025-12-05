@@ -48,8 +48,6 @@ class VariantGenotypeLoader(PlotDataLoader):
 
 class GroupsByGenotypeLoader(PlotDataLoader):
     def _load(self, data: DataBundle, groups=["AA", "BB"]):
-        # Add additional filtering for sample_ids
-        ### Refactor to work with arbitrary groups
         variant_interval: VariantInterval = data.variant_interval
         interval: GenomicInterval = data.interval
         variant_genotypes: pd.DataFrame = data.variant_genotypes # sample_id, variant pairs
