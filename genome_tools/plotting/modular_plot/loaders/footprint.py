@@ -285,7 +285,8 @@ class DifferentialFootprintLoader(PlotDataLoader):
 
          # include 1 in stouffer's aggregation
         lrt_pvalue = np.clip(lrt_pvalue, None, 1.0 - 1e-6)
-        data.neglog10_pval = -np.log10(stouffers_z(lrt_pvalue, 3))
+        data.neglog10_pval = -np.log10(lrt_pvalue)
+        data.neglog10_pval_windowed = -np.log10(stouffers_z(lrt_pvalue, 3))
         data.lfc = mub - mua
         return data
 
