@@ -272,14 +272,15 @@ class DifferentialFootprintLoader(PlotDataLoader):
         pab = pr_ab[:, :, np.newaxis] + nb[:, :, :]
 
         x = np.linspace(*step_args)
-        mua = x[np.argmax(pa, axis=0)]
-        mub = x[np.argmax(pb, axis=0)]
 
         # likelihood
         La = np.sum(logsumexp(pa, axis=0), axis=1)
         Lb = np.sum(logsumexp(pb, axis=0), axis=1)
         Lab = np.sum(logsumexp(pab, axis=0), axis=1)
         llr = La + Lb - Lab
+
+        mua = x[np.argmax(La, axis=0)]
+        mub = x[np.argmax(Lb, axis=0)]
 
         lrt_pvalue = st.chi2.sf(2 * llr, df=3)
 
