@@ -1,4 +1,3 @@
-import numpy as np
 from typing import List
 from genome_tools import GenomicInterval
 
@@ -7,11 +6,15 @@ from genome_tools.plotting.utils import add_axes_at_intervals, pack_rows
 from genome_tools.plotting.sequence import plot_motif_logo, seq_plot
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
-from genome_tools.plotting.modular_plot.loaders.sequence import MotifHitsLoader, MotifHitsSelectorLoader
-from genome_tools.plotting.modular_plot.loaders.sequence import FastaLoader, OHESequenceLoader
+from genome_tools.plotting.modular_plot.loaders.sequence import (
+    MotifHitsLoader,
+    MotifHitsSelectorLoader,
+    FastaLoader,
+    OHESequenceLoader
+)
 from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLoader
+from genome_tools.plotting.modular_plot.loaders.variant import VariantIntervalLoader
 
-from genome_tools.plotting.sequence import seq_plot
 
 # TODO fix other components
 @uses_loaders(FastaLoader, OHESequenceLoader)
@@ -77,3 +80,10 @@ class MotifHitsComponent(IntervalPlotComponent):
             plot_motif_logo(interval.pfm_matrix, rc=interval.orient == '-', font='IBM Plex Mono', ax=ax)
             ax.set_xlabel(interval.tf_name, labelpad=0.5)
         return axes
+
+
+VariantDdgMotifHitsComponent = MotifHitsComponent.with_loaders(
+    VariantIntervalLoader,
+    *MotifHitsComponent.__required_loaders__,
+    new_class_name="VariantDdgMotifHitsComponent",
+)
