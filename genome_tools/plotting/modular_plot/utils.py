@@ -52,7 +52,7 @@ class DataBundle(LoggerMixin):
         return f"DataBundle({keys})"
 
     def __repr__(self):
-        MAX_REPR_LEN = 2000
+        MAX_REPR_LEN = 500
         repr_str = f"DataBundle({self._get_display_attributes()})"
         if len(repr_str) > MAX_REPR_LEN:
             return str(self)
