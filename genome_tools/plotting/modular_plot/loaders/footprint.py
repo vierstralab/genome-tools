@@ -265,15 +265,15 @@ class DifferentialFootprintLoader(PlotDataLoader):
             nu_0, sig2_0, 
             *step_args
         )
-
-        x = np.linspace(*step_args)
-        mua = x[np.argmax(pr_a, axis=0)]
-        mub = x[np.argmax(pr_b, axis=0)]
         
         # psuedo-integration over 'depletion' scores
         pa = pr_a[:, :, np.newaxis] + nb[:, :, :L_a]
         pb = pr_b[:, :, np.newaxis] + nb[:, :, L_a:]
         pab = pr_ab[:, :, np.newaxis] + nb[:, :, :]
+
+        x = np.linspace(*step_args)
+        mua = x[np.argmax(pa, axis=0)]
+        mub = x[np.argmax(pb, axis=0)]
 
         # likelihood
         La = np.sum(logsumexp(pa, axis=0), axis=1)

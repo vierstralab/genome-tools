@@ -82,7 +82,6 @@ class PosteriorHeatmapComponent(IntervalPlotComponent):
             
             row += 1
         ax.axis("off")
-        ax.set_xlim(data.interval.start, data.interval.end)
 
         return ax
 
