@@ -118,7 +118,7 @@ NonAggregatedCAVComponent = CAVComponent.with_loaders(PerSampleCAVLoader, new_cl
 class CutcountsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax: plt.Axes, vocab='dna'):
+    def _plot(self, data, ax: plt.Axes, vocab='dna', **kwargs):
 
         tracks = data.cutcount_tracks
 
@@ -148,7 +148,8 @@ class CutcountsComponent(IntervalPlotComponent):
                 cuts,
                 width=1,
                 color=get_vocab_color(allele, vocab),
-                label=f"{allele}: {cuts.sum()} ({round(cuts.sum() / tot_reads * 100, 2)}%)"
+                label=f"{allele}: {cuts.sum()} ({round(cuts.sum() / tot_reads * 100, 2)}%)",
+                **kwargs
             )
             ax_bar.xaxis.set_visible(False)
             format_axes_to_interval(ax_bar, data.interval, axis='x')
