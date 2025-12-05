@@ -99,9 +99,10 @@ def map_vocab_color(x, vocab, default="black"):
 def get_vocab_color(x, vocab, default="black"):
     """Get a controlled vocabulary color for a value"""
 
-    if vocab not in VOCAB_COLOR_MAPS:
-        raise ValueError(f"Vocabulary `{vocab}` is not defined!")
-    color = mcolors.to_rgb(VOCAB_COLOR_MAPS[vocab].get(x, default))
+    if vocab in VOCAB_COLOR_MAPS:
+        vocab = VOCAB_COLOR_MAPS[vocab]
+        
+    color = mcolors.to_rgb(vocab.get(x, default))
     return color
 
 

@@ -13,7 +13,14 @@ from genome_tools.plotting.sequence import plot_letter
 from genome_tools.plotting.utils import format_axes_to_interval, pack_rows, add_axes_at_intervals
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
-from genome_tools.plotting.modular_plot.loaders.variant import FinemapLoader, AggregatedCAVLoader, PerSampleCAVLoader, AllelicReadsLoaderFPTools, VariantGenotypeLoader
+from genome_tools.plotting.modular_plot.loaders.variant import (
+    FinemapLoader,
+    AggregatedCAVLoader,
+    PerSampleCAVLoader,
+    AllelicReadsLoaderFPTools,
+    VariantGenotypeLoader,
+    VariantIntervalLoader
+)
 
 
 # TODO fix other components
@@ -105,56 +112,48 @@ class CAVComponent(LolipopVariantsComponent):
 NonAggregatedCAVComponent = CAVComponent.with_loaders(PerSampleCAVLoader, new_class_name="NonAggregatedCAVComponent")
 
 
-@uses_loaders(VariantGenotypeLoader, AllelicReadsLoaderFPTools)
+@uses_loaders(VariantIntervalLoader, VariantGenotypeLoader, AllelicReadsLoaderFPTools)
 class AllelicCutcountsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax: plt.Axes, **kwargs):
+    def _plot(self, data, ax: plt.Axes, vocab='dna'):
 
         tracks = data.cutcount_tracks
 
         # Total reads for labeling
         tot_reads = sum(t["cutcounts"].sum() for t in tracks)
-        # Shared x-axis
-        if len(tracks) == 2:
-            t0, t1 = tracks[0]["cutcounts"], tracks[1]["cutcounts"]
-            if t0.sum() > t1.sum():
-                ylim0 = np.quantile(t0, 0.75)
-                ylim1 = ylim0 / 3
-            else:
-                ylim1 = np.quantile(t1, 0.75)
-                ylim0 = ylim1 / 3
-            ylims = [ylim0, ylim1]
-        else:
-            ylims = [None]
 
         # Plotting
-        gs = gridspec.GridSpecFromSubplotSpec(len(tracks), 1, subplot_spec=ax.get_subplotspec(), hspace=0.25)
+        gs = gridspec.GridSpecFromSubplotSpec(
+            len(tracks),
+            1,
+            subplot_spec=ax.get_subplotspec(), 
+            hspace=0.25
+        )
         ax.axis("off")
         fig = ax.get_figure()
 
         axes = []
         x = np.arange(data.interval.start, data.interval.end) + 0.5
 
-        for i, (track, ylim) in enumerate(zip(tracks, ylims)):
-            cuts = track["cutcounts"]
-            allele = track["allele"]
+        for i, track in enumerate(tracks):
+            cuts: np.ndarray = track["cutcounts"]
+            allele: str = track["allele"]
 
             ax_bar = fig.add_subplot(gs[i, :])
             ax_bar.bar(
                 x,
                 cuts,
                 width=1,
-                color=get_vocab_color(allele, 'dna'),
+                color=get_vocab_color(allele, vocab),
                 label=f"{allele}: {cuts.sum()} ({round(cuts.sum() / tot_reads * 100, 2)}%)"
             )
-            ax_bar.set_ylim(0, ylim)
             ax_bar.xaxis.set_visible(False)
             format_axes_to_interval(ax_bar, data.interval, axis='x')
             axes.append(ax_bar)
         return ax, axes
 
-@uses_loaders(VariantGenotypeLoader, AllelicReadsLoaderFPTools)
+@uses_loaders(VariantIntervalLoader, VariantGenotypeLoader, AllelicReadsLoaderFPTools)
 class AllelicReadsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval

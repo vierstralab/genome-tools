@@ -6,11 +6,13 @@ from typing import List
 from genome_tools import filter_df_to_interval, df_to_variant_intervals, VariantInterval, GenomicInterval
 
 from genome_tools.data.extractors import TabixExtractor, VariantGenotypeExtractor
-from genome_tools.data.get_variant_resolved_reads import extract_allelic_reads
 
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
+
+class VariantIntervalLoader(PlotDataLoader):
+    required_loader_kwargs = ['variant_interval']
 
 class VariantGenotypeLoader(PlotDataLoader):
     
@@ -44,25 +46,33 @@ class VariantGenotypeLoader(PlotDataLoader):
 
 
 class GroupsByGenotypeLoader(PlotDataLoader):
-    def _load(self, data: DataBundle, variant_interval: VariantInterval, groups=["AA", "BB"]):
+    def _load(self, data: DataBundle, groups=["AA", "BB"]):
+        # Add additional filtering for sample_ids
         ### Refactor to work with arbitrary groups
-        variant_genotypes: pd.DataFrame = data.variant_genotypes # indiv_id, variant pairs
+        variant_interval: VariantInterval = data.variant_interval
+        interval: GenomicInterval = data.interval
+        variant_genotypes: pd.DataFrame = data.variant_genotypes # sample_id, variant pairs
 
-        # TODO: change filter_df_to_interval to accept VariantInterval
+        assert variant_interval.overlaps(interval), f"variant_interval must overlap data.interval. Got {variant_interval.to_str()} and {interval.to_ucsc()}"
+        # groups
         variant_genotypes = filter_df_to_interval(variant_genotypes, variant_interval)
         if variant_genotypes.empty:
             raise ValueError("No genotypes found for the specified variant interval.")
-        variant_genotypes = variant_genotypes.rename(
-            columns={'parsed_genotype': 'group'}
-        )
-        variant_genotypes = variant_genotypes[
-            variant_genotypes['group'].isin(groups)
-        ].sort_values(
-            by="group"
-        )
 
-        data.groups_data = variant_genotypes['group']
+        variant_genotypes['group'] = variant_genotypes['parsed_genotype'].map(
+            {
+                g: f"group{i}" for i, g in enumerate(groups, 1)
+            }
+        )
+        filtered_genotypes = variant_genotypes.dropna()
+
+        if filtered_genotypes.empty:
+            gts = variant_genotypes['parsed_genotype'].unique().tolist()
+            raise ValueError(f"No samples with GT={groups} in interval. Available genotypes: {gts}")
+
+        data.groups_data = filtered_genotypes
         return data
+
 
 class FinemapLoader(PlotDataLoader):
 
@@ -122,120 +132,7 @@ class PerSampleCAVLoader(PlotDataLoader):
         return data
 
 
-class AllelicReadsLoader(PlotDataLoader):
-
-    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval, sample_ids=None):
-        assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval. Got {variant_interval.to_str()} and {data.interval.to_ucsc()}"
-
-        variant_data: pd.DataFrame = data.variant_genotypes.query('parsed_genotype == "AB"')
-        variant_data = filter_df_to_interval(variant_data, variant_interval)
-        if variant_data.empty:
-            raise ValueError("No heterozygous genotypes found for the specified variant_interval.")
-        assert variant_data.index.is_unique
-
-        if sample_ids is None:
-            sample_ids = variant_data.index.tolist()
-        elif isinstance(sample_ids, (str, int, float)):
-            sample_ids = [sample_ids]
-
-        cram_paths = samples_metadata.loc[sample_ids, 'cram_file']
-
-        reads = {}
-        for sample_id, cram_path in tqdm(zip(sample_ids, cram_paths), total=len(sample_ids), desc="Allelic reads loader"):
-            extracted_reads = extract_allelic_reads(cram_path, variant_interval, data.interval)
-            if not self.check_reads(extracted_reads, variant_interval):
-                continue
-            reads[sample_id] = extracted_reads
-        data.reads = reads
-        return data
-    
-    def check_reads(self, extracted_reads: List[GenomicInterval], variant_interval: VariantInterval):
-        n_ref, n_alt = 0, 0
-        for read in extracted_reads:
-            n_ref += read.base == variant_interval.ref
-            n_alt += read.base == variant_interval.alt
-        if n_ref > 0 and n_alt > 0:
-            return True
-        return False
-
-
-class AllelicReadsLoaderFPTools(PlotDataLoader):
-
-    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval, sample_ids=None, gt="AB"):
-        from footprint_tools.cutcounts import BamFileExtractor
-
-        assert variant_interval.overlaps(data.interval)
-        assert gt in ("AB", "AA", "BB")
-
-        variant_genotypes: pd.DataFrame = data.variant_genotypes
-        # Filter variant data
-        variant_data = (
-            variant_genotypes
-            .query(f'parsed_genotype == "{gt}"')
-            .pipe(filter_df_to_interval, variant_interval)
-        )
-        if variant_data.empty:
-            gts = variant_genotypes['parsed_genotype'].unique().tolist()
-            raise ValueError(f"No samples with GT={gt} in interval. Available genotypes: {gts}")
-
-        # Resolve sample IDs
-        if sample_ids is None:
-            sample_ids = variant_data.index.tolist()
-        elif isinstance(sample_ids, (str, int, float)):
-            sample_ids = [sample_ids]
-
-        # Extract allelic reads
-        reads = {}
-        for sid in sample_ids:
-            cram_path = samples_metadata.loc[sid, "cram_file"]
-            extractor = BamFileExtractor(cram_path, variant_5p_proximity=-1)
-            try:
-                reads[sid] = extractor.lookup_allelic(
-                    chrom=variant_interval.chrom,
-                    start=data.interval.start,
-                    end=data.interval.end,
-                    pos=variant_interval.pos - 1,
-                    ref=variant_interval.ref,
-                    alt=variant_interval.alt,
-                )
-            except ValueError as e:
-                print(e)
-            finally:
-                extractor.close()
-
-        # -----------------------
-        # Convert to cutcounts
-        # -----------------------
-        allele_ref = variant_interval.ref
-        allele_alt = variant_interval.alt
-
-        ref_cuts = self._convert_cutcounts(reads, allele_ref, data.interval)
-        alt_cuts = self._convert_cutcounts(reads, allele_alt, data.interval)
-
-        if gt == "AA":
-            cutcount_tracks = [
-                {"allele": allele_ref, "cutcounts": ref_cuts}
-            ]
-        elif gt == "BB":
-            cutcount_tracks = [
-                {"allele": allele_alt, "cutcounts": alt_cuts}
-            ]
-        else:
-            cutcount_tracks = [
-                {"allele": allele_ref, "cutcounts": ref_cuts},
-                {"allele": allele_alt, "cutcounts": alt_cuts}
-            ]
-
-        flat_reads = (
-            self._convert_read_list(reads, allele_ref)
-            + self._convert_read_list(reads, allele_alt)
-        )
-        data.variant_interval = variant_interval
-        data.cutcount_tracks = cutcount_tracks
-        data.reads = flat_reads
-
-        return data
-
+class ReadsParser:
     @staticmethod
     def _convert_cutcounts(reads_dict, allele, interval):
         cuts = np.zeros(len(interval), dtype=np.float32)
@@ -253,3 +150,141 @@ class AllelicReadsLoaderFPTools(PlotDataLoader):
                 read.base = allele
                 out.append(read)
         return out
+    
+    def get_reads_from_cram(
+        self,
+        cram_path,
+        interval: GenomicInterval,
+        variant_interval: VariantInterval=None,
+    ):
+        from footprint_tools.cutcounts import BamFileExtractor
+        extractor = BamFileExtractor(cram_path, variant_5p_proximity=-1)
+
+        if variant_interval is None:
+            result = {'N': extractor.lookup(interval)} 
+            # {'N': {'+': np.array, '-': np.array, 'fragments': List[GenomicInterval]}}
+        else:
+            result = extractor.lookup_allelic(
+                chrom=variant_interval.chrom,
+                start=interval.start,
+                end=interval.end,
+                pos=variant_interval.pos - 1,
+                ref=variant_interval.ref,
+                alt=variant_interval.alt,
+            ) # {'A': {'+': np.array, '-': np.array, 'fragments': List[GenomicInterval]}, 'B': {...}, 'N': {...}}
+
+        extractor.close()
+        return result
+
+
+class ReadsLoadder(PlotDataLoader, ReadsParser):
+    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame):
+
+        groups_data: pd.Series = data.groups_data
+        
+        reads = {}
+        for sid in groups_data.index:
+            cram_path = samples_metadata.loc[sid, "cram_file"]
+            reads[sid] = self.get_reads_from_cram(
+                cram_path,
+                data.interval,
+            )
+        
+        cuts = self._convert_cutcounts(reads, 'N', data.interval)
+        reads = self._convert_read_list(reads, 'N')
+        data.cutcount_tracks = [{"allele": "N", "cutcounts": cuts}]
+        data.reads = reads
+        return data
+
+
+class AllelicReadsLoader(PlotDataLoader, ReadsParser):
+    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame):
+
+        groups_data: pd.DataFrame = data.groups_data
+
+        assert 'parsed_genotype' in groups_data.columns, "groups_data must contain 'parsed_genotype' column"
+        gt = np.unique(groups_data['parsed_genotype'])
+        assert gt.size == 1, "groups_data must contain only one genotype group"
+        variant_interval: VariantInterval = data.variant_interval
+        gt = gt[0]
+
+        reads = {}
+        for sid in groups_data.index:
+            cram_path = samples_metadata.loc[sid, "cram_file"]
+            reads[sid] = self.get_reads_from_cram(
+                cram_path,
+                data.interval,
+                variant_interval=variant_interval,
+            )
+
+        allele_ref = variant_interval.ref
+        allele_alt = variant_interval.alt
+
+        ref_cuts = self._convert_cutcounts(reads, allele_ref, data.interval)
+        alt_cuts = self._convert_cutcounts(reads, allele_alt, data.interval)
+
+        if gt == "AA":
+            cutcount_tracks = [
+                {"allele": allele_ref, "cutcounts": ref_cuts}
+            ]
+        elif gt == "BB":
+            cutcount_tracks = [
+                {"allele": allele_alt, "cutcounts": alt_cuts}
+            ]
+        elif gt == "AB":
+            cutcount_tracks = [
+                {"allele": allele_ref, "cutcounts": ref_cuts},
+                {"allele": allele_alt, "cutcounts": alt_cuts}
+            ]
+        else:
+            raise ValueError(f"Unknown genotype: {gt}")
+
+        data.reads = (
+            self._convert_read_list(reads, allele_ref)
+            + self._convert_read_list(reads, allele_alt)
+        )
+
+        data.cutcount_tracks = cutcount_tracks
+
+        return data
+
+
+
+
+# DEFUNC
+# from genome_tools.data.get_variant_resolved_reads import extract_allelic_reads
+# class AllelicReadsLoader(PlotDataLoader):
+
+#     def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, variant_interval: VariantInterval, sample_ids=None):
+#         assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval. Got {variant_interval.to_str()} and {data.interval.to_ucsc()}"
+
+#         variant_data: pd.DataFrame = data.variant_genotypes.query('parsed_genotype == "AB"')
+#         variant_data = filter_df_to_interval(variant_data, variant_interval)
+#         if variant_data.empty:
+#             raise ValueError("No heterozygous genotypes found for the specified variant_interval.")
+#         assert variant_data.index.is_unique
+
+#         if sample_ids is None:
+#             sample_ids = variant_data.index.tolist()
+#         elif isinstance(sample_ids, (str, int, float)):
+#             sample_ids = [sample_ids]
+
+#         cram_paths = samples_metadata.loc[sample_ids, 'cram_file']
+
+#         reads = {}
+#         for sample_id, cram_path in tqdm(zip(sample_ids, cram_paths), total=len(sample_ids), desc="Allelic reads loader"):
+#             extracted_reads = extract_allelic_reads(cram_path, variant_interval, data.interval)
+#             if not self.check_reads(extracted_reads, variant_interval):
+#                 continue
+#             reads[sample_id] = extracted_reads
+#         data.reads = reads
+#         return data
+    
+#     def check_reads(self, extracted_reads: List[GenomicInterval], variant_interval: VariantInterval):
+#         n_ref, n_alt = 0, 0
+#         for read in extracted_reads:
+#             n_ref += read.base == variant_interval.ref
+#             n_alt += read.base == variant_interval.alt
+#         if n_ref > 0 and n_alt > 0:
+#             return True
+#         return False

@@ -201,19 +201,27 @@ class FootprintsDataLoader(PlotDataLoader):
         return post
 
 
+class GroupsDataLoader(PlotDataLoader):
+    required_loader_kwargs = ['groups_data']
+
+
 class DifferentialFootprintLoader(PlotDataLoader):
 
     def _load(self, data: DataBundle):
+        groups_data: pd.Series = data.groups_data['group'] # pd.Series of group labels indexed by sample IDs
+        obs: pd.DataFrame = data.obs
+        exp: pd.DataFrame = data.exp
+        disp_models: pd.Series = data.disp_models
 
-        # Store number of samples
-        groups_data: pd.Series = data.groups_data
-        L_a = (groups_data == "AA").sum()
-        assert L_a < len(groups_data), "Both groups must have at least one sample"
+        assert np.all(groups_data.unique().isin(["group1", "group2"]))
+        assert groups_data.nunique() == 2, "Exactly two groups are required to do differential footprinting"
 
-        obs = np.ascontiguousarray(data.obs.loc[groups_data.index, :])
-        exp = np.ascontiguousarray(data.exp.loc[groups_data.index, :])
-        disp_models = data.disp_models.loc[groups_data.index].values
-        
+        groups_data = groups_data.sort_values()
+        L_a = (groups_data == "group1").sum()
+        obs = np.ascontiguousarray(obs.loc[groups_data.index, :])
+        exp = np.ascontiguousarray(exp.loc[groups_data.index, :])
+        disp_models = disp_models.loc[groups_data.index].values
+
         log2_obs_over_exp = np.log2((obs + 1) / (exp + 1)) # sample_id x positions
         
         #filter outliers per groups

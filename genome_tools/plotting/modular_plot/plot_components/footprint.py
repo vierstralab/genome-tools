@@ -18,12 +18,14 @@ from genome_tools.plotting.modular_plot.loaders.footprint import (
     DifferentialFootprintLoader,
     FootprintsDataLoader,
     SequenceWeightsFromProtectedNucleotidesLoader,
+    GroupsDataLoader
 )
-from genome_tools.plotting.modular_plot.loaders.variant import VariantGenotypeLoader, GroupsByGenotypeLoader
+from genome_tools.plotting.modular_plot.loaders.variant import VariantGenotypeLoader, GroupsByGenotypeLoader, VariantIntervalLoader
 
 from genome_tools.plotting.modular_plot.plot_components.sequence import FastaLoader, MotifHitsComponent, SequencePlotComponent
 
 from .abstract import SegmentPlotComponent
+
 
 # TODO fix other components
 @uses_loaders(FootprintsIndexLoader)
@@ -114,11 +116,11 @@ class FootprintTrackComponent(IntervalPlotComponent):
         return np.concatenate([y[:1], np.repeat(y[1:-1], 2), y[-1:]])
 
 
-@uses_loaders(VariantGenotypeLoader, GroupsByGenotypeLoader, FootprintsDataLoader, DifferentialFootprintLoader)
+@uses_loaders(GroupsDataLoader, FootprintsDataLoader, DifferentialFootprintLoader)
 class DifferentialFootprintsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data: DataBundle, ax: plt.Axes, cmap='Spectral', vmin=-5, vmax=5, **kwargs):
+    def _plot(self, data: DataBundle, ax: plt.Axes, cmap='Spectral', vmin=-5, vmax=5):
         """
         main plot function of the component
         always accepts data, ax, **kwargs
@@ -149,6 +151,16 @@ class DifferentialFootprintsComponent(IntervalPlotComponent):
         plt.colorbar(mappable, cax=cbar, orientation='vertical', label='-log10 p-value')
         
         return ax
+
+
+DifferentialFootprintsByGenotypeComponent = DifferentialFootprintsComponent.with_loaders(
+    VariantIntervalLoader,
+    VariantGenotypeLoader,
+    GroupsByGenotypeLoader,
+    FootprintsDataLoader, 
+    DifferentialFootprintLoader,
+    new_class_name='DifferentialFootprintsByGenotypeComponent',
+)
 
 
 FPWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(

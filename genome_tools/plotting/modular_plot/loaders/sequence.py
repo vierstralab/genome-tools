@@ -88,7 +88,7 @@ class MotifHitsLoader(PlotDataLoader):
 
 class MotifHitsSelectorLoader(PlotDataLoader):
 
-    def _load(self, data, choose_by='dg', n_top_hits=1, motif_hits_threshold=None, variant_interval: VariantInterval=None):
+    def _load(self, data, choose_by='dg', n_top_hits=1, motif_hits_threshold=None):
         """
         Select motif hits based on a scoring metric and an optional selection threshold.
 
@@ -108,9 +108,6 @@ class MotifHitsSelectorLoader(PlotDataLoader):
             Filter single best motif per region or filter by a cutoff:
             - None: Select the best motif per region
             - float: Keep all motifs with dg (or ddg) >= threshold
-
-        variant_interval : VariantInterval, optional
-            Required only for 'ddg' and 'concordant_ddg'. Concordance is determined based on the sign of `variant_interval.value`.
 
         Returns
         -------
@@ -138,11 +135,14 @@ class MotifHitsSelectorLoader(PlotDataLoader):
             )
 
         elif choose_by in ('ddg', 'concordant_ddg'):
-            if variant_interval is None:
-                raise ValueError("variant_interval required for ddg scoring")
+            if not hasattr(data, 'variant_interval'):
+                raise ValueError("data.variant_interval is required for ddg scoring. Attach VariantIntervalLoader to use this method.")
+            variant_interval: VariantInterval = data.variant_interval
+
             if not isinstance(variant_interval, VariantInterval):
                 raise ValueError("variant_interval must be an instance of genome_tools.VariantInterval")
             assert variant_interval.overlaps(data.interval), f"variant_interval must overlap data.interval, variant_interval={variant_interval.to_ucsc()} vs {data.interval}"
+
             metric_name = 'abs_ddg'
 
             motif_hits = filter_df_to_interval(motif_hits, variant_interval.gi())
