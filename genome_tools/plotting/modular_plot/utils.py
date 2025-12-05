@@ -37,6 +37,9 @@ class DataBundle(LoggerMixin):
         self._initialized_attributes.add(name)
         super().__setattr__(name, value)
     
+    def __getitem__(self, key):
+        return getattr(self, key)
+    
     def _get_display_attributes(self):
         return {
             attr: getattr(self, attr) 

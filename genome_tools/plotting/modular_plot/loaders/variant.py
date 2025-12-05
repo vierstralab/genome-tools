@@ -63,7 +63,7 @@ class GroupsByGenotypeLoader(PlotDataLoader):
                 g: f"group{i}" for i, g in enumerate(groups, 1)
             }
         )
-        filtered_genotypes = variant_genotypes.dropna()
+        filtered_genotypes = variant_genotypes.dropna(subset=['group'])
 
         if filtered_genotypes.empty:
             gts = variant_genotypes['parsed_genotype'].unique().tolist()
@@ -192,7 +192,7 @@ class ReadsLoader(PlotDataLoader, ReadsParser):
         cuts = self._convert_cutcounts(reads, 'N', data.interval)
         reads = self._convert_read_list(reads, 'N')
         data.cutcount_tracks = [{"allele": "N", "cutcounts": cuts}]
-        data.reads = reads
+        data.reads = np.array(reads)
         return data
 
 
@@ -238,7 +238,7 @@ class AllelicReadsLoader(PlotDataLoader, ReadsParser):
         else:
             raise ValueError(f"Unknown genotype: {gt}")
 
-        data.reads = (
+        data.reads = np.array(
             self._convert_read_list(reads, allele_ref)
             + self._convert_read_list(reads, allele_alt)
         )
