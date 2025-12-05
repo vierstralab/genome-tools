@@ -17,10 +17,12 @@ from genome_tools.plotting.modular_plot.loaders.variant import (
     FinemapLoader,
     AggregatedCAVLoader,
     PerSampleCAVLoader,
-    AllelicReadsLoaderFPTools,
+    ReadsLoader,
+    AllelicReadsLoader,
     VariantGenotypeLoader,
     VariantIntervalLoader
 )
+from genome_tools.plotting.modular_plot.loaders.footprint import GroupsDataLoader
 
 
 # TODO fix other components
@@ -111,9 +113,8 @@ class CAVComponent(LolipopVariantsComponent):
 
 NonAggregatedCAVComponent = CAVComponent.with_loaders(PerSampleCAVLoader, new_class_name="NonAggregatedCAVComponent")
 
-
-@uses_loaders(VariantIntervalLoader, VariantGenotypeLoader, AllelicReadsLoaderFPTools)
-class AllelicCutcountsComponent(IntervalPlotComponent):
+@uses_loaders(GroupsDataLoader, ReadsLoader)
+class CutcountsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax: plt.Axes, vocab='dna'):
@@ -153,7 +154,11 @@ class AllelicCutcountsComponent(IntervalPlotComponent):
             axes.append(ax_bar)
         return ax, axes
 
-@uses_loaders(VariantIntervalLoader, VariantGenotypeLoader, AllelicReadsLoaderFPTools)
+
+AllelicCutcountsComponent = CutcountsComponent.with_loaders(VariantIntervalLoader, VariantGenotypeLoader, AllelicReadsLoader, new_class_name="AllelicCutcountsComponent")
+
+
+@uses_loaders(VariantIntervalLoader, VariantGenotypeLoader, AllelicReadsLoader)
 class AllelicReadsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval

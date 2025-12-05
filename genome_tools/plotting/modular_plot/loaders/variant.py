@@ -177,7 +177,7 @@ class ReadsParser:
         return result
 
 
-class ReadsLoadder(PlotDataLoader, ReadsParser):
+class ReadsLoader(PlotDataLoader, ReadsParser):
     def _load(self, data: DataBundle, samples_metadata: pd.DataFrame):
 
         groups_data: pd.Series = data.groups_data
