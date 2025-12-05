@@ -60,6 +60,7 @@ class AttributionsLoader(PlotDataLoader):
         fasta_file: str,
         genotype_file: str,
     ):
+        # FIXME: avoid reading the whole dataset
         dataset_kwargs: dict = model_config['data_params']
         dataset_kwargs.update(
             dict(

@@ -221,10 +221,11 @@ class AllelicReadsComponent(IntervalPlotComponent):
             letter_ax.add_patch(circ)
             plot_letter(
                 letter=letter_interval.base,
-                x=(1 - letter_x_size) / 2,
+                x=0.0,
                 y=(1 - letter_y_size) / 2,
                 height=letter_y_size,
                 width=letter_x_size,
+                center_scale=True,
                 font=font,
                 ax=letter_ax,
             )

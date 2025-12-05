@@ -237,7 +237,7 @@ def add_multipolygon_to_axis(ax, multipolygon, col, x, y, height, width_scale=1.
         ax.add_patch(polygon_patch)
 
 
-def plot_letter(letter, x, y, height=1.0, width=1.0, vocab='dna', color=None, font=default_font, ax=None):
+def plot_letter(letter, x, y, height=1.0, width=1.0, center_scale=True, vocab='dna', color=None, font=default_font, ax=None):
     if ax is None:
         ax = plt.gca()
     if font == default_font:
@@ -247,7 +247,12 @@ def plot_letter(letter, x, y, height=1.0, width=1.0, vocab='dna', color=None, fo
     multipolygon = letter_polygons[letter]
     if color is None:
         color = VOCAB_COLOR_MAPS[vocab].get(letter, 'black')
-    add_multipolygon_to_axis(ax, multipolygon, color, x, y, height, width_scale=width)
+    add_multipolygon_to_axis(
+        ax,
+        multipolygon, color, x, y, height, 
+        width_scale=width, 
+        center_scale=center_scale
+    )
     return ax
 
 
