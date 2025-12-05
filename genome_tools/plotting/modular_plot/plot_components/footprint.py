@@ -126,7 +126,7 @@ class DifferentialFootprintsComponent(IntervalPlotComponent):
         kwargs override any fields in init
         """
         foldchange = data.lfc
-        neglog_pval = data.neglog10_pval
+        neglog_pval = data.neglog10_pval_windowed
 
         neglog_pval = np.where(foldchange < 0, -neglog_pval, neglog_pval)
         
