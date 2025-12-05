@@ -52,7 +52,11 @@ class DataBundle(LoggerMixin):
         return f"DataBundle({keys})"
 
     def __repr__(self):
-        return f"DataBundle({self._get_display_attributes()})"
+        MAX_REPR_LEN = 2000
+        repr_str = f"DataBundle({self._get_display_attributes()})"
+        if len(repr_str) > MAX_REPR_LEN:
+            return str(self)
+        return repr_str
     
     def __getstate__(self):
         # Copy minimal state needed for multiprocessing
