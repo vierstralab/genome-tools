@@ -512,7 +512,7 @@ class IntervalPlotter(VerticalConnectorMixin):
 
         return component_axes
     
-    def plot(self, interval: GenomicInterval, n_cpus=1, fig_width=None, fig_height=None, height_scale=1.0, loaders_kwargs=None, **plot_kwargs):
+    def plot(self, interval: GenomicInterval, n_cpus=1, fig_width=None, fig_height=None, height_scale=None, loaders_kwargs=None, **plot_kwargs):
         """
         Plot the genomic interval with all the provided vertical plot components.
         Convenience method that combines `get_interval_data` and `plot_interval`.
