@@ -247,7 +247,7 @@ class DifferentialFootprintLoader(PlotDataLoader):
             obs,
             exp,
             *step_args
-        )
+        ) # lfc, sample, position
         
         # Calculate prior
         pr_a = differential.compute_log_prior_t(
@@ -264,7 +264,7 @@ class DifferentialFootprintLoader(PlotDataLoader):
             log2_obs_over_exp, 
             nu_0, sig2_0, 
             *step_args
-        )
+        ) # lfc, position
         
         # psuedo-integration over 'depletion' scores
         pa = pr_a[:, :, np.newaxis] + nb[:, :, :L_a]
@@ -279,8 +279,8 @@ class DifferentialFootprintLoader(PlotDataLoader):
         Lab = np.sum(logsumexp(pab, axis=0), axis=1)
         llr = La + Lb - Lab
 
-        mua = x[np.argmax(La, axis=0)]
-        mub = x[np.argmax(Lb, axis=0)]
+        mua = x[np.argmax(pa.sum(axis=-1), axis=0)]
+        mub = x[np.argmax(pb.sum(axis=-1), axis=0)]
 
         lrt_pvalue = st.chi2.sf(2 * llr, df=3)
 
