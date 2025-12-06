@@ -83,10 +83,7 @@ class PosteriorLoader(PlotDataLoader):
     def sort_by_interval(df: pd.DataFrame, base_interval: GenomicInterval, region: GenomicInterval, group_column: pd.Series, sort_groups=False):
         assert region.overlaps(base_interval), "sort_heatmap by region must overlap base interval"
 
-        region_slice = slice(region.start - base_interval.start, region.end - base_interval.start)
-        print(df.loc[:, region_slice])
-        sample_means = df.loc[:, region_slice].mean(axis=1)
-        print(sample_means)
+        sample_means = df.loc[:, region.start:region.end].mean(axis=1)
         group_mean = sample_means.groupby(group_column).transform("mean")
         sort_by = ['per_sample']
         if sort_groups:
