@@ -85,6 +85,7 @@ class PosteriorLoader(PlotDataLoader):
 
         region_slice = slice(region.start - base_interval.start, region.end - base_interval.start)
         sample_means = df.loc[:, region_slice].mean(axis=1)
+        print(sample_means)
         group_mean = sample_means.groupby(group_column).transform("mean")
         sort_by = ['per_sample']
         if sort_groups:
