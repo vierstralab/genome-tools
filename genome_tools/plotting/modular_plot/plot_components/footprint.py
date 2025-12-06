@@ -46,7 +46,8 @@ class PosteriorHeatmapComponent(IntervalPlotComponent):
         always accepts data, ax, **kwargs
         kwargs override any fields in init
         """
-        grouped_data = pd.DataFrame(data.interval_posterior).groupby(
+        interval_posterior: pd.DataFrame = data.interval_posterior
+        grouped_data = interval_posterior.groupby(
             data.grouping_column,
             observed=True
         )
