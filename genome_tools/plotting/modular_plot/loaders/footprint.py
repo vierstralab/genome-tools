@@ -70,7 +70,6 @@ class PosteriorLoader(PlotDataLoader):
                 group_column=grouping_column_data,
                 sort_groups=sort_groups
             )
-            print(order)
 
             interval_posterior_df = interval_posterior_df.loc[order]
             grouping_column_data = grouping_column_data.loc[order]
