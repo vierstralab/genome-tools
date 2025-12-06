@@ -84,6 +84,7 @@ class PosteriorLoader(PlotDataLoader):
         assert region.overlaps(base_interval), "sort_heatmap by region must overlap base interval"
 
         region_slice = slice(region.start - base_interval.start, region.end - base_interval.start)
+        print(df.loc[:, region_slice])
         sample_means = df.loc[:, region_slice].mean(axis=1)
         print(sample_means)
         group_mean = sample_means.groupby(group_column).transform("mean")
