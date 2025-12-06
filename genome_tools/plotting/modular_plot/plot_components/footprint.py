@@ -142,7 +142,7 @@ class DifferentialFootprintsComponent(IntervalPlotComponent):
         max_ylim = np.max(np.abs(foldchange)) * 1.05
         ax.set_ylim(-max_ylim, max_ylim)
         
-        cax = ax.inset_axes([1.02, 0.0, 0.025, 0.6], bbox_transform=ax.transAxes)
+        cax = ax.inset_axes([1.02, 0.0, 0.025, 0.6], transform=ax.transAxes)
 
         plt.colorbar(mappable, cax=cax, orientation='vertical', label='-log10 p-value')
         
