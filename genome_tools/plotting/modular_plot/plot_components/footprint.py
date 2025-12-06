@@ -4,7 +4,6 @@ import pandas as pd
 from matplotlib import gridspec
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from genome_tools.plotting.utils import format_axes_to_interval
 
@@ -143,13 +142,11 @@ class DifferentialFootprintsComponent(IntervalPlotComponent):
         max_ylim = np.max(np.abs(foldchange)) * 1.05
         ax.set_ylim(-max_ylim, max_ylim)
         
-        cbar = inset_axes(ax, width="2.5%", height="60%", loc='upper left',
-                         bbox_to_anchor=(1.05 , -0.2, 1, 1),
-                         bbox_transform=ax.transAxes, borderpad=0,)
+        cax = ax.inset_axes([1.02, 0.0, 0.025, 0.6], bbox_transform=ax.transAxes)
 
-        plt.colorbar(mappable, cax=cbar, orientation='vertical', label='-log10 p-value')
+        plt.colorbar(mappable, cax=cax, orientation='vertical', label='-log10 p-value')
         
-        return ax
+        return ax, cax
 
 
 DifferentialFootprintsByGenotypeComponent = DifferentialFootprintsComponent.with_loaders(
