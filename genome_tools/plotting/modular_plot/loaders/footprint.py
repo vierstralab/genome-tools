@@ -85,14 +85,28 @@ class PosteriorLoader(PlotDataLoader):
 
         sample_means = df.loc[:, region.start:region.end].mean(axis=1)
         group_mean = sample_means.groupby(group_column).transform("mean")
-        sort_by = ['per_sample']
+
+        tmp = pd.DataFrame({
+            "group": group_column,
+            "per_sample": sample_means,
+            "group_mean": group_mean,
+        }, index=df.index)
+
         if sort_groups:
-            sort_by = ['group_mean'] + sort_by
-        order = pd.DataFrame({
-            'group_mean': group_mean,
-            'per_sample': sample_means,
-            'group_col': group_column
-        }, index=df.index).sort_values(sort_by, ascending=True).index
+            order = tmp.sort_values(
+                ["group_mean", "per_sample"], 
+                ascending=True
+            ).index
+        else:
+            order = tmp.sort_values(
+                ["group", "per_sample"],
+                ascending=[True, True],
+                key=lambda col:
+                    col.map(
+                        {g: i for i, g in enumerate(tmp["group"].unique())}
+                    ) if col.name == "group" else col
+                ).index
+
         return order
 
 
