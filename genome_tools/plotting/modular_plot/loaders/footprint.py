@@ -61,7 +61,7 @@ class PosteriorLoader(PlotDataLoader):
         )
         interval_posterior_df.loc[:, interval_posterior.columns] = interval_posterior
         
-        grouping_column_data = footprints_metadata.loc[interval_posterior_df.index, grouping_column]
+        grouping_column_data = footprints_metadata.loc[interval_posterior_df.index, grouping_column].copy()
         if sort_heatmap_by_region is not None:
             order = self.sort_by_interval(
                 interval_posterior_df,
