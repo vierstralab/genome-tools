@@ -40,7 +40,8 @@ class PosteriorLoader(PlotDataLoader):
             posterior_file, 
             footprints_metadata: pd.DataFrame, 
             sort_heatmap_by_region: GenomicInterval = None,
-            grouping_column='extended_annotation'
+            grouping_column='extended_annotation',
+            sort_groups=False
     ):
         # Get posterior data
         with TabixExtractor(
@@ -66,7 +67,8 @@ class PosteriorLoader(PlotDataLoader):
                 interval_posterior_df,
                 data.interval,
                 sort_heatmap_by_region,
-                grouping_column_data
+                grouping_column_data,
+                sort_groups=sort_groups
             )
 
             interval_posterior_df = interval_posterior_df.loc[order]
@@ -77,18 +79,21 @@ class PosteriorLoader(PlotDataLoader):
         return data
     
     @staticmethod
-    def sort_by_interval(df: pd.DataFrame, base_interval: GenomicInterval, region: GenomicInterval, group_column: pd.Series):
+    def sort_by_interval(df: pd.DataFrame, base_interval: GenomicInterval, region: GenomicInterval, group_column: pd.Series, sort_groups=False):
         assert region.chrom == base_interval.chrom
         assert region.start >= base_interval.start and region.end <= base_interval.end
 
         region_slice = slice(region.start - base_interval.start, region.end - base_interval.start)
         sample_means = df.loc[:, region_slice].mean(axis=1)
         group_mean = sample_means.groupby(group_column).transform("mean")
+        sort_by = ['per_sample']
+        if sort_groups:
+            sort_by = ['group_mean'] + sort_by
         order = pd.DataFrame({
             'group_mean': group_mean,
             'per_sample': sample_means,
             'group_col': group_column
-        }, index=df.index).sort_values(['group_mean', 'per_sample'], ascending=True).index
+        }, index=df.index).sort_values(sort_by, ascending=True).index
         return order
 
 
