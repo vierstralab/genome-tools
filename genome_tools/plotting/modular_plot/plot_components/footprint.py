@@ -145,7 +145,7 @@ class DifferentialFootprintsComponent(IntervalPlotComponent):
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
         divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="2%", pad=0.2)
+        cax = divider.append_axes("right", size="2.5%", pad=0.2)
         plt.colorbar(mappable, cax=cax, label='-log10 p-value')
         
         return ax, cax
