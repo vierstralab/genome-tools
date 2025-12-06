@@ -88,7 +88,7 @@ class PosteriorLoader(PlotDataLoader):
         group_mean = sample_means.groupby(group_column).transform("mean")
         sort_by = ['per_sample']
         if sort_groups:
-            sort_by = sort_by + ['group_mean']
+            sort_by = ['group_mean'] + sort_by
         order = pd.DataFrame({
             'group_mean': group_mean,
             'per_sample': sample_means,
