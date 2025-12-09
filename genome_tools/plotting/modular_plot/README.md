@@ -272,12 +272,12 @@ Base component that displays transcription factor motif hits as sequence logos.
 
 **Optional loader arguments:**
 - `min_motif_overlap`: Minimal overlap of motif hit and any annotation_region (default 0.9)
-- `choose_by`: 'dg' - motif deltaG vs reference sequence (default: 'dg')
-- `motif_hits_threshold`: lower threshold on the metric (as defined by `choose_by`) (default: None)
+- `choose_by`: metric to sort motif hits by. This component has only basic `ΔG` scoring (default: 'dg')
+- `motif_hits_threshold`: lower bound of metric (as defined by `choose_by`) (default: None)
 - `n_top_hits`: # of top motif hits per annotation region. (default: 1)
 
 **Optional plotting arguments:**
-- `pack` (bool): Whether to pack overlapping motifs into non-overlapping rows (similar to `genome_tools.plotting.segment_plot`)
+- `pack` (bool): Whether to pack overlapping motifs into non-overlapping rows (similar to `genome_tools.plotting.segment_plot`). Useful when extracting several motifs per region. (default: False)
 
 **Example:**
 ```python
@@ -305,7 +305,7 @@ TODO: Add example
 
 #### VariantDdgMotifHitsComponent
 Extension of MotifHitsComponent. Has two alternative methods for choosing best motif hits -
-`choose_by='ddg'` or `choose_by='concordant_ddg'`. In this case best motif hit is chosen based on the highest change in dg caused by a variant. For `concordant_ddg` the `variant.value` used for inferring the sign. 
+`choose_by='ddg'` or `choose_by='concordant_ddg'`. The best motif hit is chosen based on the highest change in dg caused by a variant. For `concordant_ddg` the `variant_interval.value` is used for inferring the sign. 
 
 **Loaders:** `VariantIntervalLoader`, `AnnotationRegionsLoader`, `MotifHitsLoader`, `MotifHitsSelectorLoader`
 
@@ -346,7 +346,7 @@ TODO: Add example image
 #### FPWeightedMotifHitsComponent
 
 Extension of MotifHitsComponent. Has an alternative method for choosing best motif hits -
-`choose_by='weighted_dg'`. In this case heights of the TF protected nucleotides treated as per-position weights (see TFProtectedNucleotidesComponent)
+`choose_by='weighted_dg'`. In this case heights of the TF protected nucleotides treated as per-position weights (see [TFProtectedNucleotidesComponent](#TFProtectedNucleotidesComponent) for more details)
 
 ! Note: weighted_dg works only if motif hits *fully* overlap `data.interval`. The motif hits on the edges of the `data.interval` are filtered out.
 
@@ -354,7 +354,7 @@ Extension of MotifHitsComponent. Has an alternative method for choosing best mot
 
 **Optional loader arguments**
 
-In addition to [MotifHitsComponent](MotifHitsComponent) loader arguments the following options are available:
+In addition to [MotifHitsComponent](#MotifHitsComponent) loader arguments the following options are available:
 `protected_nuc_sample_ids`: subset of sample_ids to take into account when calculating protected nucleotides (useful when want to get protected nucleotides only for a subset of samples, e.g. a certain cell type). (default: None)
 `posterior_threshold`: threshold to binarize the posterior probabilities (default: 0.99)
 
@@ -390,7 +390,7 @@ TODO: add description
 ...
 
 ### FPWeightedMotifHitsComponent (duplicate)
-See [FPWeightedMotifHitsComponent](FPWeightedMotifHitsComponent) for more details
+See [FPWeightedMotifHitsComponent](#FPWeightedMotifHitsComponent) for more details
 
 
 ## Variant components
@@ -413,7 +413,7 @@ See [FPWeightedMotifHitsComponent](FPWeightedMotifHitsComponent) for more detail
 ...
 
 ### AttributionsWeightedMotifHitsComponent (duplicate)
-See [AttributionsWeightedMotifHitsComponent](AttributionsWeightedMotifHitsComponent) for more details
+See [AttributionsWeightedMotifHitsComponent](#AttributionsWeightedMotifHitsComponent) for more details
 
 ## DHS components
 
