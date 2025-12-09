@@ -97,7 +97,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
         data : DataBundle
             Input data bundle containing `data.all_motifs_df` with all motif hits.
 
-        choose_by : {'dg', 'ddg', 'concordant_ddg'}
+        choose_by : {'dg', 'weighted_dg', 'ddg', 'concordant_ddg'}
             Scoring metric to use for selecting motif hits:
             - 'dg': Use the motif delta G score from the motif hits file.
             - 'weighted_dg': Weight the motif delta G score by per-position weights provided in data.seqeunce_weights

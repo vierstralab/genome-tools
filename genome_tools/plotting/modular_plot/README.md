@@ -195,7 +195,7 @@ Plots gene annotations from GENCODE GTF files.
 **Required arguments:**
 - `gencode_annotation_file` (str): Path to GENCODE GTF file
 
-**Optional plot arguments:**
+**Optional plotting arguments:**
 - `gene_symbol_exclude_regex` (str): Regex to exclude certain gene symbols (default: `r'^ENSG|^MIR|^LINC|.*-AS.*'`)
 
 **Example:**
@@ -242,47 +242,180 @@ Plots DNA sequence as colored nucleotides.
 **Required arguments:**
 - `fasta_file` (str): Path to genome FASTA file
 
-**Optional arguments:**
-- `vocab` (dict): Dictionary for vocabulary ({letter: color}). Keys should go in order of ACGT. E.g. `vocab = {x: 'k' for x in ACGT}` to plot all letters as black
+**Optional plotting arguments:**
+- `vocab` (dict): Dictionary for vocabulary ({letter: color}). Expected order of keys is ACGT. E.g. `vocab = {x: 'k' for x in ACGT}` to plot all letters as black
 
 **Example:**
 ```python
 from genome_tools.plotting.modular_plot.plot_components.sequence import SequencePlotComponent
 
+fasta_file='/net/seq/data/genomes/human/GRCh38/noalts/GRCh38_no_alts.fa'
+
 SequencePlotComponent(
     height=0.2,
-    fasta_file='hg38.fa',
+    fasta_file=fasta_file,
 )
 ```
 
-### MotifHitsComponent
-Displays transcription factor motif hits as sequence logos.
+### Motif hits components
+These section describes the `MotifHitsComponent` and it's derivatives with various motif selection criteria
+
+#### MotifHitsComponent
+Base component that displays transcription factor motif hits as sequence logos.
 
 **Loaders:** `AnnotationRegionsLoader`, `MotifHitsLoader`, `MotifHitsSelectorLoader`
 
 **Required arguments:**
 - `annotation_regions` (List[GenomicInterval]): Regions to search for motifs
-- `hits_file` (str): Path to motif hits tabix file. Has a `motif_id` column
-- `motif_metadata` (pd.DataFrame): DataFrame with `motif_id` as index 
+- `motif_annotations_path` (str): Path to motif hits tabix file. Has a `motif_id` column
+- `motif_meta` (pd.DataFrame): DataFrame with `motif_id` set as index 
 
-**Optional arguments:**
-- `choose_by`: 
-- `pack` (bool): Whether to pack overlapping motifs into rows
+**Optional loader arguments:**
+- `min_motif_overlap`: Minimal overlap of motif hit and any annotation_region (default 0.9)
+- `choose_by`: 'dg' - motif deltaG vs reference sequence (default: 'dg')
+- `motif_hits_threshold`: lower threshold on the metric (as defined by `choose_by`) (default: None)
+- `n_top_hits`: # of top motif hits per annotation region. (default: 1)
+
+**Optional plotting arguments:**
+- `pack` (bool): Whether to pack overlapping motifs into non-overlapping rows (similar to `genome_tools.plotting.segment_plot`)
 
 **Example:**
 ```python
 from genome_tools.plotting.modular_plot.plot_components.sequence import MotifHitsComponent
 
+motif_annotations_path = '/net/seq/data2/projects/sabramov/ENCODE4/dnase-genotypes.v4/round1/output/moods_scans_ref.merged.sorted.bed.gz'   # tabix-indexed annotations. Motif hits at 1e-4 p-value
+motif_meta_df = pd.read_table('/home/sabramov/projects/ENCODE4/ENCODE4_DHS/metadata/source/motifs_meta.tsv').set_index('motif_id')
+min_motif_overlap = 0.8
+n_top_hits = 2
+
+annotation_regions=[GenomicInterval('chr1', 1_000_000, 1_000_020)]
+
 MotifHitsComponent(
     height=0.5,
-    annotation_regions=[GenomicInterval('chr1', 1_000_000, 1_001_000)],
-    motif_annotations_path='motif_hits.bed.gz',  # tabix-indexed annotations
+    annotation_regions=annotation_regions,
+    motif_annotations_path=motif_annotations_path,
     motif_meta=motif_meta_df,  # DataFrame indexed by motif_id with metadata
     pack=True,
+    choose_by='dg',
+    min_motif_overlap=min_motif_overlap,
+    n_top_hits=2
+)
+```
+TODO: Add example
+
+#### VariantDdgMotifHitsComponent
+Extension of MotifHitsComponent. Has two alternative methods for choosing best motif hits -
+`choose_by='ddg'` or `choose_by='concordant_ddg'`. In this case best motif hit is chosen based on the highest change in dg caused by a variant. For `concordant_ddg` the `variant.value` used for inferring the sign. 
+
+**Loaders:** `VariantIntervalLoader`, `AnnotationRegionsLoader`, `MotifHitsLoader`, `MotifHitsSelectorLoader`
+
+**Required loader arguments**
+`variant_interval`: `genome_tools.VariantInterval` - variant interval based on which alleles and position the delta dg score is calculated. Should be within `data.interval`
+
+```python
+from genome_tools import VariantInterval
+from genome_tools.plotting.modular_plot.plot_components.sequence import VariantDdgMotifHitsComponent
+
+variant_interval = VariantInterval(
+    'chr1', 1_000_005, 1_000_006,
+    ref='A',
+    alt='G',
+    value=1.3
+)
+
+VariantDdgMotifHitsComponent(
+    height=0.5,
+    motif_annotations_path=motif_annotations_path,
+    motif_meta=motif_meta_df,  # DataFrame indexed by motif_id with metadata
+    pack=True,
+    choose_by='ddg',
+    min_motif_overlap=min_motif_overlap,
+    n_top_hits=2
+)
+
+plotter.plot(
+    dhs_interval,
+    loaders_kwargs=dict(
+        variant_interval=variant_interval,
+        annotation_regions=annotation_regions,
+    )
 )
 ```
 
-## DHS Components
+TODO: Add example image
+#### FPWeightedMotifHitsComponent
+
+Extension of MotifHitsComponent. Has an alternative method for choosing best motif hits -
+`choose_by='weighted_dg'`. In this case heights of the TF protected nucleotides treated as per-position weights (see TFProtectedNucleotidesComponent)
+
+! Note: weighted_dg works only if motif hits *fully* overlap `data.interval`. The motif hits on the edges of the `data.interval` are filtered out.
+
+**Loaders:** `PosteriorLoader`, `FastaLoader`, `ProtectedNucleotidesLoader`, `AnnotationRegionsLoader`, `SequenceWeightsFromProtectedNucleotidesLoader`, `MotifHitsLoader`, `MotifHitsSelectorLoader`
+
+**Optional loader arguments**
+
+In addition to [MotifHitsComponent](MotifHitsComponent) loader arguments the following options are available:
+`protected_nuc_sample_ids`: subset of sample_ids to take into account when calculating protected nucleotides (useful when want to get protected nucleotides only for a subset of samples, e.g. a certain cell type). (default: None)
+`posterior_threshold`: threshold to binarize the posterior probabilities (default: 0.99)
+
+
+**Example:**
+```python
+from genome_tools.plotting.modular_plot.plot_components.footprint import FPWeightedMotifHitsComponent
+
+FPWeightedMotifHitsComponent(
+    ...FIXME
+)
+TODO: Add example
+```
+#### AttributionsWeightedMotifHitsComponent
+
+TODO: add description
+
+## Footprint components
+
+### FootprintsIndexComponent
+...
+
+### PosteriorHeatmapComponent
+...
+
+### DifferentialFootprintsComponent
+...
+
+### DifferentialFootprintsByGenotypeComponent
+...
+
+### TFProtectedNucleotidesComponent
+...
+
+### FPWeightedMotifHitsComponent (duplicate)
+See [FPWeightedMotifHitsComponent](FPWeightedMotifHitsComponent) for more details
+
+
+## Variant components
+
+### CAVComponent
+...
+
+### NonAggregatedCAVComponent
+...
+
+### AllelicCutcountsComponent
+...
+
+### AllelicReadsComponent
+...
+
+## Prediction components
+
+### AttributionsComponent
+...
+
+### AttributionsWeightedMotifHitsComponent (duplicate)
+See [AttributionsWeightedMotifHitsComponent](AttributionsWeightedMotifHitsComponent) for more details
+
+## DHS components
 
 ### DHSIndexComponent
 Displays DHS index regions as genomic segments.
