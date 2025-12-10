@@ -460,6 +460,55 @@ NMFTracksComponent(
 )
 ```
 
+
+# Overriding loader parameters
+
+Loader parameters can be overridden at multiple levels (from lowest to highest priority). Examples below:
+
+1. **Loader defaults** - Defined in the loader's `_load` method signature
+2. **Global overrides** - Passed to `IntervalPlotter.__init__`. Recommended for metadata files, and something that can be safely be used by any component
+3. **Component-level overrides** - Passed to component `__init__`. Recommended when these overrides define the component.
+4. **Loader-specific component overrides** - Using loader name as key. Generally, shouldn't be used.
+5. **Runtime overrides** - Passed to `plot()` or `get_interval_data()`. Recommended for passing variable args that should change with the data.interval (e.g. variant_interval, annotation_regions, e.t.c.)
+6. **Runtime loader-specific overrides** - Using loader name as key. Generally, shouldn't be used.
+
+FIX the code
+```python
+# Global override (applies to all components)
+plotter = IntervalPlotter(
+    [comp1, comp2],
+    signal_file='default.bw',  # Used by both components
+)
+
+# Component-level override
+comp = TrackComponent(
+    signal_file='specific.bw',  # Overrides global default
+)
+
+comp = TrackComponent(
+    SignalLoader=dict(signal_file='specific.bw'),  # Only for SignalLoader, useful when there is a conflict of param names, which generally should be avoided
+)
+
+# Runtime override
+data, axes = plotter.plot(
+    interval,
+    loaders_kwargs=dict(
+        signal_file='runtime.bw',
+    )
+)
+
+data, axes = plotter.plot(
+    interval,
+    loaders_kwargs=dict(
+        TrackComponent=dict(
+            SignalLoader=dict(
+                signal_file='runtime.bw',  # The highest priority
+            )
+        )
+    )
+)
+```
+
 # Using the same component multiple times
 
 By default, components are named after their class. Multiple components within one plot can't have the same name. Customize names to use multiple instances:
@@ -497,4 +546,7 @@ print(component_data.signal)
 ```
 
 # Adding additional objects on axes
-Use returned axes object
+Use returned named tuple of axes. 
+
+# Developing your own components
+You can easily develop your own components see [README_develop.md](README_develop.md)

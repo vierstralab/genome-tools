@@ -191,44 +191,6 @@ class SequenceWithGCComponent(IntervalPlotComponent):
         return ax
 ```
 
-### Overriding Loader Parameters
-
-Parameters can be overridden at multiple levels (from lowest to highest priority):
-
-1. **Loader defaults** - Defined in the loader's `_load` method signature
-2. **Global overrides** - Passed to `IntervalPlotter.__init__`
-3. **Component-level overrides** - Passed to component `__init__`
-4. **Loader-specific component overrides** - Using loader name as key
-5. **Runtime overrides** - Passed to `plot()` or `get_interval_data()`
-6. **Runtime loader-specific overrides** - Using loader name as key
-
-```python
-# Global override (applies to all components)
-plotter = IntervalPlotter(
-    [comp1, comp2],
-    signal_file='default.bw',  # Used by both components
-)
-
-# Component-level override
-comp = TrackComponent(
-    signal_file='specific.bw',  # Overrides global default
-)
-
-# Loader-specific override (when loader args conflict)
-from genome_tools.plotting.modular_plot.loaders.basic import SignalLoader
-
-comp = MyComponent(
-    threshold=0.5,  # Used by multiple loaders
-    SignalLoader={'threshold': 0.8},  # Only for SignalLoader
-)
-
-# Runtime override
-data, axes = plotter.plot(
-    interval,
-    signal_file='runtime.bw',  # Highest priority
-)
-```
-
 ### Creating Component Variants with `with_loaders`
 
 Create new component classes with different loader combinations:
@@ -318,3 +280,5 @@ plotter = IntervalPlotter(
     logger_level=logging.INFO,
 )
 ```
+
+Per component returned axes match with whatever is returned by `_plot`. When returning multiple axes, first axis should be the input ax to ensure compatibility with connectors.
