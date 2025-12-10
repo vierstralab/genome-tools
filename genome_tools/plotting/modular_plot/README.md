@@ -545,8 +545,25 @@ print(component_data.interval)
 print(component_data.signal)
 ```
 
-# Adding additional objects on axes
-Use returned named tuple of axes. 
+# Accessing Component Axes
+
+The `plot()` and `plot_interval()` methods return a named tuple of axes:
+
+```python
+data, axes = plotter.plot(interval)
+
+# Access by component name
+ideogram_ax = axes.IdeogramComponent
+gencode_ax = axes.GencodeComponent
+track_ax = axes['TrackComponent']
+
+# Access by index (top to bottom)
+first_ax = axes[0]
+second_ax = axes[1]
+
+
+axes[-1].set_xlabel('Genomic Position')
+```
 
 # Developing your own components
 You can easily develop your own components see [README_develop.md](README_develop.md)

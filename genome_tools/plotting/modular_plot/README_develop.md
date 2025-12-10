@@ -1,28 +1,4 @@
 # Develop
-
-## Advanced: Abstract Base Components
-
-### SegmentPlotComponent
-Abstract base class for plotting genomic segments.
-
-Inherit from this class to create custom segment-based visualizations:
-
-```python
-from genome_tools.plotting.modular_plot.plot_components.abstract import SegmentPlotComponent
-from genome_tools.plotting.modular_plot import uses_loaders
-from genome_tools.plotting.modular_plot.loaders.basic import SegmentsTabixLoader
-
-@uses_loaders(SegmentsTabixLoader)
-class CustomSegmentComponent(SegmentPlotComponent):
-    __intervals_attr__ = 'intervals'  # Attribute name for segments in DataBundle
-    
-    def _plot(self, data, ax, **kwargs):
-        # Custom plotting logic
-        super()._plot(data, ax, color='purple', **kwargs)
-        ax.set_ylabel('Custom Segments')
-        return ax
-```
-
 ## Creating Custom Components
 
 ### Step 1: Create a Data Loader
@@ -147,27 +123,30 @@ plotter = IntervalPlotter([
 data, axes = plotter.plot(interval)
 ```
 
-### Accessing Component Axes
 
-The `plot()` and `plot_interval()` methods return a named tuple of axes:
+## Advanced: Abstract Base Components
+You can inherit from these components to make basic plots
+
+### SegmentPlotComponent
+Abstract base class for plotting genomic segments.
+
+Inherit from this class to create custom segment-based visualizations:
 
 ```python
-data, axes = plotter.plot(interval)
+from genome_tools.plotting.modular_plot.plot_components.abstract import SegmentPlotComponent
+from genome_tools.plotting.modular_plot import uses_loaders
+from genome_tools.plotting.modular_plot.loaders.basic import SegmentsTabixLoader
 
-# Access by component name
-ideogram_ax = axes.IdeogramComponent
-gencode_ax = axes.GencodeComponent
-track_ax = axes.TrackComponent
-
-# Access by index
-first_ax = axes[0]
-second_ax = axes[1]
-
-# Iterate
-for ax in axes:
-    ax.set_xlabel('Genomic Position')
+@uses_loaders(SegmentsTabixLoader)
+class CustomSegmentComponent(SegmentPlotComponent):
+    __intervals_attr__ = 'intervals'  # Attribute name for segments in DataBundle
+    
+    def _plot(self, data, ax, **kwargs):
+        # Custom plotting logic
+        super()._plot(data, ax, color='purple', **kwargs)
+        ax.set_ylabel('Custom Segments')
+        return ax
 ```
-
 
 ## Advanced Component Features
 
@@ -248,18 +227,6 @@ BedGraphComponent = FlexibleComponent.with_loaders(
 - Accept matplotlib styling arguments as `**kwargs`
 - Return the axes object from `_plot`
 - Set reasonable default heights and margins
-
-### Performance
-- Use `n_cpus > 1` only for I/O-bound loaders (file reading)
-- Cache loaded data for multiple plots with different styles
-- Use the two-step workflow (`get_interval_data` + `plot_interval`) for iteration
-
-### Organization
-- Group related loaders in a module (e.g., `loaders/chipseq.py`)
-- Group related components in a module (e.g., `plot_components/epigenomics.py`)
-- Use abstract base components for common patterns
-- Document required loader arguments in component docstrings
-
 
 ### Logging
 
