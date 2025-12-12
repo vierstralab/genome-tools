@@ -24,7 +24,14 @@ from genome_tools.plotting.modular_plot.loaders.variant import (
     GroupsByGenotypeLoader
 )
 from genome_tools.plotting.modular_plot.loaders.footprint import GroupsDataLoader
+from genome_tools.plotting.modular_plot.plot_components.sequence import MotifHitsComponent
 
+
+VariantDdgMotifHitsComponent = MotifHitsComponent.with_loaders(
+    VariantIntervalLoader,
+    *MotifHitsComponent.__required_loaders__,
+    new_class_name="VariantDdgMotifHitsComponent",
+)
 
 # TODO fix other components
 class LolipopVariantsComponent(IntervalPlotComponent):

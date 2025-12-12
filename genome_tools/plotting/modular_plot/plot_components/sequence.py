@@ -13,7 +13,6 @@ from genome_tools.plotting.modular_plot.loaders.sequence import (
     OHESequenceLoader
 )
 from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLoader
-from genome_tools.plotting.modular_plot.loaders.variant import VariantIntervalLoader
 
 
 # TODO fix other components
@@ -81,9 +80,3 @@ class MotifHitsComponent(IntervalPlotComponent):
             ax.set_xlabel(interval.tf_name, labelpad=0.5)
         return axes
 
-
-VariantDdgMotifHitsComponent = MotifHitsComponent.with_loaders(
-    VariantIntervalLoader,
-    *MotifHitsComponent.__required_loaders__,
-    new_class_name="VariantDdgMotifHitsComponent",
-)
