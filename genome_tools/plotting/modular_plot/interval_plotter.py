@@ -356,7 +356,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             fig_height = comps_height * height_scale
         else:
             if height_scale is not None:
-                print("Warning: fig_height is provided, ignoring height_scale.")
+                self.logger.warning("fig_height is provided, ignoring height_scale.")
 
         fig = plt.figure(figsize=(fig_width, fig_height))
         fig.subplots_adjust(0, 0, 1, 1)
