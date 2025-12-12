@@ -118,9 +118,11 @@ NonAggregatedCAVComponent = CAVComponent.with_loaders(PerSampleCAVLoader, new_cl
 class CutcountsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax: plt.Axes, vocab='dna', **kwargs):
+    def _plot(self, data, ax: plt.Axes, vocab='dna', window=151, **kwargs):
+        from hotspot3.connectors.bottleneck import BottleneckWrapper
 
         tracks = data.cutcount_tracks
+        bn = BottleneckWrapper()
 
         # Total reads for labeling
         tot_reads = sum(t["cutcounts"].sum() for t in tracks)
@@ -139,13 +141,15 @@ class CutcountsComponent(IntervalPlotComponent):
         x = np.arange(data.interval.start, data.interval.end) + 0.5
 
         for i, track in enumerate(tracks):
+            
             cuts: np.ndarray = track["cutcounts"]
+            aggregated_cuts = bn.centered_running_nanmean(cuts, window=window)
             allele: str = track["allele"]
 
             ax_bar = fig.add_subplot(gs[i, :])
             ax_bar.bar(
                 x,
-                cuts,
+                aggregated_cuts,
                 width=1,
                 color=get_vocab_color(allele, vocab),
                 label=f"{allele}: {cuts.sum()} ({round(cuts.sum() / tot_reads * 100, 2)}%)",
