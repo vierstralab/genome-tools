@@ -209,7 +209,10 @@ class PlotComponent(LoggerMixin):
 
         for LoaderClass in self.__required_loaders__:
             loader_defaults = LoaderClass.get_fullargspec()
-            component_overrides = self.loader_kwargs
+            component_overrides = {
+                x: y for x, y in self.loader_kwargs.items() 
+                if not isinstance(y, RequiredArgument)
+            }
             component_loader_specific_overrides = self.loader_overrides.get(LoaderClass.__name__, {})
             runtime_loader_specific_overrides = extract_class_specific_overrides(
                 runtime_overrides,
