@@ -234,6 +234,8 @@ class PlotComponent(LoggerMixin):
                 k: v for k, v in kwargs_for_loader.items()
                 if k in loader_defaults
             }
+            print('After filtering:')
+            print(kwargs_for_loader.keys())
 
             loader = LoaderClass(
                 logger_level=self.logger.level,
