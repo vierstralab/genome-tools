@@ -177,9 +177,9 @@ class AllelicReadsComponent(IntervalPlotComponent):
         reads = [
             read for read in reads 
             if (
-                abs(read.start - variant_interval.start) <= max_distance_to_read_ends and
-                abs(read.end - variant_interval.end) <= max_distance_to_read_ends and
-                len(read) >= 10
+                abs(read.start - variant_interval.start) <= max_distance_to_read_ends
+                and abs(read.end - variant_interval.end) <= max_distance_to_read_ends 
+                #and len(read) >= 10
             )
         ]
 

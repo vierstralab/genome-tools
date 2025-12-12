@@ -192,17 +192,21 @@ class PlotComponent(LoggerMixin):
         new_class.__module__ = cls.__module__
         return new_class
     
-    def load_data(self, data: DataBundle, **runtime_overrides):
+    def load_data(self, data: DataBundle, *, interval_plotter_kwargs=None, **runtime_overrides):
         """
         Modifies data for the plot component using the required loaders.
 
         Merge priority:
             1. loader defaults     (lowest)
-            2. component overrides (self.loader_kwargs)
-            3. runtime overrides   (**runtime_loader_kwargs)
-            4. component loader-specific overrides (self.loader_overrides)
-            5. runtime loader-specific overrides (_extract_loader_specific_overrides(runtime_overrides)) (highest)
+            2. interval plotter kwargs (interval_plotter_kwargs)
+            3. component overrides (self.loader_kwargs)
+            4. runtime overrides   (**runtime_loader_kwargs)
+            5. component loader-specific overrides (self.loader_overrides)
+            6. runtime loader-specific overrides (_extract_loader_specific_overrides(runtime_overrides)) (highest)
         """
+        if interval_plotter_kwargs is None:
+            interval_plotter_kwargs = {}
+
         for LoaderClass in self.__required_loaders__:
             loader_defaults = LoaderClass.get_fullargspec()
             component_overrides = self.loader_kwargs
@@ -214,10 +218,11 @@ class PlotComponent(LoggerMixin):
 
             kwargs_for_loader = {
                 **loader_defaults,
-                **component_overrides, # specify during component init
-                **runtime_overrides, # specify during load_data_for_interval
-                **component_loader_specific_overrides, # specify during component init
-                **runtime_loader_specific_overrides, # specify during load_data_for_interval
+                **interval_plotter_kwargs, # specified during IntervalPlotter.__init__
+                **component_overrides, # specified during component.__init__
+                **runtime_overrides, # specified during IntervalPlotter.get_interval_data
+                **component_loader_specific_overrides, # specified during component.__init__
+                **runtime_loader_specific_overrides, # specified during IntervalPlotter.get_interval_data
             }
 
             # Keep only args that loader actually accepts

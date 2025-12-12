@@ -390,7 +390,10 @@ class IntervalPlotter(VerticalConnectorMixin):
             A named tuple of DataBundle objects containing the data for each plot component. Field names match self.component_names.
         """
         self._validate_loaders_kwargs(**loaders_kwargs)
-        loaders_kwargs = {**self.loaders_kwargs, **loaders_kwargs}
+        loaders_kwargs = {
+            'interval_plotter_kwargs': self.loaders_kwargs,
+            **loaders_kwargs
+        }
 
         tasks = []
         for component in self.plot_components:
