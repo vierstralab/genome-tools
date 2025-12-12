@@ -225,7 +225,9 @@ class PlotComponent(LoggerMixin):
                 **runtime_loader_specific_overrides, # specified during IntervalPlotter.get_interval_data
             }
 
-            print(kwargs_for_loader)
+            print(kwargs_for_loader.keys())
+            print(loader_defaults.keys())
+            print(LoaderClass.__name__)
 
             # Keep only args that loader actually accepts
             kwargs_for_loader = {
