@@ -206,7 +206,6 @@ class PlotComponent(LoggerMixin):
         """
         if interval_plotter_kwargs is None:
             interval_plotter_kwargs = {}
-        print(interval_plotter_kwargs)
 
         for LoaderClass in self.__required_loaders__:
             loader_defaults = LoaderClass.get_fullargspec()
@@ -225,6 +224,8 @@ class PlotComponent(LoggerMixin):
                 **component_loader_specific_overrides, # specified during component.__init__
                 **runtime_loader_specific_overrides, # specified during IntervalPlotter.get_interval_data
             }
+
+            print(kwargs_for_loader)
 
             # Keep only args that loader actually accepts
             kwargs_for_loader = {
