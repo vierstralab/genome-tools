@@ -118,7 +118,7 @@ NonAggregatedCAVComponent = CAVComponent.with_loaders(PerSampleCAVLoader, new_cl
 class CutcountsComponent(IntervalPlotComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax: plt.Axes, vocab='dna', window=151, **kwargs):
+    def _plot(self, data, ax: plt.Axes, vocab='dna', window=1, **kwargs):
         from hotspot3.connectors.bottleneck import BottleneckWrapper
 
         tracks = data.cutcount_tracks
