@@ -43,12 +43,14 @@ class LolipopVariantsComponent(IntervalPlotComponent):
         return ax
     
     @staticmethod
-    def plot_single_bp_objects(variant_intervals, interval, ax=None, s=1.0, **kwargs):
+    def plot_single_bp_objects(variant_intervals, interval, abs_es=True, ax=None, s=1.0, **kwargs):
         if ax is None:
             ax = plt.gca()
 
         positions = [v.pos - 0.5 for v in variant_intervals]
         values = [v.value for v in variant_intervals]
+        if abs_es:
+            values = [abs(v) for v in values]
         colors = [getattr(v, 'color', 'k') for v in variant_intervals]
         annotations = [getattr(v, 'annotation', None) for v in variant_intervals]
 
@@ -97,11 +99,12 @@ class FinemapComponent(LolipopVariantsComponent):
 class CAVComponent(LolipopVariantsComponent):
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, **kwargs):
+    def _plot(self, data, ax, abs_es=True, **kwargs):
 
         self.plot_single_bp_objects(
             data.cavs_intervals,
             data.interval,
+            abs_es=abs_es,
             ax=ax
         )
         self.annotate_variant_alleles(data.cavs_intervals, ax=ax, **kwargs)

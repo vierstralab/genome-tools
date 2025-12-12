@@ -103,7 +103,7 @@ class AggregatedCAVLoader(PlotDataLoader):
         filtered_cavs = filtered_cavs.set_index(['#chr', 'start', 'end', 'ref', 'alt'])
         filtered_cavs['significant_groups'] = significant_groups
         
-        filtered_cavs['value'] = np.abs(filtered_cavs['logit_es_combined'])
+        filtered_cavs['value'] = filtered_cavs['logit_es_combined']
         filtered_cavs['color'] = np.where(filtered_cavs['is_significant'], color, notsignif_color)
         data.cavs_intervals = df_to_variant_intervals(
             filtered_cavs.reset_index(),
@@ -122,7 +122,7 @@ class PerSampleCAVLoader(PlotDataLoader):
         filtered_cavs['is_significant'] = filtered_cavs['FDR_sample'] <= fdr_tr
         filtered_cavs['sig_es'] = np.clip(np.where(filtered_cavs['is_significant'], np.abs(filtered_cavs['logit_es']), 0), 0, 2)
         
-        filtered_cavs['value'] = np.abs(filtered_cavs['logit_es'])
+        filtered_cavs['value'] = filtered_cavs['logit_es']
         filtered_cavs['color'] = np.where(filtered_cavs['is_significant'], color, notsignif_color)
         data.cavs_intervals = df_to_variant_intervals(
             filtered_cavs,
