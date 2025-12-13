@@ -185,7 +185,7 @@ class ReadsLoader(PlotDataLoader, ReadsParser):
 
 
 class AllelicReadsLoader(PlotDataLoader, ReadsParser):
-    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame):
+    def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, bam_file_column='cram_file'):
 
         groups_data: pd.DataFrame = data.groups_data
         interval: GenomicInterval = data.interval
@@ -199,7 +199,7 @@ class AllelicReadsLoader(PlotDataLoader, ReadsParser):
 
         reads = {}
         for sid in groups_data.index:
-            cram_path = samples_metadata.loc[sid, "cram_file"]
+            cram_path = samples_metadata.loc[sid, bam_file_column]
             reads[sid] = self.allelic_reads_from_cram(
                 cram_path,
                 interval,
