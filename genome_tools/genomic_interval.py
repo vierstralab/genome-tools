@@ -304,7 +304,7 @@ def df_to_genomic_intervals(df: pd.DataFrame, interval: GenomicInterval=None, ex
     )
 
 
-def interval_to_df(intervals: List[GenomicInterval]):
+def intervals_to_df(intervals: List[GenomicInterval]):
     assert len(intervals) > 0, "No intervals to convert"
     interval_type_cls = type(intervals[0])
     
@@ -331,4 +331,4 @@ def genomic_intervals_to_df(genomic_intervals: List[GenomicInterval]):
     """
     Defunc, exists as legacy alias of interval_to_df
     """
-    return interval_to_df(genomic_intervals)
+    return intervals_to_df(genomic_intervals)
