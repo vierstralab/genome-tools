@@ -156,7 +156,7 @@ class AllelicReadsExtractor(BaseExtractor):
     def check_bias(self, pileupread):
         # if get_base_quality(pileupread)<baseq:
         # 	raise ReadBiasError()
-        return self.get_5p_offset(pileupread) <= self.variant_read_end_offset
+        return self.get_5p_offset(pileupread) > self.variant_read_end_offset
     
     def _validate_read(self, pileupread: pysam.PileupRead, variant_interval: VariantInterval):
         if pileupread.is_del or pileupread.is_refskip:
