@@ -123,6 +123,7 @@ class VariantGenotypeExtractor(BaseExtractor):
 
 # ------------------------
 
+# TODO: eliminate double for loop over reads in _get_all_pileup_reads and _aggregate_into_pairs
 class AllelicReadsExtractor(BaseExtractor):
     def __init__(self, filename, variant_read_end_offset=3, **kwargs):
         """

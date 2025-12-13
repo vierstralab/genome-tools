@@ -6,8 +6,9 @@ from tqdm import tqdm
 import warnings
 
 
-class GenomicInterval(object):
+class GenomicInterval:
     """Class that implements BED-style object"""
+    required_fields = ["chrom", "start", "end", "name"]
 
     def __init__(self, chrom, start, end, name=".", **kwargs):
         super().__setattr__('_initialized', False)
@@ -15,7 +16,6 @@ class GenomicInterval(object):
         self.start = int(start)
         self.end = int(end)
         self.name = str(name)
-        self.req_fields = ["chrom", "start", "end", "name"]
         self.extra_fields = []
         for key, value in kwargs.items():
             self.extra_fields.append(key)
@@ -61,9 +61,21 @@ class GenomicInterval(object):
         reflect 1-based"""
         return f"{self.chrom}:{self.start}-{self.end}"
     
+    def _get_kwargs(self, keys):
+        return {
+            key: getattr(self, key)
+            for key in keys
+        }
+    
+    @property
+    def _all_kwargs(self):
+        return {
+            **self._get_kwargs(self.required_fields + self.extra_fields),
+        }
+    
     @property
     def extra_kwargs(self):
-        return {key: getattr(self, key) for key in self.extra_fields}
+        return self._get_kwargs(self.extra_fields)
     
     @property
     def center(self):
@@ -113,7 +125,11 @@ class GenomicInterval(object):
             self.end = new_end
             return self
         return GenomicInterval(
-            self.chrom, new_start, new_end, self.name, **self.extra_kwargs
+            self.chrom,
+            new_start,
+            new_end,
+            name=self.name,
+            **self.extra_kwargs
         )
     
     def zoom(self, zoom_factor, inplace=False):
@@ -137,28 +153,26 @@ class GenomicInterval(object):
         """Shifts the coordinates"""
         return self.widen(left=-x, right=x, inplace=inplace)
     
-    def to_variant_interval(self, ref=None, alt=None, value=None):
-        args = {"ref": ref, "alt": alt, "value": value}
+    def to_variant_interval(self, ref=None, alt=None):
+        kwargs = {"ref": ref, "alt": alt}
         assert len(self) == 1, "Can only convert to VariantInterval if length is 1"
 
-        for key, val in args.items():
+        for key, val in kwargs.items():
             if val is None:
                 if hasattr(self, key):
-                    args[key] = getattr(self, key)
+                    kwargs[key] = getattr(self, key)
                 else:
                     raise ValueError(f"Cannot convert to VariantInterval without {key} specified")
 
         return VariantInterval(
-            self.chrom, self.start, self.end, self.name,
-            ref=args["ref"],
-            alt=args["alt"],
-            value=args["value"],
-            **self.extra_kwargs
+            **self._all_kwargs,
+            ref=kwargs["ref"],
+            alt=kwargs["alt"],
         )
     
-    def vi(self, ref=None, alt=None, value=None):
+    def vi(self, ref=None, alt=None):
         """Shortcut for to_variant_interval"""
-        return self.to_variant_interval(ref=ref, alt=alt, value=value)
+        return self.to_variant_interval(ref=ref, alt=alt)
     
     def gi(self):
         """Shortcut for to_genomic_interval"""
@@ -173,14 +187,14 @@ class GenomicInterval(object):
     
 
 class VariantInterval(GenomicInterval):
-    def __init__(self, chrom, start, end, ref, alt, value=None, **kwargs):
+    required_fields = GenomicInterval.required_fields + ["ref", "alt"]
+
+    def __init__(self, chrom, start, end, ref, alt, **kwargs):
         assert end - start == 1
         super().__init__(chrom, start, end, **kwargs)
         super().__setattr__('_initialized', False)
         self.ref = str(ref)
         self.alt = str(alt)
-        self.value = value
-        self.req_fields += ["ref", "alt", "value"]
         self.pos = end
         super().__setattr__('_initialized', True)
 
@@ -193,36 +207,24 @@ class VariantInterval(GenomicInterval):
         return VariantInterval(chrom, int(pos) - 1, int(pos), ref, alt)
     
     def to_genomic_interval(self):
-        return GenomicInterval(
-            self.chrom, self.start, self.end, self.name,
-            ref=self.ref,
-            alt=self.alt,
-            value=self.value,
-            **self.extra_kwargs
-        )
+        return GenomicInterval(**self._all_kwargs)
     
-    def gi(self):
-        """Shortcut for to_genomic_interval"""
-        return self.to_genomic_interval()
-    
-    def vi(self):
+    def to_variant_interval(self):
         """Returns self"""
         return self
 
     def copy(self):
         """Returns a copy of the object"""
-        return VariantInterval(
-            self.chrom, self.start, self.end, self.ref, self.alt, self.value, name=self.name, **self.extra_kwargs
-        )
+        return VariantInterval(**self._all_kwargs)
     
     def widen(self, x, inplace=False):
-        raise NotImplementedError("Cannot widen a variant interval. Convert to GenomicInterval  with gi() method first.")
+        raise NotImplementedError("Cannot widen a variant interval. Convert to GenomicInterval with gi() method first.")
     
     def shift(self, x, inplace=False):
-        raise NotImplementedError("Cannot shift a variant interval. Convert to GenomicInterval  with gi() method first.")
+        raise NotImplementedError("Cannot shift a variant interval. Convert to GenomicInterval with gi() method first.")
     
     def zoom(self, zoom_factor, inplace=False):
-        raise NotImplementedError("Cannot zoom a variant interval. Convert to GenomicInterval  with gi() method first.")
+        raise NotImplementedError("Cannot zoom a variant interval. Convert to GenomicInterval with gi() method first.")
 
 
 class genomic_interval(GenomicInterval):
@@ -265,49 +267,68 @@ def _sanitize_df(df: pd.DataFrame, interval: GenomicInterval):
     return df
 
 
-def df_to_genomic_intervals(df: pd.DataFrame, interval: GenomicInterval = None, extra_columns=(), verbose=False):
+def _parse_interval_type(interval_type: str):
+    class_name_dict = {
+        'genomic_interval': GenomicInterval,
+        'variant_interval': VariantInterval,
+    }
+    assert interval_type in class_name_dict, "interval_type must be either 'genomic' or 'variant'"
+    return class_name_dict[interval_type]
+
+
+def df_to_intervals(df: pd.DataFrame, interval: GenomicInterval = None, extra_columns=(), verbose=False, interval_type='genomic_interval'):
+    interval_type_cls = _parse_interval_type(interval_type)
     df = _sanitize_df(df, interval)
     iterator = df.itertuples(index=False, name=None)
     if verbose:
         iterator = tqdm(iterator, total=len(df), desc="Converting df to intervals")
     get_col_idx = {col: i for i, col in enumerate(df.columns)}
     result = [
-        GenomicInterval(
-            row[get_col_idx['chrom']],
-            row[get_col_idx['start']],
-            row[get_col_idx['end']],
-            **{col: row[get_col_idx[col]] for col in extra_columns}
+        interval_type_cls(
+            **{
+                col: row[get_col_idx[col]] for col in 
+                    interval_type_cls.required_fields + list(extra_columns)
+            }
         )
         for row in iterator
     ]
     return result
 
 
-def df_to_variant_intervals(df: pd.DataFrame, interval: GenomicInterval=None, extra_columns=()):
-    df = _sanitize_df(df, interval)
-    result = [
-        VariantInterval(
-            df_row['chrom'],
-            df_row['start'],
-            df_row['end'],
-            ref=df_row['ref'],
-            alt=df_row['alt'],
-            **{col: df_row[col] for col in extra_columns}
-        ) for _, df_row in df.iterrows()
-    ]
-    return result
+def df_to_genomic_intervals(df: pd.DataFrame, interval: GenomicInterval=None, extra_columns=()):
+    return df_to_intervals(
+        df,
+        interval=interval,
+        extra_columns=extra_columns,
+        interval_type='genomic'
+    )
+
+
+def interval_to_df(intervals: List[GenomicInterval]):
+    assert len(intervals) > 0, "No intervals to convert"
+    interval_type_cls = type(intervals[0])
+    
+    req_fields = interval_type_cls.required_fields
+    extra_fields = intervals[0].extra_fields
+    fields = req_fields + extra_fields
+
+    result = []
+    for interval in intervals:
+        assert isinstance(interval, interval_type_cls), "Not all intervals are of the same type!"
+
+        assert interval.extra_fields == extra_fields, "Not all intervals have the same extra fields!"
+
+        result.append(
+            [getattr(interval, field) for field in fields]
+        )
+    return pd.DataFrame(
+        result,
+        columns=fields
+    )
 
 
 def genomic_intervals_to_df(genomic_intervals: List[GenomicInterval]):
-    assert len(genomic_intervals) > 0, "No intervals to convert"
-    req_fields = genomic_intervals[0].req_fields
-    extra_fields = genomic_intervals[0].extra_fields
-    assert all(interval.extra_fields == extra_fields for interval in genomic_intervals), "Not all _extra_fields of genomic_intervals are identical!"
-    fields = req_fields + extra_fields
-    return pd.DataFrame(
-        [
-            [getattr(interval, field) for field in fields]
-            for interval in genomic_intervals
-        ],
-        columns=fields
-    )
+    """
+    Defunc, exists as legacy alias of interval_to_df
+    """
+    return interval_to_df(genomic_intervals)
