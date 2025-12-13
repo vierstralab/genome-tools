@@ -5,7 +5,7 @@ from typing import List
 
 from genome_tools import filter_df_to_interval, df_to_variant_intervals, VariantInterval, GenomicInterval
 
-from genome_tools.data.extractors import TabixExtractor, VariantGenotypeExtractor
+from genome_tools.data.extractors import TabixExtractor, VariantGenotypeExtractor, AllelicReadsExtractor
 
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
@@ -149,31 +149,6 @@ class ReadsParser:
                 read.base = allele
                 out.append(read)
         return out
-    
-    def get_reads_from_cram(
-        self,
-        cram_path,
-        interval: GenomicInterval,
-        variant_interval: VariantInterval=None,
-    ):
-        from footprint_tools.cutcounts import BamFileExtractor
-        extractor = BamFileExtractor(cram_path, variant_5p_proximity=-1)
-
-        if variant_interval is None:
-            result = {'N': extractor.lookup(interval)} 
-            # {'N': {'+': np.array, '-': np.array, 'fragments': List[GenomicInterval]}}
-        else:
-            result = extractor.lookup_allelic(
-                chrom=variant_interval.chrom,
-                start=interval.start,
-                end=interval.end,
-                pos=variant_interval.pos - 1,
-                ref=variant_interval.ref,
-                alt=variant_interval.alt,
-            ) # {'A': {'+': np.array, '-': np.array, 'fragments': List[GenomicInterval]}, 'B': {...}, 'N': {...}}
-
-        extractor.close()
-        return result
 
 
 class ReadsLoader(PlotDataLoader, ReadsParser):
@@ -194,26 +169,41 @@ class ReadsLoader(PlotDataLoader, ReadsParser):
         data.cutcount_tracks = [{"allele": "N", "cutcounts": cuts}]
         data.reads = np.array(reads)
         return data
+    
+    def get_reads_from_cram(
+        self,
+        cram_path,
+        interval: GenomicInterval,
+    ):
+        from footprint_tools.cutcounts import BamFileExtractor
+        extractor = BamFileExtractor(cram_path)
+        result = {'N': extractor.lookup(interval)}
+        extractor.close()
+        # {'N': {'+': np.array, '-': np.array, 'fragments': List[GenomicInterval]}}
+
+        return result
 
 
 class AllelicReadsLoader(PlotDataLoader, ReadsParser):
     def _load(self, data: DataBundle, samples_metadata: pd.DataFrame):
 
         groups_data: pd.DataFrame = data.groups_data
+        interval: GenomicInterval = data.interval
 
         assert 'parsed_genotype' in groups_data.columns, "groups_data must contain 'parsed_genotype' column"
         gt = np.unique(groups_data['parsed_genotype'])
         assert gt.size == 1, "groups_data must contain only one genotype group"
         variant_interval: VariantInterval = data.variant_interval
+        assert variant_interval.overlaps(interval), f"variant_interval must overlap interval. Got {variant_interval.to_str()} and {interval.to_ucsc()}"
         gt = gt[0]
 
         reads = {}
         for sid in groups_data.index:
             cram_path = samples_metadata.loc[sid, "cram_file"]
-            reads[sid] = self.get_reads_from_cram(
+            reads[sid] = self.allelic_reads_from_cram(
                 cram_path,
-                data.interval,
-                variant_interval=variant_interval,
+                interval,
+                variant_interval,
             )
 
         allele_ref = variant_interval.ref
@@ -246,6 +236,42 @@ class AllelicReadsLoader(PlotDataLoader, ReadsParser):
         data.cutcount_tracks = cutcount_tracks
 
         return data
+    
+    def allelic_reads_from_cram(
+        self,
+        cram_path,
+        interval: GenomicInterval,
+        variant_interval: VariantInterval,
+    ):
+        # Workaround to get the same output as footprint_tools cutcounts extractor
+        with AllelicReadsExtractor(cram_path) as extractor:
+            reads = extractor[variant_interval] # array of genomic intervals
+
+        result = {
+            variant_interval.ref: {
+                '+': np.zeros(len(interval), dtype=np.float32),
+                '-': np.zeros(len(interval), dtype=np.float32),
+                'fragments': []
+            },
+            variant_interval.alt: {
+                '+': np.zeros(len(interval), dtype=np.float32),
+                '-': np.zeros(len(interval), dtype=np.float32),
+                'fragments': []
+            },
+        }
+        for read_interval in reads:
+            allele = read_interval.base
+            result[allele]['fragments'].append(read_interval)
+            offset_start = read_interval.start - interval.start
+            offset_end = read_interval.end - interval.start
+
+            strand = '+' if not read_interval.is_reverse else '-'
+            cutcounts_array = result[allele][strand]
+            if offset_start >= 0:
+                cutcounts_array[offset_start] += 1
+            if offset_end < len(interval):
+                cutcounts_array[offset_end] += 1
+        return result
 
 
 

@@ -171,7 +171,7 @@ class CutcountsComponent(IntervalPlotComponent):
         return ax, axes
 
 
-AllelicCutcountsComponent = CutcountsComponent.with_loaders(VariantIntervalLoader, VariantGenotypeLoader, GroupsByGenotypeLoader, AllelicReadsLoader, new_class_name="AllelicCutcountsComponent")
+# AllelicCutcountsComponent = CutcountsComponent.with_loaders(VariantIntervalLoader, VariantGenotypeLoader, GroupsByGenotypeLoader, AllelicReadsLoader, new_class_name="AllelicCutcountsComponent")
 
 
 @uses_loaders(VariantIntervalLoader, VariantGenotypeLoader, GroupsByGenotypeLoader, AllelicReadsLoader)

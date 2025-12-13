@@ -121,41 +121,123 @@ class VariantGenotypeExtractor(BaseExtractor):
         if getattr(self, "variant_vcf", None) and self.variant_vcf.is_open():
             self.variant_vcf.close()
 
+# ------------------------
 
-class OverlappingReadsExtractor(BaseExtractor):
-    def __init__(self, filename, **kwargs):
+class AllelicReadsExtractor(BaseExtractor):
+    def __init__(self, filename, variant_read_end_offset=3, **kwargs):
         """
-        Extracts data from a cram/bam file.
+        Extracts data from a cram/bam file. Keep in mind that no adjustments are made for cutcounts offsets (0, -1) for DNase I. Use FootprintTools BamFileExtractor if you need that.
 
         Parameters
         ----------
         filename : str
             Path to the cram/bam file.
+        variant_read_end_offset : int
+            Minimum distance from read end to variant position to consider read unbiased.
+        **kwargs : dict
         """
         super().__init__(filename, **kwargs)
 
-        self.cram = pysam.AlignmentFile(filename)
+        self.variant_read_end_offset = variant_read_end_offset
+        self.cram = pysam.AlignmentFile(filename, **kwargs)
 
-    def __getitem__(self, interval):
-        reads_1 = {}
-        reads_2 = {}
+    @staticmethod
+    def get_5p_offset(pileupread: pysam.PileupRead):
+        """
+        Returns position of variant relative to 5' of read
+        """
+        if pileupread.query_position is None: # pileup overlaps deletion 
+            return None
+        elif pileupread.alignment.is_reverse:
+            return pileupread.alignment.query_length - pileupread.query_position
+        else:
+            return pileupread.query_position + 1
+
+    def check_bias(self, pileupread):
+        # if get_base_quality(pileupread)<baseq:
+        # 	raise ReadBiasError()
+        return self.get_5p_offset(pileupread) <= self.variant_read_end_offset
+    
+    def _validate_read(self, pileupread: pysam.PileupRead, variant_interval: VariantInterval):
+        if pileupread.is_del or pileupread.is_refskip:
+            return pileupread, 'N', "deletion_or_refskip"
+        overlaps_variant = pileupread.query_position is not None
+        if not overlaps_variant:
+            return pileupread, 'N', "no_overlap"
+        
+        if not self.check_bias(pileupread):
+            return pileupread, 'N', "bias"
+
+        read_allele = pileupread.alignment.query_sequence[pileupread.query_position]
+        if read_allele not in (variant_interval.ref, variant_interval.alt):
+            return pileupread, 'N', "genotype_error"
+        return pileupread, read_allele, "valid"
+    
+    def _get_all_pileup_reads(self, variant_interval: VariantInterval):
+        assert isinstance(variant_interval, VariantInterval), "variant_interval must be an instance of genome_tools.VariantInterval"
 
         # Go into BAM file and get the reads
-        for pileupcolumn in self.cram.pileup(interval.chrom, interval.start, interval.end, maxdepth=10000, truncate=True, stepper="nofilter"):
+        for pileupcolumn in self.cram.pileup(variant_interval.chrom, variant_interval.start, variant_interval.end, maxdepth=10000, truncate=True, stepper="nofilter"):
+            pileupcolumn: pysam.PileupColumn
             for pileupread in pileupcolumn.pileups:
-                if pileupread.is_del or pileupread.is_refskip:
-                    #print('refskip or del ', pileupread.alignment.query_name, file=sys.stderr)
+                pileupread: pysam.PileupRead
+                yield self._validate_read(pileupread, variant_interval)
+
+    @staticmethod
+    def _aggregate_into_pairs(reads: dict):
+        unique_reads = {}
+        for pileupread, read_allele, status in reads:
+            pileupread: pysam.PileupRead
+            read_name = pileupread.alignment.query_name
+            if read_name not in unique_reads:
+                unique_reads[read_name] = {
+                    'status': status,
+                    'read_allele': read_allele,
+                    'pileupread': pileupread
+                }
+            else: # goes to this branch if mate exists
+                # check that both reads have compatible status.
+                mate_status = unique_reads[read_name]['status']
+                if mate_status == status:
+                    if status == "valid":
+                        mate_allele = unique_reads[read_name]['read_allele']
+                        if mate_allele != read_allele:
+                            unique_reads[read_name]['status'] = "different_genotypes"
+                            unique_reads[read_name]['read_allele'] = f"{mate_allele};{read_allele}"
+
+                elif status == "valid":
+                    unique_reads[read_name]['status'] = status
+                elif mate_status == "valid":
                     continue
-
-                if pileupread.alignment.is_read1:
-                    reads_1[pileupread.alignment.query_name] = pileupread
                 else:
-                    reads_2[pileupread.alignment.query_name] = pileupread
+                    unique_reads[read_name]['status'] = f"{mate_status};{status}"
 
-        # All reads that overlap the region; unique set
-        read_pairs = set(reads_1.keys()) | set(reads_2.keys())
+        return unique_reads
 
-        return reads_1, reads_2, read_pairs
+    def extract_allelic_reads(self, variant_interval: VariantInterval):
+        assert isinstance(variant_interval, VariantInterval), "variant_interval must be an instance of genome_tools.VariantInterval"
+        reads = self._get_all_pileup_reads(variant_interval)
+        unique_reads = self._aggregate_into_pairs(reads)
+        return unique_reads
+
+    @staticmethod
+    def genomic_interval_from_read(pileupread: pysam.PileupRead, base):
+        read = pileupread.alignment
+        return GenomicInterval(
+            chrom=read.reference_name,
+            start=read.reference_start,
+            end=read.reference_end,
+            is_reverse=read.is_reverse,
+            base=base
+        )
+
+    def __getitem__(self, variant_interval: VariantInterval):
+        allelic_reads = self.extract_allelic_reads(variant_interval)
+        return [
+            self.genomic_interval_from_read(v['pileupread'], v['read_allele']) 
+            for v in allelic_reads.values()
+            if v['status'] == "valid"
+        ]
 
     def close(self):
         if getattr(self, "cram", None) and not self.cram.closed:
