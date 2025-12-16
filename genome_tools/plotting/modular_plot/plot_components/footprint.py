@@ -79,7 +79,7 @@ class PosteriorHeatmapComponent(IntervalPlotComponent):
             ax1.set_ylabel(group, rotation=0, ha="right", va="center", fontsize="medium")
             ax1.set_xticks([])  # Hide x-axis ticks
             ax1.set_yticks([])  # Hide y-axis ticks
-            axes.apend(ax1)
+            axes.append(ax1)
             row += 1
         ax.axis("off")
 
