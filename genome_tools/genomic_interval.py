@@ -8,7 +8,7 @@ import warnings
 
 class GenomicInterval:
     """Class that implements BED-style object"""
-    required_fields = ["chrom", "start", "end", "name"]
+    required_fields = ["chrom", "start", "end"]
 
     def __init__(self, chrom, start, end, name=".", **kwargs):
         super().__setattr__('_initialized', False)
