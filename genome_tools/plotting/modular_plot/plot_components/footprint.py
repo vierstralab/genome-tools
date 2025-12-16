@@ -65,7 +65,7 @@ class PosteriorHeatmapComponent(IntervalPlotComponent):
             subplot_spec=ax.get_subplotspec(),
             hspace=hspace
         )
-        
+        axes = []
         row = 0
         for group, df in grouped_posteriors:
             fig = ax.get_figure()
@@ -76,14 +76,14 @@ class PosteriorHeatmapComponent(IntervalPlotComponent):
                 ax1.spines[s].set_visible(True)
             
             # Formatting
-            ax1.set_ylabel(f"{group} (n={df.shape[0]})", rotation=0, ha="right", va="center", fontsize="medium")
+            ax1.set_ylabel(group, rotation=0, ha="right", va="center", fontsize="medium")
             ax1.set_xticks([])  # Hide x-axis ticks
             ax1.set_yticks([])  # Hide y-axis ticks
-            
+            axes.apend(ax1)
             row += 1
         ax.axis("off")
 
-        return ax
+        return ax, axes
 
 
 TFProtectedNucleotidesComponent = SequencePlotComponent.with_loaders(
