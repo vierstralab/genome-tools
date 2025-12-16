@@ -106,7 +106,7 @@ class AggregatedCAVLoader(PlotDataLoader):
         data.cavs_intervals = df_to_intervals(
             filtered_cavs.reset_index(),
             extra_columns=['value', 'is_significant', 'color', 'significant_groups'],
-            interval_type='variant'
+            interval_type='variant_interval'
         )
         return data
     
@@ -126,7 +126,7 @@ class PerSampleCAVLoader(PlotDataLoader):
         data.cavs_intervals = df_to_intervals(
             filtered_cavs,
             extra_columns=['value', 'color'],
-            interval_type='variant'
+            interval_type='variant_interval'
         )
         return data
 
