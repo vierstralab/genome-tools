@@ -300,7 +300,7 @@ def df_to_genomic_intervals(df: pd.DataFrame, interval: GenomicInterval=None, ex
         df,
         interval=interval,
         extra_columns=extra_columns,
-        interval_type='genomic'
+        interval_type='genomic_interval'
     )
 
 
