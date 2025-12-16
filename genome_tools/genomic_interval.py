@@ -170,13 +170,17 @@ class GenomicInterval:
             alt=kwargs["alt"],
         )
     
+    def to_genomic_interval(self):
+        """Returns self"""
+        return self.copy()
+    
     def vi(self, ref=None, alt=None):
         """Shortcut for to_variant_interval"""
         return self.to_variant_interval(ref=ref, alt=alt)
     
     def gi(self):
         """Shortcut for to_genomic_interval"""
-        return self
+        return self.to_genomic_interval()
 
     def overlaps(self, other: 'GenomicInterval'):
         """Returns whether two intervals overlap"""
@@ -272,7 +276,7 @@ def _parse_interval_type(interval_type: str):
         'genomic_interval': GenomicInterval,
         'variant_interval': VariantInterval,
     }
-    assert interval_type in class_name_dict, "interval_type must be either 'genomic' or 'variant'"
+    assert interval_type in class_name_dict, "interval_type must be either 'genomic_interval' or 'variant_interval'"
     return class_name_dict[interval_type]
 
 

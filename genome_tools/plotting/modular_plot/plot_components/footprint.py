@@ -40,19 +40,20 @@ class FootprintsIndexComponent(SegmentPlotComponent):
 @uses_loaders(PosteriorLoader)
 class PosteriorHeatmapComponent(IntervalPlotComponent):
 
-    def _plot(self, data, ax, hspace=0.05, **kwargs):
+    def _plot(self, data, ax: plt.Axes, hspace=0.05, **kwargs):
         """
         main plot function of the component
         always accepts data, ax, **kwargs
         kwargs override any fields in init
         """
         interval_posterior: pd.DataFrame = data.interval_posterior
+        grouping_column: pd.Series = data.grouping_column
         grouped_data = interval_posterior.groupby(
-            data.grouping_column,
+            grouping_column,
             observed=True
         )
 
-        group_names = pd.unique(data.grouping_column)
+        group_names = pd.unique(grouping_column)
 
         grouped_posteriors = [
             (group, grouped_data.get_group(group)) for group in group_names
