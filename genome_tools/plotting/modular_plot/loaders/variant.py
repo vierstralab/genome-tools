@@ -1,9 +1,7 @@
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
-from typing import List
 
-from genome_tools import filter_df_to_interval, df_to_variant_intervals, VariantInterval, GenomicInterval
+from genome_tools import filter_df_to_interval, df_to_intervals, VariantInterval, GenomicInterval
 
 from genome_tools.data.extractors import TabixExtractor, VariantGenotypeExtractor, AllelicReadsExtractor
 
@@ -105,9 +103,10 @@ class AggregatedCAVLoader(PlotDataLoader):
         
         filtered_cavs['value'] = filtered_cavs['logit_es_combined']
         filtered_cavs['color'] = np.where(filtered_cavs['is_significant'], color, notsignif_color)
-        data.cavs_intervals = df_to_variant_intervals(
+        data.cavs_intervals = df_to_intervals(
             filtered_cavs.reset_index(),
-            extra_columns=['value', 'is_significant', 'color', 'significant_groups']
+            extra_columns=['value', 'is_significant', 'color', 'significant_groups'],
+            interval_type='VariantInterval'
         )
         return data
     
@@ -124,9 +123,10 @@ class PerSampleCAVLoader(PlotDataLoader):
         
         filtered_cavs['value'] = filtered_cavs['logit_es']
         filtered_cavs['color'] = np.where(filtered_cavs['is_significant'], color, notsignif_color)
-        data.cavs_intervals = df_to_variant_intervals(
+        data.cavs_intervals = df_to_intervals(
             filtered_cavs,
-            extra_columns=['value', 'color']
+            extra_columns=['value', 'color'],
+            interval_type='VariantInterval'
         )
         return data
 
