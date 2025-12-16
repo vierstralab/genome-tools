@@ -308,6 +308,14 @@ def df_to_genomic_intervals(df: pd.DataFrame, interval: GenomicInterval=None, ex
     )
 
 
+def df_to_variant_intervals(df: pd.DataFrame, interval: GenomicInterval=None, extra_columns=()):
+    return df_to_intervals(
+        df,
+        interval=interval,
+        extra_columns=extra_columns,
+        interval_type='variant_interval'
+    )
+
 def intervals_to_df(intervals: List[GenomicInterval]):
     assert len(intervals) > 0, "No intervals to convert"
     interval_type_cls = type(intervals[0])
