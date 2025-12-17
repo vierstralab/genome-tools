@@ -20,6 +20,7 @@ class GenomicInterval:
         for key, value in kwargs.items():
             self.extra_fields.append(key)
             setattr(self, key, value)
+        self.extra_fields.append("name")
         super().__setattr__('_initialized', True)
 
     @staticmethod
