@@ -129,7 +129,6 @@ class GenomicInterval:
             self.chrom,
             new_start,
             new_end,
-            name=self.name,
             **self.extra_kwargs
         )
     
