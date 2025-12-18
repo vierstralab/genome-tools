@@ -190,6 +190,8 @@ class FootprintsDataLoader(PlotDataLoader):
                 ]
             ) as extractor:
                 tabix_data = extractor[interval]
+                if tabix_data.empty:
+                    continue
                 interval_index = tabix_data['start'].values - interval.start
                 obs[i, interval_index] = tabix_data['obs']
                 exp[i, interval_index] = tabix_data['exp']
