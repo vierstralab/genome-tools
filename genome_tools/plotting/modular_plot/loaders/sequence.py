@@ -146,6 +146,9 @@ class MotifHitsSelectorLoader(PlotDataLoader):
             metric_name = 'abs_ddg'
 
             motif_hits = filter_df_to_interval(motif_hits, variant_interval.gi())
+            if motif_hits.empty:
+                data.motif_intervals = []
+                return data
             score_table = motif_hits.apply(
                 self.score_row,
                 axis=1,
