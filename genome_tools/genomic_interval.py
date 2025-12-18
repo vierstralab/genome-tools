@@ -32,9 +32,7 @@ class GenomicInterval:
 
     def copy(self):
         """Returns a copy of the object"""
-        return GenomicInterval(
-            self.chrom, self.start, self.end, self.name, **self.extra_kwargs
-        )
+        return self.__class__(**self._all_kwargs)
 
     def __len__(self):
         """Length of element"""
@@ -216,10 +214,6 @@ class VariantInterval(GenomicInterval):
     def to_variant_interval(self):
         """Returns self"""
         return self
-
-    def copy(self):
-        """Returns a copy of the object"""
-        return VariantInterval(**self._all_kwargs)
     
     def widen(self, x, inplace=False):
         raise NotImplementedError("Cannot widen a variant interval. Convert to GenomicInterval with gi() method first.")
