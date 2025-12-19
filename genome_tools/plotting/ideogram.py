@@ -43,7 +43,6 @@ def read_ideogram(filepath):
 def ideogram_plot(data, chrom, pos=None, ax=None, **kwargs):
     if not ax:
         ax = plt.gca()
-    fig = ax.figure
 
     try:
         xranges = data[0][chrom]

@@ -54,11 +54,11 @@ class GencodeComponent(IntervalPlotComponent):
                 gene_symbol_exclude_regex=gene_symbol_exclude_regex,
                 **kwargs
             )
-            ax.set_xticks([])
-            ax.set_yticks([])
-            clear_spines(ax)
         except ValueError:
             self.logger.warning("No gene annotations found for the interval.")
+        ax.set_xticks([])
+        ax.set_yticks([])
+        clear_spines(ax)
         return ax
 
 
