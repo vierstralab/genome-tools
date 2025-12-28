@@ -8,7 +8,7 @@ from genome_tools.plotting.utils import format_axes_to_interval
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
-from genome_tools.plotting.modular_plot.loaders.hotspot3 import AggCutcountsLoader, PerBpBackgroundTrackLoader, HighSignalMaskLoader
+from genome_tools.plotting.modular_plot.loaders.hotspot3 import AggCutcountsLoader, PerBpBackgroundTrackLoader, HighSignalMaskLoader, SmoothedSignalLoader
 from genome_tools.plotting.modular_plot.loaders.basic import ParquetSignalLoader
 
 from hotspot3.peak_calling import find_stretches
@@ -52,6 +52,21 @@ class SignalAndMeanBGComponent(IntervalPlotComponent):
         ax.fill_between(np.linspace(region.start, region.end, len(hs_data)), hs_data, linewidth=linewidth, color=hs_color, rasterized=True, **kwargs)
         ax.fill_between(np.linspace(region.start, region.end, len(bg_data)), bg_data, linewidth=linewidth, color=bg_color, rasterized=True, **kwargs)
         format_axes_to_interval(ax, region)
+        return ax
+
+
+@uses_loaders(*SignalAndMeanBGComponent.__required_loaders__, SmoothedSignalLoader)
+class SmoothedSignalAndMeanBGComponent(SignalAndMeanBGComponent):
+    def _plot(self, data: DataBundle, ax: plt.Axes, **kwargs):
+        super()._plot(data, ax=ax, **kwargs)
+        xlim = ax.get_xlim()
+        ax.plot(
+            np.linspace(*xlim, len(data.smoothed_signal)),
+            data.smoothed_signal,
+            color='#3f5299',
+            ls='-',
+            lw=0.5
+        )
         return ax
 
 

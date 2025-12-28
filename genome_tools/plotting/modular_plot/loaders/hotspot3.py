@@ -10,6 +10,8 @@ from genome_tools.data.extractors import ChromParquetExtractor
 from hotspot3.io.readers import ChromReader
 from hotspot3.background_fit.fit import GlobalBackgroundFit
 
+from scipy.signal import find_peaks
+
 
 class AggCutcountsLoader(PlotDataLoader):
     def _load(self, data: DataBundle, cutcounts_tabix_file, mappable_bases_tabix, chrom_sizes: pd.DataFrame):
@@ -44,4 +46,12 @@ class HighSignalMaskLoader(PlotDataLoader):
             data.fit_threshold,
             75
         )
+        return data
+
+
+class SmoothedSignalLoader(PlotDataLoader):
+    def _load(self, data: DataBundle, smoothed_signal_parquet):
+        with ChromParquetExtractor(smoothed_signal_parquet, columns=['smoothed']) as pqt:
+            data.smoothed_signal =  pqt[data.interval]['smoothed'].values
+        data.maxima = find_peaks(data.smoothed_signal)[0]
         return data
