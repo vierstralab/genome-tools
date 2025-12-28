@@ -180,11 +180,17 @@ class PlotComponent(LoggerMixin):
         new_class = uses_loaders(*loaders)(new_class)
         module = sys.modules[cls.__module__]
 
+        if new_class_name == cls.__name__:
+            raise ValueError(
+                "new_class_name must be different from the reference class name."
+            )
+
         # Protect against name collisions
         if hasattr(module, new_class_name):
-            raise RuntimeError(
+            warnings.warn(
                 f"Class name '{new_class_name}' already exists in module {cls.__module__}."
-                " Choose a different new_class_name."
+                " Overwriting it.",
+                stacklevel=3
             )
 
         # Register class so pickle/multiprocessing can find it

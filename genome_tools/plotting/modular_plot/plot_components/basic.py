@@ -7,7 +7,7 @@ from genome_tools.plotting.utils import clear_spines
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 
-from genome_tools.plotting.modular_plot.loaders.basic import IdeogramLoader, GencodeLoader, SignalLoader
+from genome_tools.plotting.modular_plot.loaders.basic import IdeogramLoader, GencodeLoader, SignalLoader, SegmentsLoader, SegmentsTabixLoader
 
 
 @uses_loaders(IdeogramLoader)
@@ -77,6 +77,26 @@ class TrackComponent(IntervalPlotComponent):
     """
     @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax, **kwargs):
+        signal_plot(data.interval, data.signal, ax=ax, **kwargs)
+        return ax
+
+
+@uses_loaders(SegmentsLoader)
+class SegmentBedComponent(IntervalPlotComponent):
+    """Plot a continuous signal track over an interval.
+
+    Loaders: `SegmentsLoader`
+    Required loader args (via `SegmentsLoader`):
+    - `signal_file`: path to a BigWig file
+
+    Plot kwargs passed to `genome_tools.plotting.signal_plot`
+
+    Returns: `matplotlib.axes.Axes`
+    """
+    @IntervalPlotComponent.set_xlim_interval
+    def _plot(self, data, ax, **kwargs):
         ax.set_xlim(data.interval.start, data.interval.end)
         signal_plot(data.interval, data.signal, ax=ax, **kwargs)
         return ax
+
+SegmentsTabixComponent = SegmentBedComponent.with_loaders(SegmentsTabixLoader, new_class_name='SegmentsTabixComponent')

@@ -298,6 +298,7 @@ class IntervalPlotter(VerticalConnectorMixin):
     """
     def __init__(self, plot_components: Sequence[IntervalPlotComponent],
                 width=2.5, **loaders_kwargs):
+        assert all(isinstance(c, IntervalPlotComponent) for c in plot_components), "All plot_components must be instances of IntervalPlotComponent."
         super().__init__(plot_components)
         self.loaders_kwargs = loaders_kwargs
     
