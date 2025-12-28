@@ -4,6 +4,7 @@ import pandas as pd
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
+from genome_tools import GenomicInterval
 from genome_tools.data.extractors import ChromParquetExtractor
 
 from hotspot3.io.readers import ChromReader
@@ -12,11 +13,16 @@ from hotspot3.background_fit.fit import GlobalBackgroundFit
 
 class AggCutcountsLoader(PlotDataLoader):
     def _load(self, data: DataBundle, cutcounts_tabix_file, mappable_bases_tabix, chrom_sizes: pd.DataFrame):
-        reader = ChromReader(chrom_sizes.loc[data.interval.chrom])
+        chrom_interval = GenomicInterval(
+            data.interval.chrom,
+            0,
+            chrom_sizes.loc[data.interval.chrom, 'len']
+        )
+        reader = ChromReader(chrom_interval)
         signal = reader.extract_mappable_agg_cutcounts(
             cutcounts_file=cutcounts_tabix_file,
             mappable_file=mappable_bases_tabix
-        )
+        )[data.interval.start:data.interval.end]
         data.signal = signal
         return data
 
