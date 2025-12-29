@@ -38,6 +38,7 @@ class SignalAndMeanBGComponent(IntervalPlotComponent):
             data.fit_threshold,
             alpha=0.1,
             color='#3f5299',
+            rasterized=True,
             lw=0
         )
         
