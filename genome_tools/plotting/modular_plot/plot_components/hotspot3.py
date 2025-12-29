@@ -31,7 +31,7 @@ class SignalAndMeanBGComponent(IntervalPlotComponent):
             **kwargs
         )
         xlim = ax.get_xlim()
-        ax.plot(np.linspace(*xlim, len(data.fit_threshold)), data.fit_threshold, color='grey', ls='dotted', lw=0.5)
+        ax.plot(np.linspace(*xlim, len(data.fit_threshold)), data.fit_threshold, color='grey', ls='dotted', lw=0.5, rasterized=True)
         ax.fill_between(
             np.linspace(*xlim, len(data.fit_threshold)),
             np.zeros_like(data.fit_threshold),
