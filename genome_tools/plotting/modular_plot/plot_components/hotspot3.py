@@ -18,7 +18,7 @@ from .basic import TrackComponent
 
 @uses_loaders(AggCutcountsLoader, PerBpBackgroundTrackLoader, HighSignalMaskLoader)
 class SignalAndMeanBGComponent(IntervalPlotComponent):
-    def _plot(self, data: DataBundle, ax: plt.Axes, stride=500, hs_color='#31a354', bg_color='#C0C0C0', line_lw=0.25, fit_threshold_alpha=0.1, **kwargs):
+    def _plot(self, data: DataBundle, ax: plt.Axes, stride=500, hs_color='#31a354', bg_color='#C0C0C0', line_lw=0.25, fit_threshold_stride=500, fit_threshold_alpha=0.1, **kwargs):
         
         self.plot_bg_and_signal(
             data.signal,
