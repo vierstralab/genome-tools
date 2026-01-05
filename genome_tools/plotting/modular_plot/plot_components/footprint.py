@@ -98,7 +98,7 @@ TFProtectedNucleotidesComponent = SequencePlotComponent.with_loaders(
 @uses_loaders(FootprintsDataLoader)
 class FootprintTrackComponent(IntervalPlotComponent):
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data: DataBundle, ax: plt.Axes, sample_ids=None, color='k', exp_color='#C0C0C0', lw=0.5, kind='pp', **kwargs):
+    def _plot(self, data: DataBundle, ax: plt.Axes, sample_ids=None, color='k', lw=0.5, kind='pp', exp_kwargs=None, **kwargs):
         if sample_ids is None:
             sample_ids = data.obs.index.tolist()
         xs = self.squarify_array(np.arange(data.obs.shape[1] + 1) + data.interval.start)
@@ -110,13 +110,17 @@ class FootprintTrackComponent(IntervalPlotComponent):
             plot_data = np.repeat(data.pp.loc[sample_ids, :].mean(axis=0), 2)
 
         elif kind == 'obs/exp':
+            exp_plot_kwargs = kwargs.copy()
+            exp_plot_kwargs['color'] = '#C0C0C0'
+            exp_plot_kwargs['lw'] = lw
+            if exp_kwargs is not None:
+                exp_plot_kwargs.update(exp_kwargs)
+
             ax.fill_between(
                 xs,
                 np.zeros_like(xs),
                 np.repeat(data.exp.loc[sample_ids, :].sum(axis=0), 2),
-                color=exp_color,
-                lw=lw,
-                **kwargs
+                **exp_plot_kwargs
             )
             plot_data = np.repeat(data.obs.loc[sample_ids, :].sum(axis=0), 2)
         else:
