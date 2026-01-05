@@ -151,6 +151,7 @@ class AllelicFpTrackComponent(FootprintTrackComponent):
             subplot_spec=ax.get_subplotspec(), 
             hspace=0.25
         )
+        ax.axis("off")
         fig = ax.get_figure()
 
         axes = []
@@ -168,6 +169,7 @@ class AllelicFpTrackComponent(FootprintTrackComponent):
                 color=color,
                 **kwargs
             )
+            ax_group.xaxis.set_visible(False)
             axes.append(ax_group)
 
         return ax
