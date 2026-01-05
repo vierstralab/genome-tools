@@ -172,7 +172,7 @@ class AllelicFpTrackComponent(FootprintTrackComponent):
             ax_group.xaxis.set_visible(False)
             axes.append(ax_group)
 
-        return ax
+        return ax, axes
 
 
 @uses_loaders(GroupsDataLoader, FootprintsDataLoader, DifferentialFootprintLoader)
