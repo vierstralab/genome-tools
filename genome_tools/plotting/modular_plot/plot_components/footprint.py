@@ -7,6 +7,8 @@ import matplotlib.colors as colors
 
 from genome_tools.plotting.utils import format_axes_to_interval
 
+from genome_tools.plotting.colors.cm import get_vocab_color
+
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
@@ -96,24 +98,79 @@ TFProtectedNucleotidesComponent = SequencePlotComponent.with_loaders(
 @uses_loaders(FootprintsDataLoader)
 class FootprintTrackComponent(IntervalPlotComponent):
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, smpl_idx=0, color='k', exp_color='C1', lw=0.5, kind='pp', **kwargs):
+    def _plot(self, data: DataBundle, ax: plt.Axes, sample_ids=None, color='k', exp_color='#C0C0C0', lw=0.5, kind='pp', **kwargs):
+        if sample_ids is None:
+            sample_ids = data.obs.index.tolist()
         xs = self.squarify_array(np.arange(data.obs.shape[1] + 1) + data.interval.start)
         if kind == 'pp':
             try:
                 getattr(data, 'pp')
             except AttributeError:
                 raise AttributeError("FootprintTrackComponent with kind='pp' requires calc_posteriors=True")
+            plot_data = np.repeat(data.pp.loc[sample_ids, :].mean(axis=0), 2)
 
-            ax.plot(xs, np.repeat(data.pp[smpl_idx, :], 2), color=color, lw=lw, **kwargs)
         elif kind == 'obs/exp':
-            ax.plot(xs, np.repeat(data.obs[smpl_idx, :], 2), color=exp_color, lw=lw, **kwargs)
-            ax.plot(xs, np.repeat(data.exp[smpl_idx, :], 2), color=color, lw=lw, **kwargs)
-        format_axes_to_interval(ax, data.interval)
+            ax.fill_between(
+                xs,
+                np.zeros_like(xs),
+                np.repeat(data.exp.loc[sample_ids, :].sum(axis=0), 2),
+                color=exp_color,
+                lw=lw,
+                **kwargs
+            )
+            plot_data = np.repeat(data.obs.loc[sample_ids, :].sum(axis=0), 2)
+        else:
+            raise ValueError(f"Unknown kind '{kind}' for FootprintTrackComponent. Expected 'pp' or 'obs/exp'.")
+
+        ax.fill_between(
+            xs,
+            np.zeros_like(xs),
+            plot_data,
+            color=color,
+            lw=lw,
+            **kwargs
+        )
         return ax
     
     @staticmethod
     def squarify_array(y):
         return np.concatenate([y[:1], np.repeat(y[1:-1], 2), y[-1:]])
+
+
+@uses_loaders(VariantIntervalLoader, VariantGenotypeLoader, GroupsByGenotypeLoader,FootprintsDataLoader)
+class AllelicFpTrackComponent(FootprintTrackComponent):
+
+    def _plot(self, data: DataBundle, ax: plt.Axes, kind='obs/exp', vocab='dna', **kwargs):
+        groups_data: pd.DataFrame = data.groups_data
+
+        groups = ['AA', 'BB']
+
+        gs = gridspec.GridSpecFromSubplotSpec(
+            len(groups),
+            1,
+            subplot_spec=ax.get_subplotspec(), 
+            hspace=0.25
+        )
+        fig = ax.get_figure()
+
+        axes = []
+        for i, (group, allele) in enumerate(zip(groups, [data.variant_interval.ref, data.variant_interval.alt])):
+            color = get_vocab_color(allele, vocab)
+            ax_group = fig.add_subplot(gs[i, :])
+            format_axes_to_interval(ax_group, data.interval)
+
+            sample_ids = groups_data.query(f'parsed_genotype == "{group}"').index.values
+            super()._plot(
+                data,
+                ax_group,
+                sample_ids=sample_ids,
+                kind=kind,
+                color=color,
+                **kwargs
+            )
+            axes.append(ax_group)
+
+        return ax
 
 
 @uses_loaders(GroupsDataLoader, FootprintsDataLoader, DifferentialFootprintLoader)
