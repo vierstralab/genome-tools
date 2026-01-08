@@ -1,310 +1,324 @@
+import os, string
 import numpy as np
-import os
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon
-from shapely.geometry import Polygon as ShapelyPolygon
-
-from .colors.cm import VOCAB_COLOR_MAPS
+from matplotlib import font_manager
+from matplotlib.path import Path
+from matplotlib.patches import PathPatch
 
 from fontTools.ttLib import TTFont
 from fontTools.pens.basePen import BasePen
 
-from matplotlib import font_manager
+from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon, GeometryCollection
+from shapely.ops import unary_union
+from shapely.geometry.polygon import orient
 
-import string
+from genome_tools.plotting.colors.cm import VOCAB_COLOR_MAPS
 from genome_tools.data.pwm import relative_info_content
 
 
-class MultiPolygonPen(BasePen):
-    def __init__(self, glyphSet, approximation_scale=1):
-        BasePen.__init__(self, glyphSet)
-        self.polygons = []  # List to hold multiple polygons (each a list of points)
-        self.current_polygon = []  # Current polygon being drawn
-        self.approximation_scale = approximation_scale
+class RingPen(BasePen):
+    """
+    Records glyph outlines as a list of rings (each ring = list of (x,y) points, closed).
+    Cubic curves are flattened into line segments.
+    """
+    def __init__(self, glyphSet, approximation_scale=0.03):
+        super().__init__(glyphSet)
+        self.rings = []
+        self.cur = []
+        self.approximation_scale = float(approximation_scale)
 
     def _moveTo(self, p):
-        # If moving to a new point not immediately after closing a path, start a new polygon
-        if self.current_polygon:
-            self.polygons.append(self.current_polygon)
-            self.current_polygon = []
-        self.current_polygon.append(p)
+        if self.cur:
+            self.rings.append(self.cur)
+            self.cur = []
+        self.cur = [p]
 
     def _lineTo(self, p):
-        self.current_polygon.append(p)
+        self.cur.append(p)
 
     def _curveToOne(self, p1, p2, p3):
-        if self.current_polygon:
-            start = self.current_polygon[-1]
-        else:
-            start = (0, 0)
+        start = self.cur[-1] if self.cur else (0.0, 0.0)
 
-        num_segments = int(self._curve_length(start, p1, p2, p3) * self.approximation_scale)
+        def bez(t):
+            x = (1 - t)**3 * start[0] + 3 * (1 - t)**2 * t * p1[0] + 3 * (1 - t) * t**2 * p2[0] + t**3 * p3[0]
+            y = (1 - t)**3 * start[1] + 3 * (1 - t)**2 * t * p1[1] + 3 * (1 - t) * t**2 * p2[1] + t**3 * p3[1]
+            return (x, y)
 
-        for i in range(1, num_segments + 1):
-            t = i / num_segments
-            point = self._get_bezier_point(t, start, p1, p2, p3)
-            self.current_polygon.append(point)
+        # quick length estimate to choose segment count
+        last = start
+        L = 0.0
+        for k in range(1, 11):
+            t = k / 10
+            cur = bez(t)
+            L += np.linalg.norm(np.array(cur) - np.array(last))
+            last = cur
+
+        nseg = max(1, int(L * self.approximation_scale))  # <- avoid 0
+        for i in range(1, nseg + 1):
+            self.cur.append(bez(i / nseg))
 
     def _closePath(self):
-        # Close the path by ensuring the last point is the same as the first
-        if self.current_polygon and self.current_polygon[0] != self.current_polygon[-1]:
-            self.current_polygon.append(self.current_polygon[0])
-        self.polygons.append(self.current_polygon)
-        self.current_polygon = []
+        if self.cur and self.cur[0] != self.cur[-1]:
+            self.cur.append(self.cur[0])
+        if self.cur:
+            self.rings.append(self.cur)
+        self.cur = []
 
-    def _get_bezier_point(self, t, start, p1, p2, p3):
-        """Calculate a point in a cubic Bezier curve."""
-        x = (1 - t)**3 * start[0] + 3 * (1 - t)**2 * t * p1[0] + 3 * (1 - t) * t**2 * p2[0] + t**3 * p3[0]
-        y = (1 - t)**3 * start[1] + 3 * (1 - t)**2 * t * p1[1] + 3 * (1 - t) * t**2 * p2[1] + t**3 * p3[1]
-        return (x, y)
-
-    def _curve_length(self, start, p1, p2, p3, steps=10):
-        """Approximate the length of the bezier curve."""
-        length = 0
-        last_point = start
-        for step in range(1, steps + 1):
-            t = step / steps
-            current_point = self._get_bezier_point(t, start, p1, p2, p3)
-            length += np.linalg.norm(np.array(current_point) - np.array(last_point))
-            last_point = current_point
-        return length
-
-    def get_multipolygon(self):
-        # Call this method to get the multipolygon after drawing is complete
-        if self.current_polygon:
-            # If a polygon is in progress, add it to the list
+    def get_rings(self):
+        if self.cur:
             self._closePath()
-        return self.polygons
+        return self.rings
 
 
-def standardize_multipolygon(multipolygon):
+def standardize_rings(rings):
     """
-    Standardize the coordinates of a multipolygon so its bounding box fits in a 1x1 grid,
-    maintaining the aspect ratio and centering it within the grid.
-
-    Parameters:
-    - multipolygon: A list of lists of (x, y) tuples.
-
-    Returns:
-    - A standardized multipolygon as a list of lists of (x, y) tuples.
+    Uniformly scales + centers all rings into [0,1]x[0,1] preserving aspect ratio.
     """
-    # Flatten the list of points to calculate the bounding box
-    all_points = [point for polygon in multipolygon for point in polygon]
-    min_x = min(point[0] for point in all_points)
-    max_x = max(point[0] for point in all_points)
-    min_y = min(point[1] for point in all_points)
-    max_y = max(point[1] for point in all_points)
+    pts = [p for r in rings for p in r]
+    if not pts:
+        return rings
+    xs, ys = zip(*pts)
+    minx, maxx = min(xs), max(xs)
+    miny, maxy = min(ys), max(ys)
+    w, h = maxx - minx, maxy - miny
+    if w == 0 or h == 0:
+        return rings
 
-    # Calculate scale based on the larger dimension of the bounding box
-    width, height = max_x - min_x, max_y - min_y
-    scale_x = 1 / width
-    scale_y = 1 / height
-
-    # Calculate translation to center the polygon in the 1x1 grid
-    translate_x = -(min_x + max_x) / 2 * scale_x + 0.5
-    translate_y = -(min_y + max_y) / 2 * scale_y + 0.5
-
-    # Apply scaling and translation
-    standardized_multipolygon = [
-        [(x * scale_x + translate_x, y * scale_y + translate_y) for x, y in polygon]
-        for polygon in multipolygon
-    ]
-
-    return standardized_multipolygon
+    s = 1.0 / max(w, h)
+    cx, cy = (minx + maxx) / 2.0, (miny + maxy) / 2.0
+    tx, ty = 0.5 - s * cx, 0.5 - s * cy
+    return [[(s * x + tx, s * y + ty) for x, y in r] for r in rings]
 
 
-def multipolygon_to_wkt(multipolygon):
+def signed_area(ring):
     """
-    Converts a multipolygon structure into a WKT MULTIPOLYGON or POLYGON string.
-
-    Parameters:
-    - multipolygon: A list of lists of (x, y) tuples.
-
-    Returns:
-    - A string in WKT format.
+    Signed polygon area (positive/negative gives winding orientation).
+    Works even if ring isn't explicitly closed.
     """
-    if len(multipolygon) == 1:
-        # Only one polygon, no holes
-        polygon_str = "POLYGON ((" + ", ".join(f"{x} {y}" for x, y in multipolygon[0]) + "))"
-        return polygon_str
-    else:
-        # Multiple polygons, including holes
-        multipolygon_str = "MULTIPOLYGON ("
-        polygons_str = []
-        for polygon in multipolygon:
-            polygons_str.append("((" + ", ".join(f"{x} {y}" for x, y in polygon) + "))")
-        multipolygon_str += ", ".join(polygons_str) + ")"
-        return multipolygon_str
+    n = len(ring)
+    if n < 3:
+        return 0.0
+    s = 0.0
+    for i in range(n - 1):
+        x1, y1 = ring[i]
+        x2, y2 = ring[i + 1]
+        s += x1 * y2 - x2 * y1
+    if ring[0] != ring[-1]:
+        x1, y1 = ring[-1]
+        x2, y2 = ring[0]
+        s += x1 * y2 - x2 * y1
+    return 0.5 * s
 
 
-def get_polygon(glyph_name, glyph_set):
-    pen = MultiPolygonPen(glyph_set, approximation_scale=0.03)
-    glyph = glyph_set[glyph_name]
-    glyph.draw(pen)
-    return standardize_multipolygon(pen.get_multipolygon())
+def rings_to_geometry_winding(rings, repair_invalid=True):
+    """
+    Build a SINGLE filled geometry from rings using winding:
+      geom = union(positive_winding_rings) - union(negative_winding_rings)
+
+    Returns a Shapely Polygon/MultiPolygon/GeometryCollection (single object).
+    """
+    pos, neg = [], []
+    for r in rings:
+        p = ShapelyPolygon(r)
+        if repair_invalid and (not p.is_valid):
+            p = p.buffer(0)
+        if p.is_empty:
+            continue
+        (pos if signed_area(r) > 0 else neg).append(p)
+
+    if not pos and not neg:
+        return GeometryCollection()
+
+    Upos = unary_union(pos) if pos else GeometryCollection()
+    Uneg = unary_union(neg) if neg else GeometryCollection()
+
+    g = Upos.difference(Uneg)
+
+    # Robustness: if winding convention is flipped for a glyph, swap once.
+    if g.is_empty and (not Upos.is_empty or not Uneg.is_empty):
+        g2 = Uneg.difference(Upos)
+        if (not g2.is_empty) and (g2.area > g.area):
+            g = g2
+
+    # Normalize orientation for stable path export: outer CCW, holes CW
+    if g.geom_type == "Polygon":
+        g = orient(g, sign=1.0)
+    elif g.geom_type == "MultiPolygon":
+        g = MultiPolygon([orient(p, sign=1.0) for p in g.geoms])
+
+    return g
 
 
-def get_letter_polygons(font_name, letters):
-    if os.path.isfile(font_name):
-        font = TTFont(font_name)
-    else:
-        font = TTFont(font_manager.findfont(font_name))
+def get_glyph_geometry(char, glyph_set, approximation_scale=0.03):
+    pen = RingPen(glyph_set, approximation_scale=approximation_scale)
+    glyph_set[char].draw(pen)
+    rings = standardize_rings(pen.get_rings())
+    return rings_to_geometry_winding(rings)
+
+
+def get_letter_geometries(font_name, letters, approximation_scale=0.03):
+    """
+    Returns dict: char -> shapely geometry (Polygon or MultiPolygon)
+    """
+    font = TTFont(font_name) if os.path.isfile(font_name) else TTFont(font_manager.findfont(font_name))
     glyph_set = font.getGlyphSet()
-    return {l: get_polygon(l, glyph_set) for l in letters}
+    out = {}
+    for ch in letters:
+        if ch in glyph_set:
+            out[ch] = get_glyph_geometry(ch, glyph_set, approximation_scale=approximation_scale)
+    return out
 
-default_font = 'Arial'
-default_letter_polygons = get_letter_polygons(default_font, string.ascii_uppercase + string.ascii_lowercase)
+
+# cache
+default_font = "Arial"
+default_letter_geoms = get_letter_geometries(default_font, string.ascii_uppercase + string.ascii_lowercase)
 
 
-def transform_polygon(polygon, width_scale=1.0, height_scale=1.0, x_offset=0.0, y_offset=0.0):
+def _ring_to_path_vertices_codes(ring):
+    # ring is sequence of (x,y), assumed closed (last==first) or not
+    if not ring:
+        return [], []
+    pts = list(ring)
+    if pts[0] != pts[-1]:
+        pts.append(pts[0])
+    verts = [(pts[0][0], pts[0][1])]
+    codes = [Path.MOVETO]
+    for x, y in pts[1:]:
+        verts.append((x, y))
+        codes.append(Path.LINETO)
+    # CLOSEPOLY requires one extra vertex; matplotlib ignores its coords but wants it present
+    verts.append((pts[0][0], pts[0][1]))
+    codes.append(Path.CLOSEPOLY)
+    return verts, codes
+
+
+def geometry_to_path(geom):
     """
-    Apply scaling to the width relative to the middle of the polygon (x=0.5) and
-    apply uniform scaling to the height. Also apply translation as specified.
-
-    Parameters:
-    - polygon: A list of (x, y) tuples representing the polygon's vertices.
-    - width_scale: Scaling factor in the x-direction.
-    - height_scale: Scaling factor in the y-direction.
-    - x_offset: Translation offset in the x-direction.
-    - y_offset: Translation offset in the y-direction.
-
-    Returns:
-    - Transformed list of (x, y) tuples.
+    Convert a Shapely Polygon/MultiPolygon into a single Matplotlib compound Path.
     """
-    center_x = 0
-    
-    transformed_polygon = []
-    for x, y in polygon:
-        new_x = ((x - center_x) * width_scale) + center_x + x_offset
-        new_y = (y * height_scale) + y_offset
-        transformed_polygon.append((new_x, new_y))
-    
-    return transformed_polygon
+    verts, codes = [], []
+    if geom.is_empty:
+        return Path([], [])
+
+    def add_polygon(poly):
+        nonlocal verts, codes
+        v, c = _ring_to_path_vertices_codes(list(poly.exterior.coords))
+        verts += v; codes += c
+        for interior in poly.interiors:
+            v, c = _ring_to_path_vertices_codes(list(interior.coords))
+            verts += v; codes += c
+
+    if geom.geom_type == "Polygon":
+        add_polygon(geom)
+    elif geom.geom_type == "MultiPolygon":
+        for poly in geom.geoms:
+            add_polygon(poly)
+    else:
+        # GeometryCollection etc. (rare)
+        return Path([], [])
+
+    return Path(verts, codes)
 
 
-def classify_polygons_by_nesting_depth(polygons):
+def transform_path(path, width_scale=1.0, height_scale=1.0, x_offset=0.0, y_offset=0.0):
     """
-    Classify each polygon by the number of times it is contained within other polygons (its depth).
-    
-    Parameters:
-    - polygons: A list of lists of (x, y) tuples representing the polygons.
-
-    Returns:
-    - A list of tuples, where each tuple contains (depth, polygon).
+    Standardized glyph coords are ~[0,1]. We scale around x=0.5, y=0 (vertical baseline use-case),
+    then translate.
     """
-    shapely_polygons = [ShapelyPolygon(p) for p in polygons]
-
-    # List to store (depth, polygon) tuples
-    ranked_polygons = []
-
-    # Determine depth for each polygon
-    for i, polygon in enumerate(shapely_polygons):
-        depth = 0  # Start with depth 0
-
-        # Check containment within all other polygons
-        for j, other_polygon in enumerate(shapely_polygons):
-            if i != j and polygon.within(other_polygon):
-                depth += 1  # Increase depth for each containment
-
-        ranked_polygons.append((depth, polygons[i]))
-
-    # Sort polygons by depth
-    ranked_polygons.sort(key=lambda x: x[0])
-
-    return ranked_polygons
+    if path.vertices.size == 0:
+        return path
+    v = path.vertices.copy()
+    # x scale around center 0.5
+    v[:, 0] = (v[:, 0] - 0.5) * width_scale + 0.5 + x_offset
+    # y scale from 0
+    v[:, 1] = v[:, 1] * height_scale + y_offset
+    return Path(v, path.codes)
 
 
-def add_multipolygon_to_axis(ax, multipolygon, col, x, y, height, width_scale=1.0, center_scale=True):
-    """
-    Add 'let' with position x, y and height height to matplotlib axis 'ax', adjusting width by width_scale.
-    """
-    # Classify polygons by their containment depth
-    ranked_polygons = classify_polygons_by_nesting_depth(multipolygon)
+def add_geometry_to_axis(ax, geom, color, x, y, height, width_scale=1.0, center_scale=True):
+    if center_scale:
+        x_off = x + (1 - width_scale) / 2
+    else:
+        x_off = x
+    path = geometry_to_path(geom)
+    path = transform_path(path, width_scale=width_scale, height_scale=height, x_offset=x_off, y_offset=y)
 
-    # Draw polygons from lowest depth to highest depth
-    for depth, polygon in ranked_polygons:
-        # Determine face color based on depth parity
-        face_color = col if depth % 2 == 0 else 'white'
-        
-        # Transform and plot the polygon
-        if center_scale:
-            x_offset = x + (1 - width_scale) / 2
-        else:
-            x_offset = x
-        transformed_polygon = transform_polygon(polygon, width_scale, height, x_offset, y)
-        polygon_patch = Polygon(transformed_polygon, closed=True, edgecolor='none', facecolor=face_color, linewidth=0)
-        ax.add_patch(polygon_patch)
+    patch = PathPatch(path, facecolor=color, edgecolor="none", linewidth=0)
+    # # Even though geometry already encodes holes, even-odd makes path hole behavior robust.
+    # patch.set_fillrule("evenodd")
+    ax.add_patch(patch)
+    return patch
 
 
-def plot_letter(letter, x, y, height=1.0, width=1.0, center_scale=True, vocab='dna', color=None, font=default_font, ax=None):
+def plot_letter(letter, x, y, height=1.0, width=1.0, center_scale=True,
+                vocab="dna", color=None, font=default_font, ax=None):
     if ax is None:
         ax = plt.gca()
-    if font == default_font:
-        letter_polygons = default_letter_polygons
-    else:
-        letter_polygons = get_letter_polygons(font, string.ascii_uppercase + string.ascii_lowercase)
-    multipolygon = letter_polygons[letter]
-    if color is None:
-        color = VOCAB_COLOR_MAPS[vocab].get(letter, 'black')
-    add_multipolygon_to_axis(
-        ax,
-        multipolygon, color, x, y, height, 
-        width_scale=width, 
-        center_scale=center_scale
+
+    geoms = default_letter_geoms if font == default_font else get_letter_geometries(
+        font, string.ascii_uppercase + string.ascii_lowercase
     )
+
+    geom = geoms[letter]
+    if color is None:
+        color = VOCAB_COLOR_MAPS[vocab].get(letter, "black")
+
+    add_geometry_to_axis(ax, geom, color, x, y, height, width_scale=width, center_scale=center_scale)
     return ax
 
 
-def seq_plot(letter_heights: np.ndarray, ax=None, vocab="dna", offset=0, width_scale=1.0, font=default_font, center_scale=True):
-    if font == default_font:
-        letter_polygons = default_letter_polygons
-    else:
-        letter_polygons = get_letter_polygons(font, string.ascii_uppercase + string.ascii_lowercase)
+def seq_plot(letter_heights: np.ndarray, ax=None, vocab="dna", offset=0, width_scale=1.0,
+             font=default_font, center_scale=True):
+    geoms = default_letter_geoms if font == default_font else get_letter_geometries(
+        font, string.ascii_uppercase + string.ascii_lowercase
+    )
 
-    if not ax:
+    if ax is None:
         ax = plt.gca()
-    fig = ax.figure
 
     if isinstance(vocab, str):
         vocab = VOCAB_COLOR_MAPS[vocab]
 
     assert letter_heights.shape[1] == len(vocab)
-    x_range = [0, letter_heights.shape[0]]
-    pos_heights = np.copy(letter_heights)
-    pos_heights[letter_heights < 0] = 0
-    neg_heights = np.copy(letter_heights)
-    neg_heights[letter_heights > 0] = 0
-    
+
     max_pos_h = 0.0
     min_neg_h = 0.0
 
+    letters = list(vocab.keys())
+
     for x_pos, heights in enumerate(letter_heights):
-        letters_and_heights = sorted(zip(heights, list(vocab.keys())))
+        # draw from small to large so stacking looks right
+        for h, letter in sorted(zip(heights, letters)):
+            if h == 0:
+                continue
+            geom = geoms[letter]
+            col = vocab[letter]
+            if h > 0:
+                add_geometry_to_axis(ax, geom, col, x_pos + offset, max_pos_h if False else 0, 1)  # dummy
+        # The above "dummy" call is not correct; we need stacking per position:
         y_pos_pos = 0.0
         y_neg_pos = 0.0
-        # x_pos += interval.start
-        for height, letter in letters_and_heights:
-            color = vocab[letter]
-            polygons = letter_polygons[letter]
-            if height > 0:
-                add_multipolygon_to_axis(
-                    ax, polygons, color, x_pos + offset, y_pos_pos, height,
-                    width_scale=width_scale, center_scale=center_scale
-                )
-                y_pos_pos += height
-            elif height < 0:
-                add_multipolygon_to_axis(
-                    ax, polygons, color, x_pos + offset, y_neg_pos, height,
-                    width_scale=width_scale, center_scale=center_scale
-                )
-                y_neg_pos += height
-                
+        for h, letter in sorted(zip(heights, letters)):
+            if h == 0:
+                continue
+            geom = geoms[letter]
+            col = vocab[letter]
+            if h > 0:
+                add_geometry_to_axis(ax, geom, col, x_pos + offset, y_pos_pos, h,
+                                     width_scale=width_scale, center_scale=center_scale)
+                y_pos_pos += h
+            else:
+                add_geometry_to_axis(ax, geom, col, x_pos + offset, y_neg_pos, h,
+                                     width_scale=width_scale, center_scale=center_scale)
+                y_neg_pos += h
+
         max_pos_h = max(max_pos_h, y_pos_pos)
         min_neg_h = min(min_neg_h, y_neg_pos)
 
     ax.set_xlim(left=offset, right=len(letter_heights) + offset)
     ax.set_ylim(bottom=min_neg_h, top=max_pos_h)
+    return ax
 
 
 def plot_motif_logo(pfm: np.ndarray, ax=None, offset=-0.5, rc=False, **kwargs):
