@@ -239,6 +239,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
             )
             circ.set_clip_on(False)
             letter_ax.add_patch(circ)
+            letter_ax.set_aspect('equal', adjustable='box')
             plot_letter(
                 letter=letter_interval.base,
                 x=0.0,
