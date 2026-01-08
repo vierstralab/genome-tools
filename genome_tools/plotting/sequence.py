@@ -79,24 +79,38 @@ class RingPen(BasePen):
         return self.rings
 
 
-def standardize_rings(rings):
+def standardize_rings(rings, preserve_aspect_ratio=False):
     """
-    Uniform scale + center so bbox fits in [0,1]^2 preserving aspect ratio.
+    Normalize glyph rings so that vertical extent is exactly 1.
+    Horizontal extent is either scaled proportionally or independently.
     """
     pts = [p for r in rings for p in r]
     if not pts:
         return rings
+
     xs, ys = zip(*pts)
     minx, maxx = min(xs), max(xs)
     miny, maxy = min(ys), max(ys)
-    w, h = maxx - minx, maxy - miny
-    if w == 0 or h == 0:
+
+    w = maxx - minx
+    h = maxy - miny
+    if h == 0:
         return rings
 
-    s = 1.0 / max(w, h)
-    cx, cy = (minx + maxx) / 2.0, (miny + maxy) / 2.0
-    tx, ty = 0.5 - s * cx, 0.5 - s * cy
-    return [[(s * x + tx, s * y + ty) for x, y in r] for r in rings]
+    sy = 1.0 / h
+
+    if preserve_aspect_ratio:
+        sx = sy
+    else:
+        sx = 1.0 / w if w > 0 else sy
+
+    cx = (minx + maxx) / 2.0
+    cy = miny
+
+    return [
+        [((x - cx) * sx + 0.5, (y - cy) * sy) for x, y in ring]
+        for ring in rings
+    ]
 
 
 def signed_area(ring):
