@@ -245,7 +245,7 @@ class AllelicReadsComponent(IntervalPlotComponent):
                 y=(1 - letter_y_size) / 2,
                 height=letter_y_size,
                 width=letter_x_size,
-                center_scale=True,
+                preserve_aspect_ratio=True,
                 font=font,
                 ax=letter_ax,
             )
