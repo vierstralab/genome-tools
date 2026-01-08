@@ -172,14 +172,14 @@ def rings_to_geometry_winding(rings, repair_invalid=True, try_swap_if_empty=True
     return g
 
 
-def get_glyph_geometry(char, glyph_set, approximation_scale=0.03):
+def get_glyph_geometry(char, glyph_set, approximation_scale=0.03, **kwargs):
     pen = RingPen(glyph_set, approximation_scale=approximation_scale)
     glyph_set[char].draw(pen)
-    rings = standardize_rings(pen.get_rings())
+    rings = standardize_rings(pen.get_rings(), **kwargs)
     return rings_to_geometry_winding(rings)
 
 
-def get_letter_geometries(font_name, letters, approximation_scale=0.03):
+def get_letter_geometries(font_name, letters, approximation_scale=0.03, **kwargs):
     """
     dict: char -> shapely geometry
     """
@@ -188,12 +188,12 @@ def get_letter_geometries(font_name, letters, approximation_scale=0.03):
     out = {}
     for ch in letters:
         if ch in glyph_set:
-            out[ch] = get_glyph_geometry(ch, glyph_set, approximation_scale=approximation_scale)
+            out[ch] = get_glyph_geometry(ch, glyph_set, approximation_scale=approximation_scale, **kwargs)
     return out
 
 
 default_font = "Arial"
-default_letter_geoms = get_letter_geometries(default_font, string.ascii_uppercase + string.ascii_lowercase)
+default_letter_geoms = get_letter_geometries(default_font, string.ascii_uppercase + string.ascii_lowercase, preserve_aspect_ratio=False)
 
 
 def _ring_to_path(ring):
@@ -257,43 +257,46 @@ def transform_path(path, width_scale=1.0, height_scale=1.0, x_offset=0.0, y_offs
     return Path(v, path.codes)
 
 
-def add_geometry_to_axis(ax, geom, color, x, y, height, width_scale=1.0, center_scale=True):
-    if center_scale:
-        x_off = x + (1 - width_scale) / 2
-    else:
-        x_off = x
-
+def add_geometry_to_axis(ax, geom, color, x, y, height, width_scale=1.0):
     path = geometry_to_path(geom)
-    path = transform_path(path, width_scale=width_scale, height_scale=height, x_offset=x_off, y_offset=y)
+    path = transform_path(path, width_scale=width_scale, height_scale=height, x_offset=x, y_offset=y)
 
     patch = PathPatch(path, facecolor=color, edgecolor="none", linewidth=0)
 
     ax.add_patch(patch)
     return patch
 
+def get_geoms(font, preserve_aspect_ratio=False):
+    chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
+    return (
+        default_letter_geoms
+        if font == default_font and not preserve_aspect_ratio
+        else get_letter_geometries(
+            font,
+            chars,
+            preserve_aspect_ratio=preserve_aspect_ratio
+        )
+    )
 
-def plot_letter(letter, x, y, height=1.0, width=1.0, center_scale=True,
+
+def plot_letter(letter, x, y, height=1.0, width=1.0, preserve_aspect_ratio=False,
                 vocab="dna", color=None, font=default_font, ax=None):
     if ax is None:
         ax = plt.gca()
 
-    geoms = default_letter_geoms if font == default_font else get_letter_geometries(
-        font, string.ascii_uppercase + string.ascii_lowercase
-    )
+    geoms = get_geoms(font, preserve_aspect_ratio=preserve_aspect_ratio)
 
     geom = geoms[letter]
     if color is None:
         color = VOCAB_COLOR_MAPS[vocab].get(letter, "black")
 
-    add_geometry_to_axis(ax, geom, color, x, y, height, width_scale=width, center_scale=center_scale)
+    add_geometry_to_axis(ax, geom, color, x, y, height, width_scale=width)
     return ax
 
 
 def seq_plot(letter_heights: np.ndarray, ax=None, vocab="dna", offset=0,
-             width_scale=1.0, font=default_font, center_scale=True):
-    geoms = default_letter_geoms if font == default_font else get_letter_geometries(
-        font, string.ascii_uppercase + string.ascii_lowercase
-    )
+             width_scale=1.0, font=default_font, preserve_aspect_ratio=False):
+    geoms = get_geoms(font, preserve_aspect_ratio=preserve_aspect_ratio)
 
     if ax is None:
         ax = plt.gca()
@@ -319,11 +322,11 @@ def seq_plot(letter_heights: np.ndarray, ax=None, vocab="dna", offset=0,
 
             if h > 0:
                 add_geometry_to_axis(ax, geom, col, x_pos + offset, y_pos, h,
-                                     width_scale=width_scale, center_scale=center_scale)
+                                     width_scale=width_scale)
                 y_pos += h
             else:
                 add_geometry_to_axis(ax, geom, col, x_pos + offset, y_neg, h,
-                                     width_scale=width_scale, center_scale=center_scale)
+                                     width_scale=width_scale)
                 y_neg += h
 
         max_pos_h = max(max_pos_h, y_pos)

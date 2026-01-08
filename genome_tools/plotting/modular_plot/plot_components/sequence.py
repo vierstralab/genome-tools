@@ -30,9 +30,9 @@ class SequencePlotComponent(IntervalPlotComponent):
     Returns: ``matplotlib.axes.Axes``
     """
 
-    def _plot(self, data, ax, **kwargs):
+    def _plot(self, data, ax, preserve_aspect_ratio=True, **kwargs):
         ax.axis('off')
-        seq_plot(data.matrix, ax=ax, offset=data.interval.start, **kwargs)
+        seq_plot(data.matrix, ax=ax, offset=data.interval.start, preserve_aspect_ratio=preserve_aspect_ratio, **kwargs)
         return ax
 
 
