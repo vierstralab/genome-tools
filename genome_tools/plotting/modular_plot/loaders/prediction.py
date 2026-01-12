@@ -79,7 +79,6 @@ class AttributionsLoader(PlotDataLoader):
 
         dataset = SequenceEmbedDataset(
             data=data,
-            embeddings_df=anndata[[sample_id], [dhs_id]].obsm['motif_embeddings'],
             fasta_file=fasta_file,
             genotype_file=genotype_file,
             **dataset_kwargs,
