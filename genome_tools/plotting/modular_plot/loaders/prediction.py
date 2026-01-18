@@ -130,8 +130,8 @@ class PredictedSignalLoader(PredictionDataLoader):
             fasta_file,
             genotype_file,
         )
-        X_seq = batch["ohe_seq"].to(model_wrapper.device, non_blocking=True)
-        X_embed = batch["embed"].to(model_wrapper.device, non_blocking=True)
+        X_seq = batch["ohe_seq"].to(model_wrapper.model.device, non_blocking=True)
+        X_embed = batch["embed"].to(model_wrapper.model.device, non_blocking=True)
 
         pred_density = model_wrapper(X_seq, X_embed).detach().cpu().numpy()
 
