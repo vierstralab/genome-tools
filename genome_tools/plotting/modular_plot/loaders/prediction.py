@@ -113,7 +113,7 @@ class PredictedSignalLoader(PredictionDataLoader):
 
         prediction_starts = np.arange(
             initial_interval.start,
-            initial_interval.end,
+            initial_interval.end + step,
             step
         )
 
