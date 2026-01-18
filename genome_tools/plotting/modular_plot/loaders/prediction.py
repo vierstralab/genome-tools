@@ -136,6 +136,8 @@ class PredictedSignalLoader(PredictionDataLoader):
         pred_density = model_wrapper(X_seq, X_embed).detach().cpu().numpy()
 
         full_positions = np.arange(initial_interval.start, initial_interval.end)
+
+        print(prediction_starts, pred_density)
         data.signal = interp1d(
             prediction_starts,
             pred_density,
