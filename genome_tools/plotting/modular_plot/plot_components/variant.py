@@ -239,13 +239,14 @@ class AllelicReadsComponent(IntervalPlotComponent):
             )
             circ.set_clip_on(False)
             letter_ax.add_patch(circ)
+            letter_ax.set_aspect('equal', adjustable='box')
             plot_letter(
                 letter=letter_interval.base,
                 x=0.0,
                 y=(1 - letter_y_size) / 2,
                 height=letter_y_size,
                 width=letter_x_size,
-                center_scale=True,
+                preserve_aspect_ratio=True,
                 font=font,
                 ax=letter_ax,
             )
