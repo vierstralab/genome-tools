@@ -133,11 +133,10 @@ class PredictedSignalLoader(PredictionDataLoader):
         X_seq = batch["ohe_seq"].to(model_wrapper.model.device, non_blocking=True)
         X_embed = batch["embed"].to(model_wrapper.model.device, non_blocking=True)
 
-        pred_density = model_wrapper(X_seq, X_embed).detach().cpu().numpy()
+        pred_density = model_wrapper(X_seq, X_embed).detach().cpu().numpy().squeeze()
 
         full_positions = np.arange(initial_interval.start, initial_interval.end)
 
-        print(prediction_starts, pred_density)
         data.signal = interp1d(
             prediction_starts,
             pred_density,
