@@ -171,7 +171,7 @@ class AttributionsLoader(PredictionDataLoader):
 
         attrs = model_wrapper.get_sequence_attributions(
             batch['ohe_seq'],
-            batch['embed_seq'],
+            batch['embed'],
             n_shuffles=n_shuffles,
             print_convergence_deltas=print_convergence_deltas
         ).squeeze(0).numpy()
