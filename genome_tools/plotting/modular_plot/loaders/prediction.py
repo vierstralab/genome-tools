@@ -58,7 +58,7 @@ class PredictionDataLoader(PlotDataLoader):
         return VinsonData.from_raw(
             raw_data=raw_data,
             is_variant=False,
-            embeddings_df=anndata[[sample_id], :].obsm['embeddings'],
+            embeddings_df=anndata[[sample_id], :].obsm['motif_embeddings'],
         )
 
     @staticmethod
