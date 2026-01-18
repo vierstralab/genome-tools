@@ -1,11 +1,15 @@
 import numpy as np
 import anndata as ad
 
+from scipy.interpolate import interp1d
+
+from typing import Tuple
+
 import torch
 from torch.utils.data import DataLoader
 
 from vinson.datasets.sequence import SequenceEmbedDataset
-from vinson.utils.data_formatting import extract_data_from_backed_anndata
+from vinson.utils.data_formatting import extract_data_from_backed_anndata, VinsonData
 from vinson.postprocessing.interpretation import ModelWrapper
 
 from genome_tools import GenomicInterval
@@ -14,51 +18,55 @@ from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
 
-class AttributionsLoader(PlotDataLoader):
-    def _load(self, data: DataBundle,
-                sample_id: str,
-                dhs_id: str,
-                anndata: ad.AnnData,
-                model_config: dict,
-                model_wrapper: ModelWrapper,
-                fasta_file: str,
-                genotype_file: str,
-                print_convergence_deltas=False,
-                n_shuffles=20,
-        ):
-        X, X_embed, interval = self.make_data_for_model(
-            sample_id=sample_id,
-            dhs_id=dhs_id,
-            anndata=anndata,
-            model_config=model_config,
-            fasta_file=fasta_file,
-            genotype_file=genotype_file,
-        )
-        assert interval.overlaps(data.interval)
 
-        attrs = model_wrapper.get_sequence_attributions(
-            X,
-            X_embed,
-            n_shuffles=n_shuffles,
-            print_convergence_deltas=print_convergence_deltas
-        ).squeeze(0).numpy()
-
-        data.matrix = self.align_matrix_to_interval(
-            matrix=attrs,
-            matrix_interval=interval,
-            target_interval=data.interval,
-        ).T
-        data.sequence_weights = data.matrix.sum(axis=1)
-        return data
-    
+class PredictionDataLoader(PlotDataLoader):
     @staticmethod
-    def make_data_for_model(
-        sample_id,
-        dhs_id,
-        anndata,
+    def from_backed_anndata(
+        anndata: ad.AnnData,
+        sample_id: str,
+        dhs_id: str,
+    ) -> Tuple[VinsonData, GenomicInterval]:
+        data = extract_data_from_backed_anndata(
+            anndata,
+            sample_ids=[sample_id],
+            dhs_ids=[dhs_id],
+        )
+
+        summit, chrom = anndata.var.loc[dhs_id, ['dhs_summit', '#chr']]
+        interval = GenomicInterval(chrom, summit, summit, dhs_summit=summit).widen(672)
+        return data, interval
+
+    @staticmethod
+    def from_prediction_coordinates(
+        anndata: ad.AnnData,
+        sample_id: str,
+        coordinates: np.ndarray,
+        chrom: str,
+    ):
+        
+        raw_data = {
+            'sample_id': np.array([sample_id] * len(coordinates), dtype=np.str_),
+            'dhs_id': np.array([''] * len(coordinates), dtype=np.str_),
+            'read_depth': np.array([anndata.obs.loc[sample_id, 'nuclear_reads']] * len(coordinates)),
+            'chrom': np.array([chrom] * len(coordinates), dtype=np.str_),
+            'summit': np.array(coordinates),
+            'background': np.array([0.0] * len(coordinates), dtype=np.float32), # dummy
+            'class': np.array([0] * len(coordinates), dtype=np.int8), # dummy
+            'density': np.array([0.0] * len(coordinates)), # dummy
+        }
+
+        return VinsonData.from_raw(
+            raw_data=raw_data,
+            is_variant=False,
+            embeddings_df=anndata[[sample_id], :].obsm['embeddings'],
+        )
+
+    @staticmethod
+    def get_dataset(
+        data: VinsonData,
         model_config: dict,
         fasta_file: str,
-        genotype_file: str,
+        genotype_file: str=None,
     ):
         # FIXME: avoid reading the whole dataset
         dataset_kwargs: dict = model_config['data_params']
@@ -69,17 +77,9 @@ class AttributionsLoader(PlotDataLoader):
                 noise=0,
             )
         )
-        
-        data = extract_data_from_backed_anndata(
-            anndata,
-            sample_ids=[sample_id],
-            dhs_ids=[dhs_id],
-        )
-
 
         dataset = SequenceEmbedDataset(
             data=data,
-            embeddings_df=anndata[[sample_id], [dhs_id]].obsm['motif_embeddings'],
             fasta_file=fasta_file,
             genotype_file=genotype_file,
             **dataset_kwargs,
@@ -95,12 +95,94 @@ class AttributionsLoader(PlotDataLoader):
         )
 
         batch = next(iter(dataloader))
+        return batch
 
-        summit, chrom = anndata.var.loc[dhs_id, ['dhs_summit', '#chr']]
-        interval = GenomicInterval(chrom, summit, summit, dhs_summit=summit).widen(672)
 
-        return batch['ohe_seq'], batch['embed'], interval
-    
+class PredictedSignalLoader(PredictionDataLoader):
+    def _load(self, data: DataBundle,
+                sample_id: str,
+                anndata: ad.AnnData,
+                model_config: dict,
+                model_wrapper: ModelWrapper,
+                fasta_file: str,
+                genotype_file: str=None,
+                interp1d_kind='linear',
+                step=20,
+        ):
+        initial_interval: GenomicInterval = data.interval
+
+        prediction_starts = np.arange(
+            initial_interval.start,
+            initial_interval.end,
+            step
+        )
+
+        model_data = self.from_prediction_coordinates(
+            anndata,
+            sample_id=sample_id,
+            coordinates=prediction_starts,
+            chrom=initial_interval.chrom,
+        )
+
+        batch = self.get_dataset(
+            model_data,
+            model_config,
+            fasta_file,
+            genotype_file,
+        )
+
+        pred_density = model_wrapper(batch).detach().cpu().numpy()
+
+        full_positions = np.arange(initial_interval.start, initial_interval.end)
+        data.signal = interp1d(
+            prediction_starts,
+            pred_density,
+            kind=interp1d_kind,
+            assume_sorted=True
+        )(full_positions)
+        return data
+
+
+class AttributionsLoader(PredictionDataLoader):
+    def _load(self, data: DataBundle,
+                sample_id: str,
+                anndata: ad.AnnData,
+                model_config: dict,
+                model_wrapper: ModelWrapper,
+                fasta_file: str,
+                genotype_file: str,
+                print_convergence_deltas=False,
+                n_shuffles=20,
+        ):
+        input_data, interval = self.from_backed_anndata(
+            anndata,
+            sample_id=sample_id,
+            dhs_id=data.dhs_id,
+        )
+        assert interval.overlaps(data.interval), f"Data interval {data.interval} does not overlap with the dhs interval {interval}, {data.dhs_id}"
+
+        batch = self.get_dataset(
+            input_data,
+            model_config,
+            fasta_file,
+            genotype_file,
+        )
+
+        attrs = model_wrapper.get_sequence_attributions(
+            batch['ohe_seq'],
+            batch['embed_seq'],
+            n_shuffles=n_shuffles,
+            print_convergence_deltas=print_convergence_deltas
+        ).squeeze(0).numpy()
+
+        data.matrix = self.align_matrix_to_interval(
+            matrix=attrs,
+            matrix_interval=interval,
+            target_interval=data.interval,
+        ).T
+        data.sequence_weights = data.matrix.sum(axis=1)
+        return data
+ 
     @staticmethod
     def align_matrix_to_interval(
         matrix: np.ndarray,

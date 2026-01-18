@@ -1,6 +1,8 @@
-from genome_tools.plotting.modular_plot.loaders.prediction import AttributionsLoader
+from genome_tools.plotting.modular_plot.loaders.prediction import AttributionsLoader, PredictedSignalLoader
 
 from genome_tools.plotting.modular_plot.plot_components.sequence import SequencePlotComponent, MotifHitsComponent
+
+from genome_tools.plotting.modular_plot.plot_components.basic import TrackComponent
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 
 # TODO fix other components
@@ -12,9 +14,15 @@ class AttributionsComponent(SequencePlotComponent):
         ax = super()._plot(data, ax, **kwargs)
         ax.axhline(0, color='black', lw=0.25, ls='--')
         return ax
-    
+
 
 AttributionsWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
     AttributionsLoader, *MotifHitsComponent.__required_loaders__,
     new_class_name='AttributionsWeightedMotifHitsComponent',
+)
+
+
+PredictedSignalComponent = TrackComponent.with_loaders(
+    PredictedSignalLoader,
+    new_class_name='PredictedSignalComponent',
 )
