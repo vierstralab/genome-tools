@@ -1,4 +1,4 @@
-from genome_tools.plotting.modular_plot.loaders.prediction import AttributionsLoader, PredictedSignalLoader
+from genome_tools.plotting.modular_plot.loaders.prediction import AttributionsLoader, IntervalDatasetLoader, DHSDatasetLoader, PredictedSignalLoader
 
 from genome_tools.plotting.modular_plot.plot_components.sequence import SequencePlotComponent, MotifHitsComponent
 
@@ -17,12 +17,12 @@ class AttributionsComponent(SequencePlotComponent):
 
 
 AttributionsWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
-    AttributionsLoader, *MotifHitsComponent.__required_loaders__,
+    DHSDatasetLoader, AttributionsLoader, *MotifHitsComponent.__required_loaders__,
     new_class_name='AttributionsWeightedMotifHitsComponent',
 )
 
 
 PredictedSignalComponent = TrackComponent.with_loaders(
-    PredictedSignalLoader,
+    IntervalDatasetLoader, PredictedSignalLoader,
     new_class_name='PredictedSignalComponent',
 )

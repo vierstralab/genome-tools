@@ -18,8 +18,31 @@ from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
 
-
 class PredictionDataLoader(PlotDataLoader):
+
+    # def _load(self, data: DataBundle, anndata: ad.AnnData, sample_id, dhs_id=None, step=20):
+
+    #     if dhs_id is not None:
+    #         dataset_data, interval = self.from_backed_anndata(
+    #             anndata,
+    #             sample_id=sample_id,
+    #             dhs_id=dhs_id,
+    #         )
+    #         assert interval.overlaps(data.interval), f"Data interval {data.interval} does not overlap with the dhs interval {interval}, {dhs_id}"
+        
+    #     else:
+    #         interval = data.interval
+    #         coordinates = np.arange(interval.start, interval.end + step, step)
+    #         dataset_data = self.from_prediction_coordinates(
+    #             anndata,
+    #             sample_id=sample_id,
+    #             coordinates=coordinates,
+    #             chrom=interval.chrom,
+    #         )
+
+    #     data.dataset_data = dataset_data
+    #     return data
+
     @staticmethod
     def from_backed_anndata(
         anndata: ad.AnnData,
@@ -98,38 +121,66 @@ class PredictionDataLoader(PlotDataLoader):
         return batch
 
 
-class PredictedSignalLoader(PredictionDataLoader):
+class DHSDatasetLoader(PredictionDataLoader):
     def _load(self, data: DataBundle,
                 sample_id: str,
                 anndata: ad.AnnData,
                 model_config: dict,
-                model_wrapper: ModelWrapper,
                 fasta_file: str,
                 genotype_file: str=None,
-                interp1d_kind='linear',
-                step=20,
         ):
-        initial_interval: GenomicInterval = data.interval
-
-        prediction_starts = np.arange(
-            initial_interval.start,
-            initial_interval.end + step,
-            step
-        )
-
-        model_data = self.from_prediction_coordinates(
+        input_data, interval = self.from_backed_anndata(
             anndata,
             sample_id=sample_id,
-            coordinates=prediction_starts,
-            chrom=initial_interval.chrom,
+            dhs_id=data.dhs_id,
         )
+        assert interval.overlaps(data.interval), f"Data interval {data.interval} does not overlap with the dhs interval {interval}, {data.dhs_id}"
 
         batch = self.get_dataset(
-            model_data,
+            input_data,
             model_config,
             fasta_file,
             genotype_file,
         )
+        data.batch = batch
+        return data
+
+
+class IntervalDatasetLoader(PredictionDataLoader):
+    def _load(self, data: DataBundle,
+                sample_id: str,
+                anndata: ad.AnnData,
+                model_config: dict,
+                fasta_file: str,
+                genotype_file: str=None,
+                step=20
+        ):
+        coordinates = np.arange(data.interval.start, data.interval.end + step, step)
+        input_data = self.from_prediction_coordinates(
+            anndata,
+            sample_id=sample_id,
+            coordinates=coordinates,
+            chrom=data.interval.chrom,
+        )
+
+        batch = self.get_dataset(
+            input_data,
+            model_config,
+            fasta_file,
+            genotype_file,
+        )
+
+        data.batch = batch
+        return data
+
+
+class PredictedSignalLoader(PredictionDataLoader):
+    def _load(self, data: DataBundle, model_wrapper: ModelWrapper, interp1d_kind='linear'):
+        initial_interval: GenomicInterval = data.interval
+
+        batch = data.batch
+
+        predictions_coords = batch['summit']
         X_seq = batch["ohe_seq"].to(model_wrapper.model.device, non_blocking=True)
         X_embed = batch["embed"].to(model_wrapper.model.device, non_blocking=True)
 
@@ -138,7 +189,7 @@ class PredictedSignalLoader(PredictionDataLoader):
         full_positions = np.arange(initial_interval.start, initial_interval.end)
 
         data.signal = interp1d(
-            prediction_starts,
+            predictions_coords,
             pred_density,
             kind=interp1d_kind,
             assume_sorted=True
@@ -148,28 +199,17 @@ class PredictedSignalLoader(PredictionDataLoader):
 
 class AttributionsLoader(PredictionDataLoader):
     def _load(self, data: DataBundle,
-                sample_id: str,
-                dhs_id: str,
-                anndata: ad.AnnData,
-                model_config: dict,
                 model_wrapper: ModelWrapper,
-                fasta_file: str,
-                genotype_file: str,
                 print_convergence_deltas=False,
                 n_shuffles=20,
         ):
-        input_data, interval = self.from_backed_anndata(
-            anndata,
-            sample_id=sample_id,
-            dhs_id=dhs_id,
-        )
-        assert interval.overlaps(data.interval), f"Data interval {data.interval} does not overlap with the dhs interval {interval}, {dhs_id}"
-
-        batch = self.get_dataset(
-            input_data,
-            model_config,
-            fasta_file,
-            genotype_file,
+        batch = data.batch
+        batch_interval = GenomicInterval(
+            batch['chrom'][0],
+            batch['summit'][0],
+            batch['summit'][0]
+        ).widen(
+            batch['ohe_seq'][0].shape[1] // 2
         )
 
         attrs = model_wrapper.get_sequence_attributions(
@@ -181,7 +221,7 @@ class AttributionsLoader(PredictionDataLoader):
 
         data.matrix = self.align_matrix_to_interval(
             matrix=attrs,
-            matrix_interval=interval,
+            matrix_interval=batch_interval,
             target_interval=data.interval,
         ).T
         data.sequence_weights = data.matrix.sum(axis=1)
