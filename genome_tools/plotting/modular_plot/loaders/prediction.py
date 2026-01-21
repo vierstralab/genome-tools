@@ -126,15 +126,16 @@ class DHSDatasetLoader(PredictionDataLoader):
                 sample_id: str,
                 anndata: ad.AnnData,
                 model_config: dict,
+                dhs_id: str,
                 fasta_file: str,
                 genotype_file: str=None,
         ):
         input_data, interval = self.from_backed_anndata(
             anndata,
             sample_id=sample_id,
-            dhs_id=data.dhs_id,
+            dhs_id=dhs_id,
         )
-        assert interval.overlaps(data.interval), f"Data interval {data.interval} does not overlap with the dhs interval {interval}, {data.dhs_id}"
+        assert interval.overlaps(data.interval), f"Data interval {data.interval} does not overlap with the dhs interval {interval}, {dhs_id}"
 
         batch = self.get_dataset(
             input_data,
@@ -197,7 +198,7 @@ class PredictedSignalLoader(PredictionDataLoader):
         return data
 
 
-class AttributionsLoader(PredictionDataLoader):
+class AttributionsLoader(PlotDataLoader):
     def _load(self, data: DataBundle,
                 model_wrapper: ModelWrapper,
                 print_convergence_deltas=False,

@@ -6,7 +6,7 @@ from genome_tools.plotting.modular_plot.plot_components.basic import TrackCompon
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 
 # TODO fix other components
-@uses_loaders(AttributionsLoader)
+@uses_loaders(DHSDatasetLoader, AttributionsLoader)
 class AttributionsComponent(SequencePlotComponent):
     
     @IntervalPlotComponent.set_xlim_interval
