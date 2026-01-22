@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 from genome_tools.plotting.utils import format_axes_to_interval
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 from genome_tools.plotting.modular_plot.utils import DataBundle
+from genome_tools.plotting import signal_plot
 
-from genome_tools.plotting.modular_plot.loaders.hotspot3 import AggCutcountsLoader, PerBpBackgroundTrackLoader, HighSignalMaskLoader, SmoothedSignalLoader, SignalNoBackgroundLoader
+from genome_tools.plotting.modular_plot.loaders.hotspot3 import AggCutcountsLoader, PerBpBackgroundTrackLoader, HighSignalMaskLoader, SmoothedSignalLoader, BackgroundDensityLoader
 from genome_tools.plotting.modular_plot.loaders.basic import ParquetSignalLoader, SignalLoader
 
 from hotspot3.peak_calling import find_stretches
@@ -94,4 +95,9 @@ class FdrComponent(TrackComponent):
         return ax
 
 
-SignalNoBackgroundComponent = TrackComponent.with_loaders(SignalLoader, SignalNoBackgroundLoader, new_class_name='SignalNoBackgroundComponent')
+@uses_loaders(SignalLoader, BackgroundDensityLoader)
+class SignalNoBackgroundComponent(IntervalPlotComponent):
+    def _plot(self, data, ax, **kwargs):
+        plot_data = np.clip(data.signal - data.background_density, a_min=0, a_max=None)
+        signal_plot(data.interval, plot_data, ax=ax, **kwargs)
+        return ax
