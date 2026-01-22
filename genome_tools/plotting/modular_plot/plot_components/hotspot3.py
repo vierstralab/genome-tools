@@ -94,4 +94,4 @@ class FdrComponent(TrackComponent):
         return ax
 
 
-SignalNoBackgroundComponent = TrackComponent.with_loaders(SignalLoader, SignalNoBackgroundLoader)
+SignalNoBackgroundComponent = TrackComponent.with_loaders(SignalLoader, SignalNoBackgroundLoader, new_class_name='SignalNoBackgroundComponent')
