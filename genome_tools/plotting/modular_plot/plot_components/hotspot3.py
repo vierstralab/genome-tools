@@ -8,8 +8,8 @@ from genome_tools.plotting.utils import format_axes_to_interval
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
-from genome_tools.plotting.modular_plot.loaders.hotspot3 import AggCutcountsLoader, PerBpBackgroundTrackLoader, HighSignalMaskLoader, SmoothedSignalLoader
-from genome_tools.plotting.modular_plot.loaders.basic import ParquetSignalLoader
+from genome_tools.plotting.modular_plot.loaders.hotspot3 import AggCutcountsLoader, PerBpBackgroundTrackLoader, HighSignalMaskLoader, SmoothedSignalLoader, SignalNoBackgroundLoader
+from genome_tools.plotting.modular_plot.loaders.basic import ParquetSignalLoader, SignalLoader
 
 from hotspot3.peak_calling import find_stretches
 
@@ -92,3 +92,6 @@ class FdrComponent(TrackComponent):
         hl.set_capstyle('round')
         ax.tick_params(which='minor', length=0)
         return ax
+
+
+SignalNoBackgroundComponent = TrackComponent.with_loaders(SignalLoader, SignalNoBackgroundLoader)

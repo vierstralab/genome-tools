@@ -1,16 +1,19 @@
 import pandas as pd
+import numpy as np
+
+from scipy.signal import find_peaks
+
+from hotspot3.io.readers import ChromReader
+from hotspot3.background_fit.fit import GlobalBackgroundFit
+
+from genome_tools import GenomicInterval
+from genome_tools.data.extractors import ChromParquetExtractor, TabixExtractor
 
 
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
-from genome_tools import GenomicInterval
-from genome_tools.data.extractors import ChromParquetExtractor
-
-from hotspot3.io.readers import ChromReader
-from hotspot3.background_fit.fit import GlobalBackgroundFit
-
-from scipy.signal import find_peaks
+from genome_tools.plotting.modular_plot.loaders.basic import SignalLoader
 
 
 class AggCutcountsLoader(PlotDataLoader):
@@ -54,4 +57,24 @@ class SmoothedSignalLoader(PlotDataLoader):
         with ChromParquetExtractor(smoothed_signal_parquet, columns=['smoothed']) as pqt:
             data.smoothed_signal =  pqt[data.interval]['smoothed'].values
         data.maxima = find_peaks(data.smoothed_signal)[0]
+        return data
+
+
+class SignalNoBackgroundLoader(PlotDataLoader):
+    ### TMP ###
+    def _load(self, data: DataBundle, bg_tabix):
+        # bad practice but will do for now
+        with TabixExtractor(bg_tabix) as extractor:
+            bg_df = extractor[data.interval]
+            bg_df['mean'] = bg_df.eval('bg_r * bg_p / (1 - bg_p)').values
+        L = data.interval.end - data.interval.start
+        bg = np.zeros(L, dtype=np.float32)
+        starts = (bg_df['start'].to_numpy() - data.interval.start).clip(0, L)
+        ends   = (bg_df['end'].to_numpy()   - data.interval.start).clip(0, L)
+        vals   = bg_df['mean'].to_numpy()
+
+        for s, e, v in zip(starts, ends, vals):
+            bg[s:e] = v
+
+        data.signal -= bg
         return data
