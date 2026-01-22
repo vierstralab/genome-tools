@@ -415,8 +415,20 @@ class IntervalPlotter(VerticalConnectorMixin):
 
             data = DataBundle(interval=component_interval)
 
+            # parse component-specific kwargs
+            runtime_component_specific_overrides = extract_class_specific_overrides(
+                loaders_kwargs,
+                classes=[component]
+            )
+
+            # TODO: validate that no overlapping kwargs are passed here or throw a warning
+            component_loader_kwargs = {
+                **loaders_kwargs,
+                **runtime_component_specific_overrides
+            }
+
             tasks.append(
-                (component, data, loaders_kwargs)
+                (component, data, component_loader_kwargs)
             )
 
         n_cpus = min(n_cpus, len(tasks))
