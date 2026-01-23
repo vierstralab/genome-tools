@@ -5,7 +5,7 @@ import itertools
 # deprecated in newer version of python
 try:
     from collections.abc import Mapping, Sequence
-except:
+except ImportError:
     from collections import Mapping, Sequence
 
 # ------------------------

@@ -17,7 +17,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class base_dataset(object):
+class BaseDataset(object):
     def batch_iter(self, **kwargs):
         raise NotImplementedError
 
@@ -47,7 +47,7 @@ class base_dataset(object):
         return [x for x in self.batch_iter(**kwargs)]
 
 
-class dataset(base_dataset):
+class Dataset(BaseDataset):
     """All datasets should subclass this class. All subclases should
     override `__len__` and `__getitem__` to support integer indexing"""
 
@@ -79,7 +79,7 @@ class dataset(base_dataset):
         )
 
 
-class preloaded_dataset(base_dataset):
+class PreloadedDataset(BaseDataset):
     data_fn = None
 
     @classmethod
