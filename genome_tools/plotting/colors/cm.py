@@ -14,16 +14,22 @@ __all__ = [
 
 VOCAB_COLOR_MAPS = dict(
     dna={
-        "A": "#6495ED",
-        "C": "#FF7F50",
-        "G": "#458B00",
-        "T": "#F0E16F",
+        "A": "green",
+        "C": "blue",
+        "G": "orange",
+        "T": "red",
     },
     rna={
         "A": "green",
         "C": "blue",
         "G": "orange",
         "U": "red",
+    },
+    dna_experimental={
+        "A": "#6495ED",
+        "C": "#FF7F50",
+        "G": "#458B00",
+        "T": "#F0E16F",
     },
     aa={
         "A": "#CCFF00",
