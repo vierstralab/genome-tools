@@ -20,29 +20,6 @@ from genome_tools.plotting.modular_plot.utils import DataBundle
 
 class PredictionDataLoader(PlotDataLoader):
 
-    # def _load(self, data: DataBundle, anndata: ad.AnnData, sample_id, dhs_id=None, step=20):
-
-    #     if dhs_id is not None:
-    #         dataset_data, interval = self.from_backed_anndata(
-    #             anndata,
-    #             sample_id=sample_id,
-    #             dhs_id=dhs_id,
-    #         )
-    #         assert interval.overlaps(data.interval), f"Data interval {data.interval} does not overlap with the dhs interval {interval}, {dhs_id}"
-        
-    #     else:
-    #         interval = data.interval
-    #         coordinates = np.arange(interval.start, interval.end + step, step)
-    #         dataset_data = self.from_prediction_coordinates(
-    #             anndata,
-    #             sample_id=sample_id,
-    #             coordinates=coordinates,
-    #             chrom=interval.chrom,
-    #         )
-
-    #     data.dataset_data = dataset_data
-    #     return data
-
     @staticmethod
     def from_backed_anndata(
         anndata: ad.AnnData,
@@ -203,6 +180,7 @@ class AttributionsLoader(PlotDataLoader):
                 model_wrapper: ModelWrapper,
                 print_convergence_deltas=False,
                 n_shuffles=20,
+                random_state=42
         ):
         batch = data.batch
         batch_interval = GenomicInterval(
@@ -217,7 +195,8 @@ class AttributionsLoader(PlotDataLoader):
             batch['ohe_seq'],
             batch['embed'],
             n_shuffles=n_shuffles,
-            print_convergence_deltas=print_convergence_deltas
+            print_convergence_deltas=print_convergence_deltas,
+            random_state=random_state
         ).squeeze(0).numpy()
 
         data.matrix = self.align_matrix_to_interval(
