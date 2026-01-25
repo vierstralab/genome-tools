@@ -18,6 +18,10 @@ from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
 
+class BatchLoader(PlotDataLoader):
+    required_loader_kwargs=['batch']
+
+
 class PredictionDataLoader(PlotDataLoader):
 
     @staticmethod

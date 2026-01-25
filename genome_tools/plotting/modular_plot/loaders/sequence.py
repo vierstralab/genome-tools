@@ -127,6 +127,11 @@ class MotifHitsSelectorLoader(PlotDataLoader):
             assert len(data.sequence_weights) == len(data.interval), f"data.sequence_weights length must match data.interval length, got {len(data.sequence_weights)} vs {data.interval} ({len(data.interval)})"
 
             motif_hits = filter_df_to_interval(motif_hits, data.interval, strict=True)
+
+            if len(motif_hits) == 0:
+                print("No motif hits overlap the interval.")
+                data.motif_intervals = []
+                return data
             motif_hits['weighted_dg'] = motif_hits.apply(
                 self.get_weighted_dg,
                 axis=1,
@@ -179,6 +184,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
         weights = sequence_weights[
             row['start'] - interval.start: row['end'] - interval.start
         ]
+        weights = np.clip(weights, 0, None)
         return seq_logp(
             mat=pfm_matrix,
             seq=row['seq'],

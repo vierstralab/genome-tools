@@ -410,7 +410,19 @@ See [FPWeightedMotifHitsComponent](#FPWeightedMotifHitsComponent) for more detai
 ## Prediction components
 
 ### AttributionsComponent
-...
+```python
+from genome_tools.plotting.modular_plot.plot_components.prediction import AttributionsComponent
+
+AttributionsComponent(
+    model_config=legnet_model_config,
+    model_wrapper=model_wrapper,
+    anndata=dhs_anndata,
+    sample_id=sample_id,
+    dhs_id=dhs_id,
+    fasta_file=human_fasta_file,
+)
+
+```
 
 ### AttributionsWeightedMotifHitsComponent (duplicate)
 See [AttributionsWeightedMotifHitsComponent](#AttributionsWeightedMotifHitsComponent) for more details
