@@ -421,8 +421,22 @@ AttributionsComponent(
     dhs_id=dhs_id,
     fasta_file=human_fasta_file,
 )
-
 ```
+
+You can add custom loader e.g.
+```
+class MyLoader(PlotDataLoader):
+    def _load(self, data, model, input_data_for_batch):
+        data.interval: GenomicInterval
+        batch = make_batch_from_input(input_data_for_batch, data.interval)
+        attributions_matrix = attributions_scores(model, batch)
+        data.matrix = attributions_matrix
+        return data
+
+MyAttributionsComponent = AttributionsComponent.with_loaders(MyLoader, new_class_name='MyAttributionsComponent')
+```
+MyAttributionsComponent is ready to use, see basic components.
+
 
 ### AttributionsWeightedMotifHitsComponent (duplicate)
 See [AttributionsWeightedMotifHitsComponent](#AttributionsWeightedMotifHitsComponent) for more details
