@@ -6,7 +6,7 @@ import scipy.sparse as sp
 
 
 def _read_zarr_group(dat):
-    if type(dat) == zarr.Array:
+    if isinstance(dat, zarr.Array):
         return da.from_zarr(dat)
     else:
         return ad.experimental.sparse_dataset(dat).to_memory()

@@ -6,9 +6,9 @@ import threading
 import traceback
 
 from genome_tools.data.samplers import (
-    random_sampler,
-    sequential_sampler,
-    minibatch_sampler,
+    RandomSampler,
+    SequentialSampler,
+    MinibatchSampler,
 )
 from genome_tools.data.utils import list_collate
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 default_collate = list_collate
 
 
-class exception_wrapper(object):
+class ExceptionWrapper(object):
     """Wraps an exception plus traceback to communicate across threads"""
 
     def __init__(self, exc_info):
@@ -38,7 +38,7 @@ def _worker_loop(process, index_queue, data_queue, collate_fn):
         try:
             batch = collate_fn([process[i] for i in batch_indices])
         except Exception:
-            data_queue.put((idx, exception_wrapper(sys.exc_info())))
+            data_queue.put((idx, ExceptionWrapper(sys.exc_info())))
         else:
             data_queue.put((idx, batch))
 
@@ -47,7 +47,7 @@ def _worker_loop(process, index_queue, data_queue, collate_fn):
         process.cleanup()
 
 
-class data_loader_iter(object):
+class DataloaderIterator(object):
     """Iterable data loader class
 
     Attributes
@@ -102,7 +102,7 @@ class data_loader_iter(object):
             for _ in range(2 * self.num_workers):
                 self._put_indices()
         else:
-            logger.info(f"Using a single threads to process data")
+            logger.info("Using a single threads to process data")
             self.shutdown = False
 
     def __len__(self):
@@ -138,7 +138,7 @@ class data_loader_iter(object):
     def _put_indices(self):
         assert self.batches_outstanding < 2 * self.num_workers
         indices = next(self.sample_iter, None)
-        if indices == None:
+        if indices is None:
             return
         self.index_queue.put((self.send_idx, indices))
         self.batches_outstanding += 1
@@ -147,7 +147,7 @@ class data_loader_iter(object):
     def _process_next_batch(self, batch):
         self.rcvf_idx += 1
         self._put_indices()
-        if isinstance(batch, exception_wrapper):
+        if isinstance(batch, ExceptionWrapper):
             raise batch.exc_type(batch.exc_msg)
         return batch
 
@@ -167,7 +167,7 @@ class data_loader_iter(object):
             self._shutdown_workers()
 
 
-class data_loader(object):
+class Dataloader(object):
     def __init__(
         self,
         process,
@@ -196,10 +196,10 @@ class data_loader(object):
         if batch_sampler is None:
             if sampler is None:
                 if shuffle:
-                    sampler = random_sampler(process)
+                    sampler = RandomSampler(process)
                 else:
-                    sampler = sequential_sampler(process)
-            batch_sampler = minibatch_sampler(sampler, batch_size, drop_last)
+                    sampler = SequentialSampler(process)
+            batch_sampler = MinibatchSampler(sampler, batch_size, drop_last)
 
         self.sampler = sampler
         self.batch_sampler = batch_sampler
@@ -210,7 +210,7 @@ class data_loader(object):
         logger.info(f"Using '{self.collate_fn.__doc__}' to collate batch chunks")
 
     def __iter__(self):
-        return data_loader_iter(self)
+        return DataloaderIterator(self)
 
     def __len__(self):
         return len(self.batch_sampler)

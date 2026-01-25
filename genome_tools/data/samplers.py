@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class base_sampler(object):
+class BaseSampler(object):
     def __init__(self, data_source):
         pass
 
@@ -12,8 +12,8 @@ class base_sampler(object):
         raise NotImplementedError
 
 
-class sequential_sampler(base_sampler):
-    """return inidices in orginal order"""
+class SequentialSampler(BaseSampler):
+    """Return inidices in orginal order"""
 
     def __init__(self, data_source):
         self.data_source = data_source
@@ -25,7 +25,7 @@ class sequential_sampler(base_sampler):
         return len(self.data_source)
 
 
-class random_sampler(base_sampler):
+class RandomSampler(BaseSampler):
     """shuffles indicies for sampling"""
 
     def __init__(self, data_source):
@@ -38,7 +38,7 @@ class random_sampler(base_sampler):
         return len(self.data_source)
 
 
-class minibatch_sampler(base_sampler):
+class MinibatchSampler(BaseSampler):
     def __init__(self, sampler, batch_size, drop_last):
         self.sampler = sampler
         self.batch_size = batch_size

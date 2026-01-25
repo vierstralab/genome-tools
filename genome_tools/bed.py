@@ -8,7 +8,7 @@ def bed3_iterator(filehandle):
     Generator that parses BED3 format from a string iterator
 
     Returns:
-            genomic_interval
+            GenomicInterval
     """
     for line in filehandle:
         fields = line.strip().split()
@@ -25,7 +25,7 @@ def bed5_iterator(filehandle):
     Generator that parses BED5 format from a string iterator
 
     Returns:
-            genomic_interval
+            GenomicInterval
     """
 
     for line in filehandle:
@@ -45,7 +45,7 @@ def bed6_iterator(filehandle):
     Generator that parses BED6 format from a string iterator
 
     Returns:
-            genomic_interval
+            GenomicInterval
     """
 
     for line in filehandle:

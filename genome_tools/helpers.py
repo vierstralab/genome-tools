@@ -32,11 +32,13 @@ def open_file(filename):
 
 def read_starch(filename, columns=None):
     # Not efficent, try to avoid starch files
-    result = subprocess.run(['unstarch', filename], stdout=subprocess.PIPE, text=True, check=True)
+    result = subprocess.run(
+        ["unstarch", filename], stdout=subprocess.PIPE, text=True, check=True
+    )
     bed_data = pd.read_table(StringIO(result.stdout), header=None)
     ncols = len(bed_data.columns)
     if columns is None:
-        columns = ['#chr', 'start', 'end', *np.arange(3, ncols)]
+        columns = ["#chr", "start", "end", *np.arange(3, ncols)]
     assert len(columns) == ncols
     bed_data.columns = columns
     return bed_data
@@ -55,8 +57,10 @@ def df_to_tabix(df: pd.DataFrame, tabix_path, **kwargs):
     Returns:
         - None
     """
-    with pysam.BGZFile(tabix_path, 'w') as bgzip_out:
-        with TextIOWrapper(bgzip_out, encoding='utf-8') as text_out:
-            df.rename(columns={'chrom': '#chr'}).to_csv(text_out, sep='\t', index=False, **kwargs)
+    with pysam.BGZFile(tabix_path, "w") as bgzip_out:
+        with TextIOWrapper(bgzip_out, encoding="utf-8") as text_out:
+            df.rename(columns={"chrom": "#chr"}).to_csv(
+                text_out, sep="\t", index=False, **kwargs
+            )
 
-    pysam.tabix_index(tabix_path, preset='bed', force=True)
+    pysam.tabix_index(tabix_path, preset="bed", force=True)

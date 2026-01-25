@@ -4,6 +4,7 @@ Note that many of these filehandlers are not thread safe,
 so they must be opened separately on different threads when
 using multiprocessing.
 """
+
 import pysam
 import pyBigWig as pbw
 import pandas as pd
@@ -23,7 +24,7 @@ class BaseExtractor:
 
     def close(self):
         raise NotImplementedError
-    
+
     def __enter__(self):
         return self
 
@@ -57,7 +58,7 @@ class FastaExtractor(BaseExtractor):
 
 
 class TabixIter(object):
-    """Wraps tabix fetch to return an iterator that can be used with pandas"""
+    """Wraps tabix fetch to return an iterator that can be used with Pandas"""
 
     def __init__(self, tabix: pysam.TabixFile, interval: GenomicInterval):
         self.iter = tabix.fetch(interval.chrom, interval.start, interval.end)
@@ -105,23 +106,25 @@ class VariantGenotypeExtractor(BaseExtractor):
                     continue
 
             variant = {
-                'chrom': record.chrom,
-                'pos': record.pos,
-                'id': record.id,
-                'ref': record.ref,
-                'alt': alt,
-                'gt': [y['GT'] for y in record.samples.values()],
-                'indiv_id': list(record.samples.keys()),
+                "chrom": record.chrom,
+                "pos": record.pos,
+                "id": record.id,
+                "ref": record.ref,
+                "alt": alt,
+                "gt": [y["GT"] for y in record.samples.values()],
+                "indiv_id": list(record.samples.keys()),
             }
             variants.append(variant)
-        df = pd.DataFrame(variants).explode(['gt', 'indiv_id'])
+        df = pd.DataFrame(variants).explode(["gt", "indiv_id"])
         return df
 
     def close(self):
         if getattr(self, "variant_vcf", None) and self.variant_vcf.is_open():
             self.variant_vcf.close()
 
+
 # ------------------------
+
 
 # TODO: eliminate double for loop over reads in _get_all_pileup_reads and _aggregate_into_pairs
 class AllelicReadsExtractor(BaseExtractor):
@@ -147,7 +150,7 @@ class AllelicReadsExtractor(BaseExtractor):
         """
         Returns position of variant relative to 5' of read
         """
-        if pileupread.query_position is None: # pileup overlaps deletion 
+        if pileupread.query_position is None:  # pileup overlaps deletion
             return None
         elif pileupread.alignment.is_reverse:
             return pileupread.alignment.query_length - pileupread.query_position
@@ -158,27 +161,38 @@ class AllelicReadsExtractor(BaseExtractor):
         # if get_base_quality(pileupread)<baseq:
         # 	raise ReadBiasError()
         return self.get_5p_offset(pileupread) > self.variant_read_end_offset
-    
-    def _validate_read(self, pileupread: pysam.PileupRead, variant_interval: VariantInterval):
+
+    def _validate_read(
+        self, pileupread: pysam.PileupRead, variant_interval: VariantInterval
+    ):
         if pileupread.is_del or pileupread.is_refskip:
-            return pileupread, 'N', "deletion_or_refskip"
+            return pileupread, "N", "deletion_or_refskip"
         overlaps_variant = pileupread.query_position is not None
         if not overlaps_variant:
-            return pileupread, 'N', "no_overlap"
-        
+            return pileupread, "N", "no_overlap"
+
         if not self.check_bias(pileupread):
-            return pileupread, 'N', "bias"
+            return pileupread, "N", "bias"
 
         read_allele = pileupread.alignment.query_sequence[pileupread.query_position]
         if read_allele not in (variant_interval.ref, variant_interval.alt):
-            return pileupread, 'N', "genotype_error"
+            return pileupread, "N", "genotype_error"
         return pileupread, read_allele, "valid"
-    
+
     def _get_all_pileup_reads(self, variant_interval: VariantInterval):
-        assert isinstance(variant_interval, VariantInterval), "variant_interval must be an instance of genome_tools.VariantInterval"
+        assert isinstance(variant_interval, VariantInterval), (
+            "variant_interval must be an instance of genome_tools.VariantInterval"
+        )
 
         # Go into BAM file and get the reads
-        for pileupcolumn in self.cram.pileup(variant_interval.chrom, variant_interval.start, variant_interval.end, maxdepth=10000, truncate=True, stepper="nofilter"):
+        for pileupcolumn in self.cram.pileup(
+            variant_interval.chrom,
+            variant_interval.start,
+            variant_interval.end,
+            maxdepth=10000,
+            truncate=True,
+            stepper="nofilter",
+        ):
             pileupcolumn: pysam.PileupColumn
             for pileupread in pileupcolumn.pileups:
                 pileupread: pysam.PileupRead
@@ -192,31 +206,35 @@ class AllelicReadsExtractor(BaseExtractor):
             read_name = pileupread.alignment.query_name
             if read_name not in unique_reads:
                 unique_reads[read_name] = {
-                    'status': status,
-                    'read_allele': read_allele,
-                    'pileupread': pileupread
+                    "status": status,
+                    "read_allele": read_allele,
+                    "pileupread": pileupread,
                 }
-            else: # goes to this branch if mate exists
+            else:  # goes to this branch if mate exists
                 # check that both reads have compatible status.
-                mate_status = unique_reads[read_name]['status']
+                mate_status = unique_reads[read_name]["status"]
                 if mate_status == status:
                     if status == "valid":
-                        mate_allele = unique_reads[read_name]['read_allele']
+                        mate_allele = unique_reads[read_name]["read_allele"]
                         if mate_allele != read_allele:
-                            unique_reads[read_name]['status'] = "different_genotypes"
-                            unique_reads[read_name]['read_allele'] = f"{mate_allele};{read_allele}"
+                            unique_reads[read_name]["status"] = "different_genotypes"
+                            unique_reads[read_name]["read_allele"] = (
+                                f"{mate_allele};{read_allele}"
+                            )
 
                 elif status == "valid":
-                    unique_reads[read_name]['status'] = status
+                    unique_reads[read_name]["status"] = status
                 elif mate_status == "valid":
                     continue
                 else:
-                    unique_reads[read_name]['status'] = f"{mate_status};{status}"
+                    unique_reads[read_name]["status"] = f"{mate_status};{status}"
 
         return unique_reads
 
     def extract_allelic_reads(self, variant_interval: VariantInterval):
-        assert isinstance(variant_interval, VariantInterval), "variant_interval must be an instance of genome_tools.VariantInterval"
+        assert isinstance(variant_interval, VariantInterval), (
+            "variant_interval must be an instance of genome_tools.VariantInterval"
+        )
         reads = self._get_all_pileup_reads(variant_interval)
         unique_reads = self._aggregate_into_pairs(reads)
         return unique_reads
@@ -229,15 +247,15 @@ class AllelicReadsExtractor(BaseExtractor):
             start=read.reference_start,
             end=read.reference_end,
             is_reverse=read.is_reverse,
-            base=base
+            base=base,
         )
 
     def __getitem__(self, variant_interval: VariantInterval):
         allelic_reads = self.extract_allelic_reads(variant_interval)
         return [
-            self.genomic_interval_from_read(v['pileupread'], v['read_allele']) 
+            self.genomic_interval_from_read(v["pileupread"], v["read_allele"])
             for v in allelic_reads.values()
-            if v['status'] == "valid"
+            if v["status"] == "valid"
         ]
 
     def close(self):
@@ -270,7 +288,7 @@ class TabixExtractor(BaseExtractor):
         with gzip.open(filename, "rt") as f:
             for _ in range(skiprows):
                 next(f)
-            line = f.readline().strip('\n')
+            line = f.readline().strip("\n")
             if columns is None:
                 if line.startswith(header_char):
                     self.columns = line.split("\t")
@@ -283,7 +301,11 @@ class TabixExtractor(BaseExtractor):
     def __getitem__(self, interval):
         try:
             ret = pd.read_table(
-                TabixIter(self.tabix, interval), header=None, index_col=None, names=self.columns, **self.kwargs
+                TabixIter(self.tabix, interval),
+                header=None,
+                index_col=None,
+                names=self.columns,
+                **self.kwargs,
             )
         except pd.errors.EmptyDataError:
             ret = pd.DataFrame(columns=self.columns)
@@ -294,7 +316,9 @@ class TabixExtractor(BaseExtractor):
         if getattr(self, "tabix", None) and self.tabix.is_open():
             self.tabix.close()
 
+
 # ------------------------
+
 
 class ChromParquetExtractor(BaseExtractor):
     def __init__(self, filename, columns=None, **kwargs):
@@ -307,10 +331,10 @@ class ChromParquetExtractor(BaseExtractor):
     def __getitem__(self, interval):
         return pd.read_parquet(
             self.filename,
-            filters=[('chrom', '==', interval.chrom)],
-            engine='pyarrow',
+            filters=[("chrom", "==", interval.chrom)],
+            engine="pyarrow",
             columns=self.columns,
-        ).iloc[interval.start:interval.end]
+        ).iloc[interval.start : interval.end]
 
     def close(self):
         pass
