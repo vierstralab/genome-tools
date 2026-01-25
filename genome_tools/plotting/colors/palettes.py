@@ -13,7 +13,8 @@ __all__ = ["get_color_cycle", "set_palette", "color_palette"]
 
 QUAL_PALETTES = [
     "zissou",
-    "darjeeling",
+    "darjeeling1",
+    "darjeeling2",
     "lawhoops",
 ]
 QUAL_PALETTES_SIZES = {name: len(COLOR_MAPS[name]) for name in QUAL_PALETTES}
