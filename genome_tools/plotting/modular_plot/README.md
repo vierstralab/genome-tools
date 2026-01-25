@@ -424,7 +424,7 @@ AttributionsComponent(
 ```
 
 You can add custom loader e.g.
-```
+```python
 class MyLoader(PlotDataLoader):
     def _load(self, data, model, input_data_for_batch):
         data.interval: GenomicInterval
