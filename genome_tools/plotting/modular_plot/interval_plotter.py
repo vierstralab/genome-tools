@@ -419,7 +419,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             runtime_component_specific_overrides = extract_class_specific_overrides(
                 loaders_kwargs,
                 classes=[component]
-            )
+            ).get(component.name, {})
 
             # TODO: validate that no overlapping kwargs are passed here or throw a warning
             component_loader_kwargs = {
