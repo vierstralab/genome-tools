@@ -18,9 +18,9 @@ class AttributionsComponent(SequencePlotComponent):
 
 
 
-AttributionsComponentFromBatch = AttributionsComponent.with_loaders(
+AttributionsFromBatchComponent = AttributionsComponent.with_loaders(
     BatchLoader, AttributionsLoader,
-    new_class_name='AttributionsComponentFromBatch',
+    new_class_name='AttributionsFromBatchComponent',
 )
 
 

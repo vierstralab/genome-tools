@@ -64,8 +64,9 @@ class BackgroundDensityLoader(PlotDataLoader):
     def _load(self, data: DataBundle, bg_tabix, read_depth):
         with TabixExtractor(bg_tabix) as extractor:
             bg_df = extractor[data.interval]
-            bg_df['mean'] = bg_df.eval('bg_r * bg_p / (1 - bg_p)').values # counts
-            bg_df['mean_density'] = bg_df['mean'] * 1_000_000 / read_depth # density
+
+        bg_df['mean'] = bg_df.eval('bg_r * bg_p / (1 - bg_p)').values # counts
+        bg_df['mean_density'] = bg_df['mean'] * 1_000_000 / read_depth # density
         L = data.interval.end - data.interval.start
         bg = np.zeros(L, dtype=np.float32)
         starts = (bg_df['start'].to_numpy() - data.interval.start).clip(0, L)
