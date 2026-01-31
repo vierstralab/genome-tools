@@ -56,8 +56,6 @@ class RingPen(BasePen):
         start = self.cur[-1] if self.cur else (0.0, 0.0)
         num_segments = int(self._curve_length(start, p1, p2, p3) * self.approximation_scale)
 
-        # IMPORTANT: per your request, no max(1, ...) here.
-        # If num_segments is 0, just add the endpoint once (prevents div-by-zero).
         if num_segments <= 0:
             self.cur.append(p3)
             return

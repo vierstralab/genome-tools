@@ -514,7 +514,10 @@ def segment_plot(interval: GenomicInterval, segments: List[GenomicInterval], rec
             pad_bp = _infer_pad_bp(pad_points, interval, ax)
 
         _, segments = pack_rows(segments, pad=pad_bp)
-
+    else:
+        for segment in segments:
+            if not hasattr(segment, "row_index"):
+                segment.row_index = 0
     summit_lines = []
     patches = []
     for segment in segments:
