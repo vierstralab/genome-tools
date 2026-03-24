@@ -177,7 +177,7 @@ def get_glyph_geometry(char, glyph_set, approximation_scale=0.03, **kwargs):
     return rings_to_geometry_winding(rings)
 
 
-def get_letter_geometries(font_name, letters, approximation_scale=0.03, **kwargs):
+def get_letter_geometries(font_name, letters=None, approximation_scale=0.03, **kwargs):
     """
     dict: char -> shapely geometry
     """
@@ -185,21 +185,20 @@ def get_letter_geometries(font_name, letters, approximation_scale=0.03, **kwargs
     glyph_set = font.getGlyphSet()
     out = {}
 
-    not_found_glyps = set()
-    for ch in letters:
-        if ch in glyph_set:
-            out[ch] = get_glyph_geometry(ch, glyph_set, approximation_scale=approximation_scale, **kwargs)
-        else:
-            not_found_glyps.add(ch)
-    
-    if not_found_glyps:
-        print(f"Warning: the following characters were not found in font '{font_name}' and will be skipped: {not_found_glyps}")
+    for ch in glyph_set:
+        out[ch] = get_glyph_geometry(ch, glyph_set, approximation_scale=approximation_scale, **kwargs)
+
+    if letters is not None:
+        if set(letters.keys()) - set(out.keys()):
+            missing = set(letters.keys()) - set(out.keys())
+            raise ValueError(f"Font {font_name} is missing glyphs for: {missing}")
     return out
 
-allowed_symbols = string.ascii_uppercase + string.ascii_lowercase + string.digits + string.punctuation
+
+required_symbols = string.ascii_uppercase + string.ascii_lowercase
 
 default_font = "Arial"
-default_letter_geoms = get_letter_geometries(default_font, allowed_symbols, preserve_aspect_ratio=False)
+default_letter_geoms = get_letter_geometries(default_font, required_symbols, preserve_aspect_ratio=False)
 
 
 def _ring_to_path(ring):
@@ -278,7 +277,6 @@ def get_geoms(font, preserve_aspect_ratio=False):
         if font == default_font and not preserve_aspect_ratio
         else get_letter_geometries(
             font,
-            allowed_symbols,
             preserve_aspect_ratio=preserve_aspect_ratio
         )
     )
