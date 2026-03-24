@@ -341,7 +341,16 @@ def seq_plot(
     if placeholder is not None:
         all_zero_pos = np.sum(letter_heights, axis=1) == 0
         for x_pos in np.where(all_zero_pos)[0]:
-            plot_letter(placeholder, x_pos + offset, 0, height=1, ax=ax)
+            plot_letter(
+                placeholder,
+                x=x_pos + offset,
+                y=0,
+                height=1,
+                font=font,
+                preserve_aspect_ratio=preserve_aspect_ratio,
+                ax=ax,
+                color='k'
+            )
 
     ax.set_xlim(left=offset, right=len(letter_heights) + offset)
     ax.set_ylim(bottom=min_neg_h, top=max_pos_h)
