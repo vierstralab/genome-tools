@@ -265,7 +265,7 @@ def add_geometry_to_axis(ax, geom, color, x, y, height, width_scale=1.0):
     return patch
 
 def get_geoms(font, preserve_aspect_ratio=False):
-    chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
+    chars = string.ascii_uppercase + string.ascii_lowercase + string.digits + string.punctuation
     return (
         default_letter_geoms
         if font == default_font and not preserve_aspect_ratio
