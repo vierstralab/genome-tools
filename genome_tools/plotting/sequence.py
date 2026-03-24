@@ -292,8 +292,16 @@ def plot_letter(letter, x, y, height=1.0, width=1.0, preserve_aspect_ratio=False
     return ax
 
 
-def seq_plot(letter_heights: np.ndarray, ax=None, vocab="dna", offset=0,
-             width_scale=1.0, font=default_font, preserve_aspect_ratio=False):
+def seq_plot(
+        letter_heights: np.ndarray,
+        ax=None,
+        vocab="dna",
+        offset=0,
+        width_scale=1.0,
+        font=default_font,
+        preserve_aspect_ratio=False,
+        placeholder=None
+    ):
     geoms = get_geoms(font, preserve_aspect_ratio=preserve_aspect_ratio)
 
     if ax is None:
@@ -329,6 +337,11 @@ def seq_plot(letter_heights: np.ndarray, ax=None, vocab="dna", offset=0,
 
         max_pos_h = max(max_pos_h, y_pos)
         min_neg_h = min(min_neg_h, y_neg)
+
+    if placeholder is not None:
+        all_zero_pos = np.sum(letter_heights, axis=1) == 0
+        for x_pos in np.where(all_zero_pos)[0]:
+            plot_letter(placeholder, x_pos + offset, 0, height=1, ax=ax)
 
     ax.set_xlim(left=offset, right=len(letter_heights) + offset)
     ax.set_ylim(bottom=min_neg_h, top=max_pos_h)
