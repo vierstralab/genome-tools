@@ -12,6 +12,10 @@ from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
 
+class SequenceLoader(PlotDataLoader):
+    required_loader_kwargs = ['sequence']
+
+
 class FastaLoader(PlotDataLoader):
     def _load(self, data: DataBundle, fasta_file):
         with FastaExtractor(fasta_file) as ext:

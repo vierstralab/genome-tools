@@ -10,7 +10,8 @@ from genome_tools.plotting.modular_plot.loaders.sequence import (
     MotifHitsLoader,
     MotifHitsSelectorLoader,
     FastaLoader,
-    OHESequenceLoader
+    OHESequenceLoader,
+    SequenceLoader
 )
 from genome_tools.plotting.modular_plot.loaders.basic import AnnotationRegionsLoader
 
@@ -34,6 +35,13 @@ class SequencePlotComponent(IntervalPlotComponent):
         ax.axis('off')
         seq_plot(data.matrix, ax=ax, offset=data.interval.start, preserve_aspect_ratio=preserve_aspect_ratio, **kwargs)
         return ax
+
+
+SequenceFromStrPlotComponent = SequencePlotComponent.with_loaders(
+    SequenceLoader,
+    OHESequenceLoader,
+    new_class_name="SequenceFromStrPlotComponent"
+)
 
 
 @uses_loaders(AnnotationRegionsLoader, MotifHitsLoader, MotifHitsSelectorLoader)

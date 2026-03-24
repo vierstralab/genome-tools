@@ -18,7 +18,6 @@ class AnnotationRegionsLoader(PlotDataLoader):
         data.annotation_regions = annotation_regions
         return data
 
-
 # TODO: wrap as class factory
 class IdeogramLoader(PlotDataLoader):
     required_loader_kwargs = ['ideogram_data']
