@@ -91,8 +91,9 @@ def standardize_rings(rings, preserve_aspect_ratio=False):
     miny, maxy = min(ys), max(ys)
 
     w = maxx - minx
-    h = maxy - miny
-    if h == 0:
+    h = max(maxy - miny, 1e-3)
+    
+    if h == 1e-3:
         return rings
 
     sy = 1.0 / h
