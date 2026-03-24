@@ -184,14 +184,22 @@ def get_letter_geometries(font_name, letters, approximation_scale=0.03, **kwargs
     font = TTFont(font_name) if os.path.isfile(font_name) else TTFont(font_manager.findfont(font_name))
     glyph_set = font.getGlyphSet()
     out = {}
+
+    not_found_glyps = set()
     for ch in letters:
         if ch in glyph_set:
             out[ch] = get_glyph_geometry(ch, glyph_set, approximation_scale=approximation_scale, **kwargs)
+        else:
+            not_found_glyps.add(ch)
+    
+    if not_found_glyps:
+        print(f"Warning: the following characters were not found in font '{font_name}' and will be skipped: {not_found_glyps}")
     return out
 
+allowed_symbols = string.ascii_uppercase + string.ascii_lowercase + string.digits + string.punctuation
 
 default_font = "Arial"
-default_letter_geoms = get_letter_geometries(default_font, string.ascii_uppercase + string.ascii_lowercase, preserve_aspect_ratio=False)
+default_letter_geoms = get_letter_geometries(default_font, allowed_symbols, preserve_aspect_ratio=False)
 
 
 def _ring_to_path(ring):
@@ -265,13 +273,12 @@ def add_geometry_to_axis(ax, geom, color, x, y, height, width_scale=1.0):
     return patch
 
 def get_geoms(font, preserve_aspect_ratio=False):
-    chars = string.ascii_uppercase + string.ascii_lowercase + string.digits + string.punctuation
     return (
         default_letter_geoms
         if font == default_font and not preserve_aspect_ratio
         else get_letter_geometries(
             font,
-            chars,
+            allowed_symbols,
             preserve_aspect_ratio=preserve_aspect_ratio
         )
     )
