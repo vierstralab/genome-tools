@@ -199,8 +199,9 @@ def get_letter_geometries(font_name, letters=None, approximation_scale=0.03, **k
         out[ch] = get_glyph_geometry(ch, glyph_set, approximation_scale=approximation_scale, **kwargs)
 
     if letters is not None:
-        if set(letters.keys()) - set(out.keys()):
-            missing = set(letters.keys()) - set(out.keys())
+        letters_set = set(x for x in letters)
+        if letters_set - set(out.keys()):
+            missing = letters_set - set(out.keys())
             raise ValueError(f"Font {font_name} is missing glyphs for: {missing}")
     return out
 
