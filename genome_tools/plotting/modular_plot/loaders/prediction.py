@@ -241,4 +241,6 @@ class AlignedAttributionsLoader(PlotDataLoader):
             if 0 <= matrix_idx < matrix.shape[1] and 0 <= target_idx < aligned.shape[1]:
                 aligned[:, target_idx] = matrix[:, matrix_idx]
 
+        if aligned.sum() == 0:
+            print(f"Warning: aligned attributions sum to zero for target interval {target_interval} with matrix interval {matrix_interval}. Check if the mapping is correct and if the intervals overlap.")
         return aligned
