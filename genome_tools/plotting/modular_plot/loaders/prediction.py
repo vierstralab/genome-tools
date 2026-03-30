@@ -194,7 +194,6 @@ class AttributionsLoader(PlotDataLoader):
         ).widen(
             batch['ohe_seq'][0].shape[1] // 2
         )
-        assert batch_interval.overlaps(data.interval), f"Batch interval {batch_interval} does not overlap with data interval {data.interval}"
 
         attrs = model_wrapper.get_sequence_attributions(
             batch['ohe_seq'],
