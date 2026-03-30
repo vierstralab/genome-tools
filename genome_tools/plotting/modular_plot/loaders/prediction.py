@@ -184,7 +184,7 @@ class AttributionsLoader(PlotDataLoader):
                 model_wrapper: ModelWrapper,
                 print_convergence_deltas=False,
                 n_shuffles=20,
-                random_state=42
+                random_state=42,
         ):
         batch = data.batch
         batch_interval = GenomicInterval(
@@ -194,6 +194,7 @@ class AttributionsLoader(PlotDataLoader):
         ).widen(
             batch['ohe_seq'][0].shape[1] // 2
         )
+        assert batch_interval.overlaps(data.interval), f"Batch interval {batch_interval} does not overlap with data interval {data.interval}"
 
         attrs = model_wrapper.get_sequence_attributions(
             batch['ohe_seq'],
@@ -202,11 +203,18 @@ class AttributionsLoader(PlotDataLoader):
             print_convergence_deltas=print_convergence_deltas,
             random_state=random_state
         ).squeeze(0).numpy()
+        data.raw_attributions = attrs
+        data.raw_attributions_coords = batch_interval
+        return data
 
+
+class AlignedAttributionsLoader(PlotDataLoader):
+    def _load(self, data: DataBundle, mapping=None):
         data.matrix = self.align_matrix_to_interval(
-            matrix=attrs,
-            matrix_interval=batch_interval,
+            matrix=data.raw_attributions,
+            matrix_interval=data.raw_attributions_coords,
             target_interval=data.interval,
+            mapping=mapping
         ).T
         data.sequence_weights = data.matrix.sum(axis=1)
         return data
@@ -216,21 +224,22 @@ class AttributionsLoader(PlotDataLoader):
         matrix: np.ndarray,
         matrix_interval: GenomicInterval,
         target_interval: GenomicInterval,
+        mapping=None
     ):
         assert matrix.shape[1] == len(matrix_interval)
         aligned = np.zeros(
             (matrix.shape[0], len(target_interval)),
             dtype=matrix.dtype
         )
-        offset = matrix_interval.start - target_interval.start
-        t_start = max(offset, 0)
-        t_end = min(offset + len(matrix_interval), len(target_interval))
 
-        if t_start >= t_end:
-            return aligned  # no overlap
+        if mapping is None:
+            x = np.arange(target_interval.start, target_interval.end)
+            mapping = {pos: pos for pos in x}
 
-        m_start = max(-offset, 0)
-        m_end = m_start + (t_end - t_start)
+        for new_pos, old_pos in mapping.items():
+            matrix_idx = old_pos - matrix_interval.start
+            target_idx = new_pos - target_interval.start
+            if 0 <= matrix_idx < matrix.shape[1] and 0 <= target_idx < aligned.shape[1]:
+                aligned[:, target_idx] = matrix[:, matrix_idx]
 
-        aligned[:, t_start:t_end] = matrix[:, m_start:m_end]
         return aligned

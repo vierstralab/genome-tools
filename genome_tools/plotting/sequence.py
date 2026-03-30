@@ -358,13 +358,12 @@ def seq_plot(
     if placeholder is not None:
         all_zero_pos = np.sum(letter_heights, axis=1) == 0
         for x_pos in np.where(all_zero_pos)[0]:
-            plot_letter(
-                placeholder,
+            add_geometry_to_axis(
+                geom=geoms[placeholder],
                 x=x_pos + offset,
                 y=0,
                 height=1,
-                font=font,
-                preserve_aspect_ratio=preserve_aspect_ratio,
+                width_scale=width_scale,
                 ax=ax,
                 color='k'
             )

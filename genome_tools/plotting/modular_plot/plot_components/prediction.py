@@ -1,4 +1,4 @@
-from genome_tools.plotting.modular_plot.loaders.prediction import AttributionsLoader, IntervalDatasetLoader, DHSDatasetLoader, PredictedSignalLoader, BatchLoader
+from genome_tools.plotting.modular_plot.loaders.prediction import AlignedAttributionsLoader, AttributionsLoader, IntervalDatasetLoader, DHSDatasetLoader, PredictedSignalLoader, BatchLoader
 
 from genome_tools.plotting.modular_plot.plot_components.sequence import SequencePlotComponent, MotifHitsComponent
 
@@ -7,7 +7,7 @@ from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loade
 
 
 # TODO fix other components
-@uses_loaders(DHSDatasetLoader, AttributionsLoader)
+@uses_loaders(DHSDatasetLoader, AttributionsLoader, AlignedAttributionsLoader)
 class AttributionsComponent(SequencePlotComponent):
     
     @IntervalPlotComponent.set_xlim_interval
@@ -19,13 +19,13 @@ class AttributionsComponent(SequencePlotComponent):
 
 
 AttributionsFromBatchComponent = AttributionsComponent.with_loaders(
-    BatchLoader, AttributionsLoader,
+    BatchLoader, AttributionsLoader, AlignedAttributionsLoader,
     new_class_name='AttributionsFromBatchComponent',
 )
 
 
 AttributionsWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
-    DHSDatasetLoader, AttributionsLoader, *MotifHitsComponent.__required_loaders__,
+    DHSDatasetLoader, AttributionsLoader, AlignedAttributionsLoader, *MotifHitsComponent.__required_loaders__,
     new_class_name='AttributionsWeightedMotifHitsComponent',
 )
 
