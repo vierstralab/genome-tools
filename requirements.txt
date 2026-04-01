@@ -4,7 +4,7 @@ pysam
 pyBigWig
 matplotlib
 descartes
-fonttools==4.49.0
+fonttools==4.60.2
 pysam
 openpyxl
 shapely>=2.1.1
