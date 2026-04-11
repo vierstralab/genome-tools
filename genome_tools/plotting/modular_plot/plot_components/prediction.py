@@ -25,8 +25,14 @@ AttributionsFromBatchComponent = AttributionsComponent.with_loaders(
 
 
 AttributionsWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
-    DHSDatasetLoader, AttributionsLoader, AlignedAttributionsLoader, *MotifHitsComponent.__required_loaders__,
+    *AttributionsComponent.__required_loaders__, *MotifHitsComponent.__required_loaders__,
     new_class_name='AttributionsWeightedMotifHitsComponent',
+)
+
+AttributionsWeightedMotifHitsFromBatchComponent = MotifHitsComponent.with_loaders(
+    *AttributionsFromBatchComponent.__required_loaders__,
+    *MotifHitsComponent.__required_loaders__,
+    new_class_name='AttributionsWeightedMotifHitsFromBatchComponent',
 )
 
 
