@@ -251,7 +251,7 @@ class AlignedAttributionsLoader(PlotDataLoader):
             if matrix_idx is None:
                 continue
             
-            matrix_idx = matrix_idx - matrix_interval.start
+            matrix_idx = matrix_idx[1] - matrix_interval.start
             
             if 0 <= matrix_idx < matrix.shape[1] and 0 <= target_idx < aligned.shape[1]:
                 aligned[:, target_idx] = matrix[:, matrix_idx]
