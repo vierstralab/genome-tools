@@ -67,7 +67,7 @@ class BetweenSpeciesMap:
                         m_pos += m_step
 
                     if cur_h is not None and cur_m is not None:
-                        mapping[h_chrom][cur_h] = (m_chrom, cur_m)
+                        mapping.setdefault(h_chrom, {})[cur_h] = (m_chrom, cur_m)
 
         return cls(mapping)
 
