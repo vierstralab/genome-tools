@@ -72,7 +72,7 @@ class BetweenSpeciesMap:
         return cls(mapping)
 
     def map_pos_root_to_target(self, chrom, pos):
-        return self.forward.get(chrom, {}).get(pos)
+        return self.mapping.get(chrom, {}).get(pos)
 
     def map_pos_target_to_root(self, chrom, pos):
         return self.reverse.get(chrom, {}).get(pos)
