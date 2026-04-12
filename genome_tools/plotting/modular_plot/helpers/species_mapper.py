@@ -19,7 +19,7 @@ class BetweenSpeciesMap:
         rev = {}
         for r_chr, pos_dict in forward.items():
             for r_pos, (t_chr, t_pos) in pos_dict.items():
-                rev.setdefault(t_chr)[t_pos] = (r_chr, r_pos)
+                rev.setdefault(t_chr, {})[t_pos] = (r_chr, r_pos)
         return rev
 
     @classmethod
