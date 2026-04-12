@@ -1,6 +1,6 @@
 from bx.align import maf
 import os
-import tqdm
+from tqdm import tqdm
 from genome_tools import GenomicInterval
 
 
