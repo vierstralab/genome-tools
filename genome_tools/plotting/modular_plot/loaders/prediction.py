@@ -16,6 +16,7 @@ from genome_tools import GenomicInterval
 
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
+from genome_tools.plotting.modular_plot.helpers.species_mapper import BetweenSpeciesMap
 
 
 class BatchLoader(PlotDataLoader):
@@ -223,7 +224,7 @@ class AlignedAttributionsLoader(PlotDataLoader):
         matrix: np.ndarray,
         matrix_interval: GenomicInterval,
         target_interval: GenomicInterval,
-        mapping=None
+        mapping: BetweenSpeciesMap=None
     ):
         assert matrix.shape[1] == len(matrix_interval)
         aligned = np.zeros(
@@ -231,13 +232,27 @@ class AlignedAttributionsLoader(PlotDataLoader):
             dtype=matrix.dtype
         )
 
+        x = np.arange(target_interval.start, target_interval.end)
         if mapping is None:
-            x = np.arange(target_interval.start, target_interval.end)
-            mapping = {pos: pos for pos in x}
+            mapping = BetweenSpeciesMap(
+                {
+                    target_interval.chrom: {
+                        pos: (target_interval.chrom, pos) for pos in x
+                    }
+                }
+            )
 
-        for new_pos, old_pos in mapping.items():
-            matrix_idx = old_pos - matrix_interval.start
-            target_idx = new_pos - target_interval.start
+        for target_pos in x:
+            target_idx = target_pos - target_interval.start
+            matrix_idx = mapping.map_pos_root_to_target(
+                target_interval.chrom,
+                target_interval.start
+            )
+            if matrix_idx is None:
+                continue
+            
+            matrix_idx = matrix_idx - matrix_interval.start
+            
             if 0 <= matrix_idx < matrix.shape[1] and 0 <= target_idx < aligned.shape[1]:
                 aligned[:, target_idx] = matrix[:, matrix_idx]
 

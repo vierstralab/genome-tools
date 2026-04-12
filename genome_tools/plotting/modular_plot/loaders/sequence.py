@@ -10,6 +10,7 @@ from genome_tools.data.pwm import read_pfm, get_allelic_scores, seq_logp, seq_he
 
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
+from genome_tools.plotting.modular_plot.helpers.species_mapper import BetweenSpeciesMap
 
 
 class SequenceLoader(PlotDataLoader):
@@ -33,7 +34,7 @@ class OHESequenceLoader(PlotDataLoader):
 
 class MotifHitsLoader(PlotDataLoader):
 
-    def _load(self, data: DataBundle, motif_annotations_path, motif_meta, min_motif_overlap=0.9):
+    def _load(self, data: DataBundle, motif_annotations_path, motif_meta, min_motif_overlap=0.9, mapping: BetweenSpeciesMap=None):
         """
         Load motif hits overlapping annotation regions.
         
@@ -56,6 +57,10 @@ class MotifHitsLoader(PlotDataLoader):
         ) as extractor:
             regions_annotations = []
             for annotation_region in annotation_regions:
+                if mapping is not None:
+                    annotation_region = mapping.map_interval_to_target(
+                        annotation_region
+                    ) # in corresponding coordinates
                 interval_motif_hits = extractor[annotation_region]
                 interval_motif_hits = interval_motif_hits
                 interval_motif_hits['region'] = annotation_region.to_ucsc()
