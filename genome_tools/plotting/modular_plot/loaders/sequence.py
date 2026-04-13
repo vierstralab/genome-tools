@@ -89,8 +89,18 @@ class MotifHitsLoader(PlotDataLoader):
             right_index=True
         )
 
-        regions_annotations = regions_annotations.query(f'overlap_frac >= {min_motif_overlap}')
+        regions_annotations.query(
+            f'overlap_frac >= {min_motif_overlap}',
+            inplace=True
+        )
 
+        if mapping is not None:
+            regions_annotations_new_coords = mapping.map_target_df_to_root(
+                regions_annotations
+            )
+            regions_annotations[regions_annotations_new_coords.columns] = regions_annotations_new_coords
+            regions_annotations.dropna(inplace=True)
+        
         data.all_motifs_df = regions_annotations
         return data
 
@@ -188,7 +198,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
 
         data.motif_intervals = df_to_genomic_intervals(
             selected_hits,
-           # data.interval,
+            data.interval,
             extra_columns=['orient', 'region', 'tf_name', 'pfm_matrix']
         )
         return data

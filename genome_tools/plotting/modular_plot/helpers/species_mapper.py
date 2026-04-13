@@ -2,6 +2,7 @@ from bx.align import maf
 import os
 from tqdm import tqdm
 from genome_tools import GenomicInterval
+import pandas as pd
 
 
 class BetweenSpeciesMap:
@@ -87,6 +88,29 @@ class BetweenSpeciesMap:
         return self.map_pos_interval(
             interval=interval,
             mapper_method=self.map_pos_root_to_target
+        )
+
+    def map_row(self, row):
+        new_chrom, new_start = self.map_pos_target_to_root(row['#chr'], row['start'])
+        _, new_end = self.map_pos_target_to_root(row['#chr'], row['end'] - 1)
+        new_end += 1
+        if new_end - new_start != row['end'] - row['start']:
+            new_chrom = pd.NA
+            new_start = pd.NA
+            new_end = pd.NA
+
+        return pd.Series(
+            {
+                '#chr': new_chrom,
+                'start': new_start,
+                'end': new_end
+            }
+        )
+
+    
+    def map_target_df_to_root(self, df):
+        return df.progress_apply(
+            self.map_row, axis=1
         )
 
     def map_pos_interval(self, interval: GenomicInterval, mapper_method):
