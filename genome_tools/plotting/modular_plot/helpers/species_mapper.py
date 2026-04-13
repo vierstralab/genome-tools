@@ -104,7 +104,7 @@ class BetweenSpeciesMap:
             new_end += 1
         else:
             new_end = pd.NA
-        if not pd.isna(new_start) or not pd.isna(new_end) or (new_end - new_start != row['end'] - row['start']):
+        if pd.isna(new_start) or pd.isna(new_end) or (new_end - new_start != row['end'] - row['start']):
             new_chrom = pd.NA
             new_start = pd.NA
             new_end = pd.NA
