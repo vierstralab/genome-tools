@@ -179,11 +179,16 @@ class MotifHitsSelectorLoader(PlotDataLoader):
         else:
             raise ValueError(f"Unknown choose_by: {choose_by}")
 
-        selected_hits = self._select_hits(motif_hits, metric_name, n_top_hits, motif_hits_threshold)
+        selected_hits = self._select_hits(
+            motif_hits,
+            metric_name,
+            n_top_hits,
+            motif_hits_threshold
+        )
 
         data.motif_intervals = df_to_genomic_intervals(
             selected_hits,
-            data.interval,
+           # data.interval,
             extra_columns=['orient', 'region', 'tf_name', 'pfm_matrix']
         )
         return data
