@@ -246,7 +246,7 @@ class AlignedAttributionsLoader(PlotDataLoader):
             target_idx = target_pos - target_interval.start
             matrix_idx = mapping.map_pos_root_to_target(
                 target_interval.chrom,
-                target_interval.start
+                target_pos
             )
             if matrix_idx is None:
                 continue
