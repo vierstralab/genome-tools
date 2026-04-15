@@ -11,6 +11,16 @@ from genome_tools.plotting.modular_plot.loaders.basic import IdeogramLoader, Gen
 
 from .abstract import SegmentPlotComponent
 
+
+class EmptyComponent(IntervalPlotComponent):
+    """
+    Placeholder class to use as Plot component without modifying the ax
+    
+    Returns: `matplotlib.axes.Axes`
+    """
+    def _plot(self, data, ax, **kwargs):
+        return ax
+
 @uses_loaders(IdeogramLoader)
 class IdeogramComponent(IntervalPlotComponent):
     """Render a chromosome ideogram at the interval position.
