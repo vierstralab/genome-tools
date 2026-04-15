@@ -324,13 +324,12 @@ GenomeAxesSubplot.__module__ = GenomeAxes.__module__
 
 # ------------------------
 
-def add_scale_bar(ax):
-    scale = 100
+def add_scale_bar(ax, scale=100, label=None, loc='lower right'):
     bar = AnchoredSizeBar(
         ax.transData,
         scale,
-        label=f"{scale}nt",
-        loc="lower right",
+        label=f"{scale}nt" if label is None else label,
+        loc=loc,
         frameon=False,
         pad=0.4,
         borderpad=1,
@@ -342,6 +341,22 @@ def add_scale_bar(ax):
     bar.patch.set_edgecolor("none")
     bar.patch.set_alpha(0.7)
     bar.patch.set_visible(True)
+
+    def find_rectangle(box):
+        for child in box.get_children():
+            if isinstance(child, mpatches.Rectangle):
+                return child
+            elif hasattr(child, 'get_children'):
+                result = find_rectangle(child)
+                if result is not None:
+                    return result
+        return None
+    
+    bar_patch = find_rectangle(bar)
+    if bar_patch is not None:
+        bar_patch.set_linewidth(0.5)
+    else:
+        print("Rectangle not found.")
     ax.add_artist(bar)
 
 
