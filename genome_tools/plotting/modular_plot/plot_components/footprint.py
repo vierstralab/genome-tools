@@ -73,7 +73,7 @@ class PosteriorHeatmapComponent(IntervalPlotComponent):
         for group, df in grouped_posteriors:
             fig = ax.get_figure()
             ax1 = fig.add_subplot(gs[row, :])
-            ax1.pcolormesh(1 - np.exp(-df), cmap="Blues", **kwargs)
+            ax1.pcolormesh(df, cmap="Blues", **kwargs)
             ax1.xaxis.set_visible(False)
             for s in ['top', 'right']:
                 ax1.spines[s].set_visible(True)
