@@ -42,7 +42,7 @@ class FootprintsIndexComponent(SegmentPlotComponent):
 @uses_loaders(PosteriorLoader)
 class PosteriorHeatmapComponent(IntervalPlotComponent):
 
-    def _plot(self, data, ax: plt.Axes, hspace=0.05, **kwargs):
+    def _plot(self, data, ax: plt.Axes, hspace=0.05, cmap="Blues", **kwargs):
         """
         main plot function of the component
         always accepts data, ax, **kwargs
@@ -73,7 +73,7 @@ class PosteriorHeatmapComponent(IntervalPlotComponent):
         for group, df in grouped_posteriors:
             fig = ax.get_figure()
             ax1 = fig.add_subplot(gs[row, :])
-            ax1.pcolormesh(df, cmap="Blues", **kwargs)
+            ax1.pcolormesh(df, cmap=cmap, **kwargs)
             ax1.xaxis.set_visible(False)
             for s in ['top', 'right']:
                 ax1.spines[s].set_visible(True)
