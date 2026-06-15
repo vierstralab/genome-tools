@@ -41,9 +41,8 @@ def relative_info_content(mat):
     ric = p * ic[:, np.newaxis]
     return ric
 
-def delta_energy(mat):
-    p = mat / mat.sum(axis=1, keepdims=True)
-    energy = -np.log(p + 1e-3)
+def delta_energy(pfm):
+    energy = np.log(pfm)
     return energy - energy.mean(axis=1, keepdims=True)
 
 
