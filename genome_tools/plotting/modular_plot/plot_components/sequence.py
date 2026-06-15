@@ -68,7 +68,7 @@ class MotifHitsComponent(IntervalPlotComponent):
     """
 
     @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, pack=False, pad=1):
+    def _plot(self, data, ax, pack=False, pad=1, **kwargs):
         ax.axis('off')
         intervals = data.motif_intervals
         if len(intervals) == 0:
@@ -77,14 +77,14 @@ class MotifHitsComponent(IntervalPlotComponent):
         if pack:
            _, intervals = pack_rows(intervals, pad=pad)
         axes = add_axes_at_intervals(intervals, data.interval, ax=ax)
-        self.plot_motifs_for_intervals(intervals, axes)
+        self.plot_motifs_for_intervals(intervals, axes, **kwargs)
         return ax, axes
     
     @staticmethod
-    def plot_motifs_for_intervals(motif_intervals: List[GenomicInterval], axes):
+    def plot_motifs_for_intervals(motif_intervals: List[GenomicInterval], axes, **kwargs):
         assert len(motif_intervals) == len(axes)
         for interval, ax in zip(motif_intervals, axes):
-            plot_motif_logo(interval.pfm_matrix, rc=interval.orient == '-', font='IBM Plex Mono', ax=ax)
+            plot_motif_logo(interval.pfm_matrix, rc=interval.orient == '-', font='IBM Plex Mono', ax=ax, **kwargs)
             ax.set_xlabel(interval.tf_name, labelpad=0.5)
         return axes
 
