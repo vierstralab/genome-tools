@@ -8,6 +8,7 @@ from genome_tools.plotting.modular_plot.loaders.dhs import ComponentTracksLoader
 
 from .abstract import SegmentPlotComponent
 
+
 # TODO fix other components
 @uses_loaders(DHSIndexLoader)
 class DHSIndexComponent(SegmentPlotComponent):
@@ -137,5 +138,3 @@ class DHSLoadingsComponent(IntervalPlotComponent):
 
         for genomic_interval, ax in zip(genomic_intervals, axes):
             component_barplot(H[:, genomic_interval.index: genomic_interval.index + 1], component_data, ax=ax, normalize=True)
-
-

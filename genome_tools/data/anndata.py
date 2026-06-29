@@ -12,9 +12,9 @@ def _read_zarr_group(dat):
         return ad.experimental.sparse_dataset(dat).to_memory()
 
 
-def read_zarr_backed(filename):
+def read_zarr_backed(filename, lazy_attrs=('layers', 'varm')):
     d = {}
-    attributes = ["obsm", "varm", "obsp", "varp", "uns"]
+    attributes = ["layers", "varm", "obsm", "obsp", "varp", "uns"]
     df_attributes = ["obs", "var"]
 
     with zarr.open(filename, "r") as f:
@@ -24,15 +24,15 @@ def read_zarr_backed(filename):
         if 'X' in f:
             d['X'] = _read_zarr_group(f['X'])
 
-        for k in attributes:
-            if k not in f:
+        for ad_attr in attributes:
+            if ad_attr not in f:
                 continue
-            d[k] = ad.experimental.read_elem(f[k])
-
-        if 'layers' in f.keys():
-            d['layers'] = {}
-            for layer in f['layers']:
-                d['layers'][layer] = _read_zarr_group(f['layers'][layer])
+            elif ad_attr in lazy_attrs:
+                d[ad_attr] = {}
+                for layer in f[ad_attr]:
+                    d[ad_attr][layer] = _read_zarr_group(f[ad_attr][layer])
+            else:
+                d[ad_attr] = ad.experimental.read_elem(f[ad_attr])
 
         adata = ad.AnnData(**d)
 
