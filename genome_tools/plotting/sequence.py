@@ -14,7 +14,7 @@ from shapely.ops import unary_union
 from shapely.geometry.polygon import orient
 
 from genome_tools.plotting.colors.cm import VOCAB_COLOR_MAPS
-from genome_tools.data.pwm import relative_info_content
+from genome_tools.data.pwm import relative_info_content, delta_energy
 
 
 class RingPen(BasePen):
@@ -373,8 +373,13 @@ def seq_plot(
     return ax
 
 
-def plot_motif_logo(pfm: np.ndarray, ax=None, offset=-0.5, rc=False, **kwargs):
+def plot_motif_logo(pfm: np.ndarray, ax=None, offset=-0.5, rc=False, type="relative_info", **kwargs):
     if rc:
         pfm = pfm[::-1, ::-1]
-    seq_plot(relative_info_content(pfm.T), ax=ax, offset=offset, **kwargs)
+    if type == "relative_info":
+        seq_plot(relative_info_content(pfm.T), ax=ax, offset=offset, **kwargs)
+    elif type == "delta_energy":
+        seq_plot(delta_energy(pfm.T), ax=ax, offset=offset, **kwargs)
+    else:
+        raise ValueError(f"Unknown motif plot type: {type}")
     return ax

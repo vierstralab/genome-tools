@@ -35,11 +35,15 @@ def reverse_complement(seq):
     return "".join(_comp[b] for b in reversed(seq))
 
 
-def relative_info_content(pwm):
-    p = pwm / np.sum(pwm, axis=1)[:, np.newaxis]
+def relative_info_content(mat):
+    p = mat / np.sum(mat, axis=1)[:, np.newaxis]
     ic = 2 + np.sum(p * np.nan_to_num(np.log2(p)), axis=1)
     ric = p * ic[:, np.newaxis]
     return ric
+
+def delta_energy(pfm):
+    energy = np.log(pfm)
+    return energy - energy.mean(axis=1, keepdims=True)
 
 
 def seq_logp(mat, seq, bg=None, weights=None):
