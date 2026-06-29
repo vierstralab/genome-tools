@@ -6,10 +6,17 @@ import scipy.sparse as sp
 
 
 def _read_zarr_group(dat):
+
     if isinstance(dat, zarr.Array):
         return da.from_zarr(dat)
+    elif isinstance(dat, zarr.Group):
+        enc = dat.attrs.get("encoding-type", "")
+        if enc == "dataframe":
+            return ad.experimental.read_elem(dat)  # returns pd.DataFrame
+        else:
+            return ad.experimental.sparse_dataset(dat).to_memory()
     else:
-        return ad.experimental.sparse_dataset(dat).to_memory()
+        raise ValueError('Not a zarr array or zarr group')
 
 
 def read_zarr_backed(filename, lazy_attrs=('layers', 'varm')):
