@@ -76,7 +76,7 @@ class PosteriorLoader(PlotDataLoader):
             interval_posterior_df = interval_posterior_df.loc[order]
             data.groups_data = groups_data.loc[order].copy()
             
-        data.interval_posterior = interval_posterior_df
+        data.heatmap_data = interval_posterior_df
         return data
     
     @staticmethod
