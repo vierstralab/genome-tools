@@ -23,7 +23,7 @@ from genome_tools.plotting.modular_plot.loaders.variant import (
     VariantIntervalLoader,
     GroupsByGenotypeLoader
 )
-from genome_tools.plotting.modular_plot.loaders.footprint import GroupsDataLoader
+from genome_tools.plotting.modular_plot.loaders.footprint.footprint import GroupsDataLoader
 from genome_tools.plotting.modular_plot.plot_components.sequence import MotifHitsComponent
 
 

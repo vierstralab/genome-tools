@@ -93,3 +93,12 @@ class SegmentsTabixLoader(SegmentsLoader):
             extra_columns=extra_columns,
             rectprops_columns=rectprops_columns
         )
+
+
+class GroupDataLoader(PlotDataLoader):
+    def _load(self, data: DataBundle, footprints_metadata: pd.DataFrame, grouping_column='extended_annotation'):
+        data.grouping_column = footprints_metadata.loc[:, grouping_column].copy()
+
+        data.grouping_column_name = grouping_column
+
+        return data

@@ -19,7 +19,7 @@ from footprint_tools.stats.distributions import invchi2
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
-from .basic import SegmentsLoader
+from ..basic import SegmentsLoader
 
 
 class FootprintsIndexLoader(SegmentsLoader):
@@ -37,10 +37,8 @@ class PosteriorLoader(PlotDataLoader):
     def _load(
             self,
             data: DataBundle,
-            posterior_file, 
-            footprints_metadata: pd.DataFrame, 
+            posterior_file,
             sort_heatmap_by_region: GenomicInterval = None,
-            grouping_column='extended_annotation',
             sort_groups=False
     ):
         # Get posterior data
@@ -50,9 +48,11 @@ class PosteriorLoader(PlotDataLoader):
         ) as extractor:
             raw_posterior = extractor[data.interval].rename(columns={'# chrom': '#chr'})
 
+        grouping_column: pd.Series = data.grouping_column
+
         interval_posterior = raw_posterior.set_index('start').drop(
             columns=['#chr', 'end']
-        ).T.loc[footprints_metadata.index]
+        ).T.loc[grouping_column.index]
         
         interval_posterior_df = pd.DataFrame(
             0.0,
@@ -60,25 +60,23 @@ class PosteriorLoader(PlotDataLoader):
             columns=np.arange(data.interval.start, data.interval.end)
         )
         interval_posterior_df.loc[:, interval_posterior.columns] = interval_posterior
-        
-        grouping_column_data = footprints_metadata.loc[interval_posterior_df.index, grouping_column].copy()
 
         interval_posterior_df = 1 - np.exp(-interval_posterior_df)
 
         if sort_heatmap_by_region is not None:
+            print('sort_heatmap_by_region is provided. Overwriting data.grouping_column with sorted values')
             order = self.sort_by_interval(
                 interval_posterior_df,
                 data.interval,
                 region=sort_heatmap_by_region,
-                group_column=grouping_column_data,
+                group_column=grouping_column,
                 sort_groups=sort_groups
             )
 
             interval_posterior_df = interval_posterior_df.loc[order]
-            grouping_column_data = grouping_column_data.loc[order]
+            data.grouping_column = grouping_column.loc[order].copy()
             
         data.interval_posterior = interval_posterior_df
-        data.grouping_column = grouping_column_data
         return data
     
     @staticmethod

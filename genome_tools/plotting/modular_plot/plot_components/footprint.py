@@ -21,12 +21,14 @@ from genome_tools.plotting.modular_plot.loaders.footprint import (
     SequenceWeightsFromProtectedNucleotidesLoader,
     GroupsDataLoader
 )
+from genome_tools.plotting.modular_plot.loaders.basic import GroupDataLoader
+
+
 from genome_tools.plotting.modular_plot.loaders.variant import VariantGenotypeLoader, GroupsByGenotypeLoader, VariantIntervalLoader
 
 from genome_tools.plotting.modular_plot.plot_components.sequence import FastaLoader, MotifHitsComponent, SequencePlotComponent
 
-from .abstract import SegmentPlotComponent
-
+from .abstract import SegmentPlotComponent, HeatmapPlotComponent
 
 # TODO fix other components
 @uses_loaders(FootprintsIndexLoader)
@@ -39,54 +41,10 @@ class FootprintsIndexComponent(SegmentPlotComponent):
         return ax
 
 
-@uses_loaders(PosteriorLoader)
-class PosteriorHeatmapComponent(IntervalPlotComponent):
-
-    def _plot(self, data, ax: plt.Axes, hspace=0.05, cmap="Blues", **kwargs):
-        """
-        main plot function of the component
-        always accepts data, ax, **kwargs
-        kwargs override any fields in init
-        """
-        interval_posterior: pd.DataFrame = data.interval_posterior
-        grouping_column: pd.Series = data.grouping_column
-        grouped_data = interval_posterior.groupby(
-            grouping_column,
-            observed=True
-        )
-
-        group_names = pd.unique(grouping_column)
-
-        grouped_posteriors = [
-            (group, grouped_data.get_group(group)) for group in group_names
-        ]
-
-        num_groups = len(grouped_posteriors)
-        gs = gridspec.GridSpecFromSubplotSpec(
-            num_groups, 1,
-            height_ratios=[df.shape[0] for _, df in grouped_posteriors],
-            subplot_spec=ax.get_subplotspec(),
-            hspace=hspace
-        )
-        axes = []
-        row = 0
-        for group, df in grouped_posteriors:
-            fig = ax.get_figure()
-            ax1 = fig.add_subplot(gs[row, :])
-            ax1.pcolormesh(df, cmap=cmap, **kwargs)
-            ax1.xaxis.set_visible(False)
-            for s in ['top', 'right']:
-                ax1.spines[s].set_visible(True)
-            
-            # Formatting
-            ax1.set_ylabel(group, rotation=0, ha="right", va="center", fontsize="medium")
-            ax1.set_xticks([])  # Hide x-axis ticks
-            ax1.set_yticks([])  # Hide y-axis ticks
-            axes.append(ax1)
-            row += 1
-        ax.axis("off")
-
-        return ax, axes
+PosteriorHeatmapComponent = HeatmapPlotComponent.with_loaders(
+    GroupDataLoader, PosteriorLoader,
+    new_class_name='PosteriorHeatmapComponent'
+)
 
 
 TFProtectedNucleotidesComponent = SequencePlotComponent.with_loaders(
