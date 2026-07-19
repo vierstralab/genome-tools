@@ -19,7 +19,7 @@ from footprint_tools.stats.distributions import invchi2
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
 
-from ..basic import SegmentsLoader
+from .basic import SegmentsLoader
 
 
 class FootprintsIndexLoader(SegmentsLoader):
