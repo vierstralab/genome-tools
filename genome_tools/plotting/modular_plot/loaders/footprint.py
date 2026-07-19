@@ -48,11 +48,11 @@ class PosteriorLoader(PlotDataLoader):
         ) as extractor:
             raw_posterior = extractor[data.interval].rename(columns={'# chrom': '#chr'})
 
-        grouping_column: pd.Series = data.grouping_column
+        groups_data: pd.Series = data.groups_data
 
         interval_posterior = raw_posterior.set_index('start').drop(
             columns=['#chr', 'end']
-        ).T.loc[grouping_column.index]
+        ).T.loc[groups_data.index]
         
         interval_posterior_df = pd.DataFrame(
             0.0,
@@ -69,12 +69,12 @@ class PosteriorLoader(PlotDataLoader):
                 interval_posterior_df,
                 data.interval,
                 region=sort_heatmap_by_region,
-                group_column=grouping_column,
+                group_column=groups_data,
                 sort_groups=sort_groups
             )
 
             interval_posterior_df = interval_posterior_df.loc[order]
-            data.grouping_column = grouping_column.loc[order].copy()
+            data.groups_data = groups_data.loc[order].copy()
             
         data.interval_posterior = interval_posterior_df
         return data
