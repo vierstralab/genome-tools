@@ -11,7 +11,7 @@ from genome_tools import GenomicInterval, filter_df_to_interval
 
 
 from footprint_tools.stats.windowing import stouffers_z
-from footprint_tools.stats import posterior, differential
+from footprint_tools.stats import posterior, differential_lrt
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats.distributions import invchi2
 
@@ -258,7 +258,7 @@ class DifferentialFootprintLoader(PlotDataLoader):
         
         step_args = (-6, 6, 100)
         # Negative binomial probabilities
-        nb = differential.compute_logpmf_values(
+        nb = differential_lrt.compute_logpmf_values(
             disp_models,
             obs,
             exp,
@@ -266,17 +266,17 @@ class DifferentialFootprintLoader(PlotDataLoader):
         ) # lfc, sample, position
         
         # Calculate prior
-        pr_a = differential.compute_log_prior_t(
+        pr_a = differential_lrt.compute_log_prior_t(
             log2_obs_over_exp[:L_a, :],
             nu_0, sig2_0, 
             *step_args
         )
-        pr_b = differential.compute_log_prior_t(
+        pr_b = differential_lrt.compute_log_prior_t(
             log2_obs_over_exp[L_a:, :],
             nu_0, sig2_0, 
             *step_args
         )
-        pr_ab = differential.compute_log_prior_t(
+        pr_ab = differential_lrt.compute_log_prior_t(
             log2_obs_over_exp, 
             nu_0, sig2_0, 
             *step_args
