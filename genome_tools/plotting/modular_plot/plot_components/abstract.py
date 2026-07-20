@@ -42,13 +42,13 @@ class HeatmapPlotComponent(IntervalPlotComponent):
         kwargs override any fields in init
         """
         heatmap_data: pd.DataFrame = data.heatmap_data
-        grouping_column: pd.Series = data.grouping_column
+        groups_data: pd.Series = data.groups_data
         grouped_data = heatmap_data.groupby(
-            grouping_column,
+            groups_data,
             observed=True
         )
 
-        group_names = pd.unique(grouping_column)
+        group_names = pd.unique(groups_data)
 
         grouped_data = [
             (group, grouped_data.get_group(group)) for group in group_names

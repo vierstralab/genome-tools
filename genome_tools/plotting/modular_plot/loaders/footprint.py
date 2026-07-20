@@ -64,7 +64,7 @@ class PosteriorLoader(PlotDataLoader):
         interval_posterior_df = 1 - np.exp(-interval_posterior_df)
 
         if sort_heatmap_by_region is not None:
-            print('sort_heatmap_by_region is provided. Overwriting data.grouping_column with sorted values')
+            print('sort_heatmap_by_region is provided. Overwriting data.groups_data with sorted values')
             order = self.sort_by_interval(
                 interval_posterior_df,
                 data.interval,
