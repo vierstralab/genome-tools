@@ -95,10 +95,5 @@ class SegmentsTabixLoader(SegmentsLoader):
         )
 
 
-class GroupDataLoader(PlotDataLoader):
-    def _load(self, data: DataBundle, metadata: pd.DataFrame, grouping_column='extended_annotation'):
-        data.groups_data = metadata.loc[:, grouping_column].copy()
-
-        data.grouping_column = grouping_column
-
-        return data
+class GroupsDataLoader(PlotDataLoader):
+    required_loader_kwargs = ['groups_data']

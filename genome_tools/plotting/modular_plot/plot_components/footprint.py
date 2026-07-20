@@ -19,9 +19,8 @@ from genome_tools.plotting.modular_plot.loaders.footprint import (
     DifferentialFootprintLoader,
     FootprintsDataLoader,
     SequenceWeightsFromProtectedNucleotidesLoader,
-    GroupsDataLoader
 )
-from genome_tools.plotting.modular_plot.loaders.basic import GroupDataLoader
+from genome_tools.plotting.modular_plot.loaders.basic import GroupsDataLoader
 
 
 from genome_tools.plotting.modular_plot.loaders.variant import VariantGenotypeLoader, GroupsByGenotypeLoader, VariantIntervalLoader
@@ -42,13 +41,13 @@ class FootprintsIndexComponent(SegmentPlotComponent):
 
 
 PosteriorHeatmapComponent = HeatmapPlotComponent.with_loaders(
-    GroupDataLoader, PosteriorLoader,
+    GroupsDataLoader, PosteriorLoader,
     new_class_name='PosteriorHeatmapComponent'
 )
 
 
 TFProtectedNucleotidesComponent = SequencePlotComponent.with_loaders(
-    PosteriorLoader, FastaLoader, ProtectedNucleotidesLoader,
+    GroupsDataLoader, PosteriorLoader, FastaLoader, ProtectedNucleotidesLoader,
     new_class_name="TFProtectedNucleotidesComponent",
 )
 

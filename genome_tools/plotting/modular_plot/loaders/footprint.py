@@ -221,10 +221,6 @@ class FootprintsDataLoader(PlotDataLoader):
         return post
 
 
-class GroupsDataLoader(PlotDataLoader):
-    required_loader_kwargs = ['groups_data']
-
-
 class DifferentialFootprintLoader(PlotDataLoader):
 
     def _load(self, data: DataBundle):
