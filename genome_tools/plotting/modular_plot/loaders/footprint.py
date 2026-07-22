@@ -112,7 +112,7 @@ class PosteriorLoader(PlotDataLoader):
 
 class ProtectedNucleotidesLoader(PlotDataLoader):
     
-    def _load(self, data: DataBundle, protected_nuc_sample_ids=None, posterior_threshold=0.99):
+    def _load(self, data: DataBundle, protected_nuc_sample_ids=None):
         """
         Process the posterior probability data
         """
@@ -122,8 +122,7 @@ class ProtectedNucleotidesLoader(PlotDataLoader):
         if protected_nuc_sample_ids is not None:
             heatmap_data = heatmap_data.loc[protected_nuc_sample_ids, :]
 
-        binary_df = (heatmap_data >= posterior_threshold).astype(int)
-        col_sums = binary_df.sum(axis=0)
+        col_sums = heatmap_data.sum(axis=0)
         # normalized based on max value
         normalized = col_sums / col_sums.max()
         # Sequence
