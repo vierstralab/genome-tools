@@ -116,13 +116,13 @@ class ProtectedNucleotidesLoader(PlotDataLoader):
         """
         Process the posterior probability data
         """
-        interval_posterior = data.interval_posterior # data.interval_posterior
+        heatmap_data = data.heatmap_data
         sequence = data.sequence
         
         if protected_nuc_sample_ids is not None:
-            interval_posterior = interval_posterior.loc[protected_nuc_sample_ids, :]
+            heatmap_data = heatmap_data.loc[protected_nuc_sample_ids, :]
 
-        binary_df = (interval_posterior >= posterior_threshold).astype(int)
+        binary_df = (heatmap_data >= posterior_threshold).astype(int)
         col_sums = binary_df.sum(axis=0)
         # normalized based on max value
         normalized = col_sums / col_sums.max()
