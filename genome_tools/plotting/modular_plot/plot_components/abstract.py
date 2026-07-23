@@ -35,6 +35,7 @@ class SegmentPlotComponent(IntervalPlotComponent):
 
 class HeatmapPlotComponent(IntervalPlotComponent):
 
+    @IntervalPlotComponent.set_xlim_interval
     def _plot(self, data, ax: plt.Axes, hspace=0.05, cmap="Blues", **kwargs):
         """
         main plot function of the component
@@ -66,7 +67,17 @@ class HeatmapPlotComponent(IntervalPlotComponent):
         for group, df in grouped_data:
             fig = ax.get_figure()
             ax1 = fig.add_subplot(gs[row, :])
-            ax1.pcolormesh(df, cmap=cmap, **kwargs)
+            ax1.set_xlim(ax.get_xlim())
+            extent = [df.columns[0] - 0.5, df.columns[-1] + 0.5, 0, df.shape[0]]
+            ax1.imshow(
+                df.values,
+                cmap=cmap,
+                aspect="auto",
+                extent=extent,
+                interpolation="nearest",
+                **kwargs
+            )
+
             ax1.xaxis.set_visible(False)
             for s in ['top', 'right']:
                 ax1.spines[s].set_visible(True)
