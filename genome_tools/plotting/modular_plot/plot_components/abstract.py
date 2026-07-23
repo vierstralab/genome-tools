@@ -67,6 +67,7 @@ class HeatmapPlotComponent(IntervalPlotComponent):
         for group, df in grouped_data:
             fig = ax.get_figure()
             ax1 = fig.add_subplot(gs[row, :])
+            ax1.set_xlim(ax.get_xlim())
             extent = [df.columns[0] - 0.5, df.columns[-1] + 0.5, 0, df.shape[0]]
             ax1.imshow(
                 df.values,
