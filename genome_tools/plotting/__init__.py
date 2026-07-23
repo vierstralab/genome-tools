@@ -21,7 +21,7 @@ from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 # registers custom colormaps
 # from .colors import cm
-from .utils import rescale_data, format_axes_to_interval, clear_spines, pack_rows
+from .utils import rescale_data, format_axes_to_interval, clear_spines, pack_rows, rescale_data_n_points
 
 from genome_tools import GenomicInterval
 
@@ -368,7 +368,8 @@ def signal_plot(interval, data, ax=None, **kwargs):
         ax = plt.gca()
     fig = ax.get_figure()
 
-    x, y = rescale_data(interval, data, ax, downsample=kwargs.pop("downsample", 0))
+    # x, y = rescale_data(interval, data, ax, downsample=kwargs.pop("downsample", 0))
+    x, y = rescale_data_n_points(interval, data, n_points=kwargs.pop("downsample_n_points", None))
 
     ax.fill_between(x, 0, y, step="mid", **kwargs)
 

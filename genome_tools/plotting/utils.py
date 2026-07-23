@@ -83,6 +83,36 @@ def rescale_data(interval, data, ax, downsample=0, win_fn=np.mean, **kwargs):
     return x, y
 
 
+def rescale_data_n_points(interval, data, n_points=None, win_fn=np.mean):
+    """Map data to the interval and optionally reduce to `n_points`."""
+    data = np.asarray(data)
+    length = len(interval)
+
+    if length <= 0:
+        raise ValueError("interval must have positive length")
+    if data.ndim != 1 or data.size == 0:
+        raise ValueError("data must be a non-empty 1D array")
+
+    x = np.arange(interval.start, interval.end)
+    y = data[np.linspace(0, data.size - 1, length).astype(int)]
+
+    if n_points is None or n_points >= length:
+        return x, y
+
+    if n_points < 1:
+        raise ValueError("n_points must be positive or None")
+
+    edges = np.linspace(0, length, n_points + 1).astype(int)
+
+    x = interval.start + (edges[:-1] + edges[1:] - 1) / 2
+    y = np.asarray([
+        win_fn(y[start:end])
+        for start, end in zip(edges[:-1], edges[1:])
+    ])
+
+    return x, y
+
+
 def add_axes_at_intervals(
     genomic_intervals: List[GenomicInterval],
     interval: GenomicInterval,
