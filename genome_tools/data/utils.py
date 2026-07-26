@@ -1,6 +1,6 @@
 import numpy as np
 import itertools
-
+from genome_tools import GenomicInterval
 # collections.(Mapping,Sequence) were
 # deprecated in newer version of python
 try:
@@ -130,3 +130,30 @@ def get_dataset_item(data, idx):
         return [get_dataset_item(sample, idx) for sample in data]
     else:
         raise ValueError("Leafs of the nested structure need to be numpy arrays")
+
+def remap_columns(matrix: np.ndarray, src_cols: np.ndarray) -> np.ndarray:
+    """Output position i = source position src_cols[i] along the last axis; gaps stay zero."""
+    valid = (src_cols >= 0) & (src_cols < matrix.shape[-1])
+    aligned = np.zeros(matrix.shape[:-1] + (len(src_cols),), dtype=matrix.dtype)
+    aligned[..., valid] = matrix[..., src_cols[valid]]
+    return aligned
+
+
+def realign_matrix(
+        matrix: np.ndarray,
+        matrix_interval: GenomicInterval,
+        target_interval: GenomicInterval,
+    ) -> np.ndarray:
+    """Same-species: source column is a fixed offset from target position."""
+    assert matrix.shape[-1] == len(matrix_interval)
+    offset = target_interval.start - matrix_interval.start
+    src_cols = np.arange(len(target_interval)) + offset
+
+    n_valid = int(((src_cols >= 0) & (src_cols < matrix.shape[-1])).sum())
+    n_target = len(target_interval)
+    if n_valid == 0:
+        print(f"Warning: {target_interval} does not overlap {matrix_interval}; returning zeros.")
+    elif n_valid < n_target:
+        print(f"Warning: partial overlap ({n_valid}/{n_target}) between {target_interval} and {matrix_interval}; padding with zeros.")
+
+    return remap_columns(matrix, src_cols)

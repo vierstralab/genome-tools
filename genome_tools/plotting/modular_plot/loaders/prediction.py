@@ -16,7 +16,7 @@ from genome_tools import GenomicInterval
 
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
-from genome_tools.plotting.modular_plot.helpers.species_mapper import BetweenSpeciesMap
+from genome_tools.plotting.modular_plot.helpers.species_mapper import map_matrix_to_interval
 
 
 class BatchLoader(PlotDataLoader):
@@ -210,7 +210,7 @@ class AttributionsLoader(PlotDataLoader):
 
 class AlignedAttributionsLoader(PlotDataLoader):
     def _load(self, data: DataBundle, mapping=None):
-        data.matrix = self.align_matrix_to_interval(
+        data.matrix = map_matrix_to_interval(
             matrix=data.raw_attributions,
             matrix_interval=data.raw_attributions_coords,
             target_interval=data.interval,
@@ -219,43 +219,3 @@ class AlignedAttributionsLoader(PlotDataLoader):
         data.sequence_weights = data.matrix.sum(axis=1)
         return data
  
-    @staticmethod
-    def align_matrix_to_interval(
-        matrix: np.ndarray,
-        matrix_interval: GenomicInterval,
-        target_interval: GenomicInterval,
-        mapping: BetweenSpeciesMap=None
-    ):
-        assert matrix.shape[1] == len(matrix_interval)
-        aligned = np.zeros(
-            (matrix.shape[0], len(target_interval)),
-            dtype=matrix.dtype
-        )
-
-        x = np.arange(target_interval.start, target_interval.end)
-        if mapping is None:
-            mapping = BetweenSpeciesMap(
-                {
-                    target_interval.chrom: {
-                        pos: (target_interval.chrom, pos) for pos in x
-                    }
-                }
-            )
-
-        for target_pos in x:
-            target_idx = target_pos - target_interval.start
-            matrix_idx = mapping.map_pos_root_to_target(
-                target_interval.chrom,
-                target_pos
-            )
-            if matrix_idx is None:
-                continue
-            
-            matrix_idx = matrix_idx[1] - matrix_interval.start
-            
-            if 0 <= matrix_idx < matrix.shape[1] and 0 <= target_idx < aligned.shape[1]:
-                aligned[:, target_idx] = matrix[:, matrix_idx]
-
-        if aligned.sum() == 0:
-            print(f"Warning: aligned attributions sum to zero for target interval {target_interval} with matrix interval {matrix_interval}. Check if the mapping is correct and if the intervals overlap.")
-        return aligned

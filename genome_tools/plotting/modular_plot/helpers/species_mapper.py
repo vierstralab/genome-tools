@@ -1,7 +1,9 @@
 from bx.align import maf
 import os
+import numpy as np
 from tqdm import tqdm
 from genome_tools import GenomicInterval
+from genome_tools.data.utils import remap_columns
 import pandas as pd
 
 
@@ -208,3 +210,22 @@ class ParsedFastaHandler:
             for x, y
             in self.parsed_fasta.items()
         }
+
+def map_matrix_to_interval(
+        matrix: np.ndarray,
+        matrix_interval: GenomicInterval,
+        target_interval: GenomicInterval,
+        mapping: BetweenSpeciesMap,
+    ) -> np.ndarray:
+    """Cross-species: source column comes from the position mapping."""
+    assert matrix.shape[-1] == len(matrix_interval)
+    src_cols = np.full(len(target_interval), -1, dtype=np.intp)
+    for i, pos in enumerate(range(target_interval.start, target_interval.end)):
+        mapped = mapping.map_pos_root_to_target(target_interval.chrom, pos)
+        if mapped is not None:
+            src_cols[i] = mapped[1] - matrix_interval.start
+
+    if not (src_cols >= 0).any():
+        print(f"Warning: mapping produced no valid columns for {target_interval} with {matrix_interval}. Check the mapping and interval overlap.")
+
+    return remap_columns(matrix, src_cols)
