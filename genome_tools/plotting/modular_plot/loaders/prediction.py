@@ -16,7 +16,9 @@ from genome_tools import GenomicInterval
 
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
-from genome_tools.plotting.modular_plot.helpers.species_mapper import map_matrix_to_interval
+
+from genome_tools.data.utils import realign_matrix
+from genome_tools.plotting.modular_plot.helpers.species_mapper import map_matrix_to_interval, BetweenSpeciesMap
 
 
 class BatchLoader(PlotDataLoader):
@@ -209,7 +211,17 @@ class AttributionsLoader(PlotDataLoader):
 
 
 class AlignedAttributionsLoader(PlotDataLoader):
-    def _load(self, data: DataBundle, mapping=None):
+    def _load(self, data: DataBundle):
+        data.matrix = realign_matrix(
+            matrix=data.raw_attributions,
+            matrix_interval=data.raw_attributions_coords,
+            target_interval=data.interval,
+        ).T
+        data.sequence_weights = data.matrix.sum(axis=1)
+        return data
+ 
+class BetweenSpeciesAlignedAttributionsLoader(PlotDataLoader):
+    def _load(self, data: DataBundle, mapping: BetweenSpeciesMap):
         data.matrix = map_matrix_to_interval(
             matrix=data.raw_attributions,
             matrix_interval=data.raw_attributions_coords,
@@ -218,4 +230,3 @@ class AlignedAttributionsLoader(PlotDataLoader):
         ).T
         data.sequence_weights = data.matrix.sum(axis=1)
         return data
- 
