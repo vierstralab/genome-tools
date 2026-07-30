@@ -1,4 +1,4 @@
-from genome_tools.plotting.modular_plot.loaders.prediction import AlignedAttributionsLoader, AttributionsLoader, IntervalDatasetLoader, DHSDatasetLoader, PredictedSignalLoader, BatchLoader
+from genome_tools.plotting.modular_plot.loaders.prediction import AlignedAttributionsLoader, AttributionsLoader, IntervalDatasetLoader, DHSDatasetLoader, PredictedSignalLoader, BatchLoader, BetweenSpeciesAlignedAttributionsLoader
 
 from genome_tools.plotting.modular_plot.plot_components.sequence import SequencePlotComponent, MotifHitsComponent
 
@@ -23,6 +23,11 @@ AttributionsFromBatchComponent = AttributionsComponent.with_loaders(
     new_class_name='AttributionsFromBatchComponent',
 )
 
+BetweenSpeciesAlignedAttributionsFromBatchComponent = AttributionsComponent.with_loaders(
+    BatchLoader, AttributionsLoader, BetweenSpeciesAlignedAttributionsLoader,
+    new_class_name='BetweenSpeciesAlignedAttributionsFromBatchComponent',
+)
+
 
 AttributionsWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
     *AttributionsComponent.__required_loaders__, *MotifHitsComponent.__required_loaders__,
@@ -33,6 +38,12 @@ AttributionsWeightedMotifHitsFromBatchComponent = MotifHitsComponent.with_loader
     *AttributionsFromBatchComponent.__required_loaders__,
     *MotifHitsComponent.__required_loaders__,
     new_class_name='AttributionsWeightedMotifHitsFromBatchComponent',
+)
+
+BetweenSpeciesAlignedAttributionsWeightedMotifHitsFromBatchComponent = MotifHitsComponent.with_loaders(
+    *BetweenSpeciesAlignedAttributionsFromBatchComponent.__required_loaders__,
+    *MotifHitsComponent.__required_loaders__,
+    new_class_name='BetweenSpeciesAlignedAttributionsWeightedMotifHitsFromBatchComponent',
 )
 
 
