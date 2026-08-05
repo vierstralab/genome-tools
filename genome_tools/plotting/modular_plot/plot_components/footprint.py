@@ -102,7 +102,7 @@ class FootprintTrackComponent(IntervalPlotComponent):
 class AllelicFpTrackComponent(FootprintTrackComponent):
 
     def _plot(self, data: DataBundle, ax: plt.Axes, kind='obs/exp', vocab='dna', **kwargs):
-        groups_data: pd.DataFrame = data.groups_data
+        groups_data: pd.Series = data.groups_data
 
         groups = ['AA', 'BB']
 
@@ -121,7 +121,7 @@ class AllelicFpTrackComponent(FootprintTrackComponent):
             ax_group = fig.add_subplot(gs[i, :])
             format_axes_to_interval(ax_group, data.interval)
 
-            sample_ids = groups_data.query(f'parsed_genotype == "{group}"').index.values
+            sample_ids = (groups_data == group).index.values
             super()._plot(
                 data,
                 ax_group,

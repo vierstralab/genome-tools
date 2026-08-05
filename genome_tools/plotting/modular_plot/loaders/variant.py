@@ -56,18 +56,13 @@ class GroupsByGenotypeLoader(PlotDataLoader):
         if variant_genotypes.empty:
             raise ValueError("No genotypes found for the specified variant interval.")
 
-        variant_genotypes['group'] = variant_genotypes['parsed_genotype'].map(
-            {
-                g: f"group{i}" for i, g in enumerate(groups, 1)
-            }
-        )
-        filtered_genotypes = variant_genotypes.dropna(subset=['group'])
+        filtered_genotypes = variant_genotypes[variant_genotypes['parsed_genotype'].isin(groups)]
 
         if filtered_genotypes.empty:
             gts = variant_genotypes['parsed_genotype'].unique().tolist()
             raise ValueError(f"No samples with GT={groups} in interval. Available genotypes: {gts}")
 
-        data.groups_data = filtered_genotypes
+        data.groups_data = filtered_genotypes['parsed_genotype']
         return data
 
 
@@ -187,11 +182,10 @@ class ReadsLoader(PlotDataLoader, ReadsParser):
 class AllelicReadsLoader(PlotDataLoader, ReadsParser):
     def _load(self, data: DataBundle, samples_metadata: pd.DataFrame, bam_file_column='cram_file'):
 
-        groups_data: pd.DataFrame = data.groups_data
+        groups_data: pd.Series = data.groups_data
         interval: GenomicInterval = data.interval
 
-        assert 'parsed_genotype' in groups_data.columns, "groups_data must contain 'parsed_genotype' column"
-        gt = np.unique(groups_data['parsed_genotype'])
+        gt = np.unique(groups_data)
         assert gt.size == 1, "groups_data must contain only one genotype group"
         variant_interval: VariantInterval = data.variant_interval
         assert variant_interval.overlaps(interval), f"variant_interval must overlap interval. Got {variant_interval.to_str()} and {interval.to_ucsc()}"

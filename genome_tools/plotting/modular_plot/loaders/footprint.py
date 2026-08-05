@@ -222,17 +222,20 @@ class FootprintsDataLoader(PlotDataLoader):
 
 class DifferentialFootprintLoader(PlotDataLoader):
 
-    def _load(self, data: DataBundle):
-        groups_data: pd.Series = data.groups_data['group'] # pd.Series of group labels indexed by sample IDs
+    def _load(self, data: DataBundle, groups=None):
+        groups_data: pd.Series = data.groups_data # pd.Series of group labels indexed by sample IDs
         obs: pd.DataFrame = data.obs
         exp: pd.DataFrame = data.exp
         disp_models: pd.Series = data.disp_models
 
-        assert np.all(groups_data.isin(["group1", "group2"]))
-        assert groups_data.nunique() == 2, "Exactly two groups are required to do differential footprinting"
+        if groups is None:
+            groups = np.unique(groups_data.values)
+        else:
+            assert np.all(groups_data.isin(groups)), "groups_data must only contain specified groups"
+        assert groups_data.nunique() == 2, "Exactly two groups are required to do differential footprinting with this method"
 
         groups_data = groups_data.sort_values()
-        L_a = (groups_data == "group1").sum()
+        L_a = (groups_data == groups[0]).sum()
         obs = np.ascontiguousarray(obs.loc[groups_data.index, :])
         exp = np.ascontiguousarray(exp.loc[groups_data.index, :])
         disp_models = disp_models.loc[groups_data.index].values
