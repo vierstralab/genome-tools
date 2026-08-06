@@ -200,15 +200,13 @@ def plot_contours(x, y, z, mask_radius=1.5, sigma=50, levels=50, linewidths=0.2,
     )
 
     if rasterized:
-        for c in cf.collections:
-            c.set_rasterized(True)
+        _set_rasterized(cf)
 
     ax.axis('off')
 
     outline_contour = ax.contour(X, Y, distance_mask.astype(float), levels=[0.5], colors='grey', linestyles='solid', linewidths=lw_outer, **kwargs)
     if rasterized:
-        for c in outline_contour.collections:
-            c.set_rasterized(True)
+        _set_rasterized(outline_contour)
 
     
     # Now, create a separate figure with a colorbar.
@@ -221,3 +219,10 @@ def plot_contours(x, y, z, mask_radius=1.5, sigma=50, levels=50, linewidths=0.2,
     return ax, sm
 
 
+
+def _set_rasterized(countour_f):
+    if hasattr(countour_f, "collections"):
+        for c in countour_f.collections:
+            c.set_rasterized(True)
+    else:
+        countour_f.set_rasterized(True)
