@@ -228,6 +228,8 @@ class DifferentialFootprintLoader(PlotDataLoader):
         exp: pd.DataFrame = data.exp
         disp_models: pd.Series = data.disp_models
 
+        assert disp_models.notna().all(), "All disp_models must be non-null"
+
         if groups is None:
             groups = np.unique(groups_data.values)
         else:
