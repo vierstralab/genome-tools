@@ -43,7 +43,7 @@ class BetweenSpeciesMap:
 
         skipped_all = True
         if target_species == root_species:
-            positions = np.array(root_interval.start, root_interval.end)
+            positions = np.arange(root_interval.start, root_interval.end)
             positions = {x: (root_interval.chrom, x) for x in positions}
             return {root_interval.chrom: positions}
 
