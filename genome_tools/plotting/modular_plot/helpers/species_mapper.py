@@ -244,7 +244,7 @@ def map_matrix_to_interval(
     assert matrix.shape[-1] == len(matrix_interval)
     src_cols = np.full(len(target_interval), -1, dtype=np.intp)
     for i, pos in enumerate(range(target_interval.start, target_interval.end)):
-        mapped = mapping.map_pos_root_to_target(target_interval.chrom, pos)
+        mapped = mapping.map_position_root_to_target(target_interval.chrom, pos)
         if mapped is not None:
             src_cols[i] = mapped[1] - matrix_interval.start
 
