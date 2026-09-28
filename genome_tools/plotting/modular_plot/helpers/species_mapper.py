@@ -42,6 +42,10 @@ class BetweenSpeciesMap:
         mapping = {}
 
         skipped_all = True
+        if target_species == root_species:
+            positions = np.array(root_interval.start, root_interval.end)
+            positions = {x: (root_interval.chrom, x) for x in positions}
+            return {root_interval.chrom: positions}
 
         with open(maf_path) as f:
             reader = maf.Reader(f)
