@@ -35,6 +35,8 @@ class BetweenSpeciesMap:
         """
         mapping = {}
 
+        skipped_all = True
+
         with open(maf_path) as f:
             reader = maf.Reader(f)
 
@@ -47,6 +49,7 @@ class BetweenSpeciesMap:
                         root = comp
                     elif comp.src.startswith(target_species):
                         target = comp
+                        skipped_all = False
 
                 if not (root and target):
                     continue
@@ -79,6 +82,8 @@ class BetweenSpeciesMap:
                         assert GenomicInterval(r_chrom, cur_r, cur_r + 1).overlaps(root_interval), f'MAF file mapping contains position outside of root_interval {root_interval.to_ucsc()}. Are you sure the interval corresponds to provided MAF file?'
                         mapping.setdefault(r_chrom, {})[cur_r] = (t_chrom, cur_t)
 
+        if skipped_all:
+            raise ValueError(f'Species {target_species} not present in the mapping. Check the spelling.')
         return cls(mapping, root_interval)
 
     def map_position_root_to_target(self, chrom, pos):
