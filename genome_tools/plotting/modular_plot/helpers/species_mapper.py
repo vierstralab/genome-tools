@@ -40,60 +40,61 @@ class BetweenSpeciesMap:
         maf_path - result of hal2maf for a region
         """
         mapping = {}
-
-        skipped_all = True
+   
         if target_species == root_species:
             positions = np.arange(root_interval.start, root_interval.end)
             positions = {x: (root_interval.chrom, x) for x in positions}
-            return {root_interval.chrom: positions}
+            mapping = {root_interval.chrom: positions}
 
-        with open(maf_path) as f:
-            reader = maf.Reader(f)
+        else:
+            skipped_all = True
+            with open(maf_path) as f:
+                reader = maf.Reader(f)
 
-            for block in reader:
-                root = None
-                target = None
+                for block in reader:
+                    root = None
+                    target = None
 
-                for comp in block.components:
-                    if comp.src.startswith(root_species):
-                        root = comp
-                    elif comp.src.startswith(target_species):
-                        target = comp
-                        skipped_all = False
+                    for comp in block.components:
+                        if comp.src.startswith(root_species):
+                            root = comp
+                        elif comp.src.startswith(target_species):
+                            target = comp
+                            skipped_all = False
 
-                if not (root and target):
-                    continue
+                    if not (root and target):
+                        continue
 
-                r_chrom = root.src.split('.')[-1]
-                t_chrom = target.src.split('.')[-1]
+                    r_chrom = root.src.split('.')[-1]
+                    t_chrom = target.src.split('.')[-1]
 
-                r_seq = root.text
-                t_seq = target.text
+                    r_seq = root.text
+                    t_seq = target.text
 
-                r_pos = root.start
-                t_pos = target.start
+                    r_pos = root.start
+                    t_pos = target.start
 
-                r_step = 1 if root.strand == '+' else -1
-                t_step = 1 if target.strand == '+' else -1
+                    r_step = 1 if root.strand == '+' else -1
+                    t_step = 1 if target.strand == '+' else -1
 
-                for i in range(len(r_seq)):
-                    cur_r = None
-                    cur_t = None
+                    for i in range(len(r_seq)):
+                        cur_r = None
+                        cur_t = None
 
-                    if r_seq[i] != '-':
-                        cur_r = r_pos
-                        r_pos += r_step
+                        if r_seq[i] != '-':
+                            cur_r = r_pos
+                            r_pos += r_step
 
-                    if t_seq[i] != '-':
-                        cur_t = t_pos
-                        t_pos += t_step
+                        if t_seq[i] != '-':
+                            cur_t = t_pos
+                            t_pos += t_step
 
-                    if cur_r is not None and cur_t is not None:
-                        assert GenomicInterval(r_chrom, cur_r, cur_r + 1).overlaps(root_interval), f'MAF file mapping contains position outside of root_interval {root_interval.to_ucsc()}. Are you sure the interval corresponds to provided MAF file?'
-                        mapping.setdefault(r_chrom, {})[cur_r] = (t_chrom, cur_t)
+                        if cur_r is not None and cur_t is not None:
+                            assert GenomicInterval(r_chrom, cur_r, cur_r + 1).overlaps(root_interval), f'MAF file mapping contains position outside of root_interval {root_interval.to_ucsc()}. Are you sure the interval corresponds to provided MAF file?'
+                            mapping.setdefault(r_chrom, {})[cur_r] = (t_chrom, cur_t)
 
-        if skipped_all:
-            raise ValueError(f'Species {target_species} not present in the mapping. Check the spelling.')
+            if skipped_all:
+                raise ValueError(f'Species {target_species} not present in the mapping. Check the spelling.')
         return cls(mapping, root_interval, root_species=root_species, target_species=target_species)
 
     def map_position_root_to_target(self, chrom, pos):
