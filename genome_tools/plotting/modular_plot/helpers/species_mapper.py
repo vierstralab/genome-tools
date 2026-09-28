@@ -116,14 +116,14 @@ class BetweenSpeciesMap:
         )
 
     def map_row(self, row):
-        start_res = self.map_pos_target_to_root(row['#chr'], row['start'])
+        start_res = self.map_position_root_to_target(row['#chr'], row['start'])
         if start_res is not None:
             new_chrom, new_start = start_res
         else:
             new_start = pd.NA
             new_chrom = pd.NA
         
-        end_res = self.map_pos_target_to_root(row['#chr'], row['end'] - 1)
+        end_res = self.map_position_root_to_target(row['#chr'], row['end'] - 1)
         if end_res is not None:
             _, new_end = end_res
             new_end += 1
