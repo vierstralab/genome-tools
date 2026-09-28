@@ -8,7 +8,7 @@ import pandas as pd
 
 
 class BetweenSpeciesMap:
-    def __init__(self, mapping, root_interval: GenomicInterval):
+    def __init__(self, mapping, root_interval: GenomicInterval, root_species='Species1', target_species='Species2'):
         """
         General init of the class. Usually, not called directly. Use .from_maf class method to instantiate the class instead.
         mapping - mapping dict in the following format {root_chrom: {root_pos: (target_chrom, target_pos)}}. Positions are 0-based. Usually generated from .maf file (see .from_maf method)
@@ -19,6 +19,12 @@ class BetweenSpeciesMap:
         self.reverse = self._build_reverse(mapping)
 
         self.root_interval = root_interval
+
+        self.root_species = root_species
+        self.target_species = target_species
+
+    def __repr__(self):
+        return f'BetweenSpeciesMap({self.root_species} -> {self.target_species}, interval={self.root_interval.to_ucsc()})'
 
     @staticmethod
     def _build_reverse(forward):
@@ -84,7 +90,7 @@ class BetweenSpeciesMap:
 
         if skipped_all:
             raise ValueError(f'Species {target_species} not present in the mapping. Check the spelling.')
-        return cls(mapping, root_interval)
+        return cls(mapping, root_interval, root_species=root_species, target_species=target_species)
 
     def map_position_root_to_target(self, chrom, pos):
         return self.mapping.get(chrom, {}).get(pos)
