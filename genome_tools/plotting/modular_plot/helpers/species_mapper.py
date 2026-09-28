@@ -1,5 +1,5 @@
 from bx.align import maf
-import os
+
 import numpy as np
 from tqdm import tqdm
 from genome_tools import GenomicInterval
@@ -8,14 +8,17 @@ import pandas as pd
 
 
 class BetweenSpeciesMap:
-
-    def __init__(self, mapping):
+    def __init__(self, mapping, root_interval: GenomicInterval):
         """
-        E.g. {human_chrom: {human_pos: (mouse_chrom, mouse_pos)}}
+        General init of the class. Usually, not called directly. Use .from_maf class method to instantiate the class instead.
+        mapping - mapping dict in the following format {root_chrom: {root_pos: (target_chrom, target_pos)}}. Positions are 0-based. Usually generated from .maf file (see .from_maf method)
+        root_interval - corresponding genomic region GenomicInterval
         """
         self.mapping = mapping
 
         self.reverse = self._build_reverse(mapping)
+
+        self.root_interval = root_interval
 
     @staticmethod
     def _build_reverse(forward):
@@ -26,70 +29,74 @@ class BetweenSpeciesMap:
         return rev
 
     @classmethod
-    def from_maf(cls, maf_path, root_species='Homo_sapiens', target_species='Mus_musculus'):
+    def from_maf(cls, maf_path, root_interval, root_species='Homo_sapiens', target_species='Mus_musculus'):
+        """
+        maf_path - result of hal2maf for a region
+        """
         mapping = {}
 
         with open(maf_path) as f:
             reader = maf.Reader(f)
 
             for block in reader:
-                human = None
-                mouse = None
+                root = None
+                target = None
 
                 for comp in block.components:
                     if comp.src.startswith(root_species):
-                        human = comp
+                        root = comp
                     elif comp.src.startswith(target_species):
-                        mouse = comp
+                        target = comp
 
-                if not (human and mouse):
+                if not (root and target):
                     continue
 
-                h_chrom = human.src.split('.')[-1]
-                m_chrom = mouse.src.split('.')[-1]
+                r_chrom = root.src.split('.')[-1]
+                t_chrom = target.src.split('.')[-1]
 
-                h_seq = human.text
-                m_seq = mouse.text
+                r_seq = root.text
+                t_seq = target.text
 
-                h_pos = human.start
-                m_pos = mouse.start
+                r_pos = root.start
+                t_pos = target.start
 
-                h_step = 1 if human.strand == '+' else -1
-                m_step = 1 if mouse.strand == '+' else -1
+                r_step = 1 if root.strand == '+' else -1
+                t_step = 1 if target.strand == '+' else -1
 
-                for i in range(len(h_seq)):
-                    cur_h = None
-                    cur_m = None
+                for i in range(len(r_seq)):
+                    cur_r = None
+                    cur_t = None
 
-                    if h_seq[i] != '-':
-                        cur_h = h_pos
-                        h_pos += h_step
+                    if r_seq[i] != '-':
+                        cur_r = r_pos
+                        r_pos += r_step
 
-                    if m_seq[i] != '-':
-                        cur_m = m_pos
-                        m_pos += m_step
+                    if t_seq[i] != '-':
+                        cur_t = t_pos
+                        t_pos += t_step
 
-                    if cur_h is not None and cur_m is not None:
-                        mapping.setdefault(h_chrom, {})[cur_h] = (m_chrom, cur_m)
+                    if cur_r is not None and cur_t is not None:
+                        assert GenomicInterval(r_chrom, cur_r, cur_r + 1).overlaps(root_interval), f'MAF file mapping contains position outside of root_interval {root_interval.to_ucsc()}. Are you sure the interval corresponds to provided MAF file?'
+                        mapping.setdefault(r_chrom, {})[cur_r] = (t_chrom, cur_t)
 
-        return cls(mapping)
+        return cls(mapping, root_interval)
 
-    def map_pos_root_to_target(self, chrom, pos):
+    def map_position_root_to_target(self, chrom, pos):
         return self.mapping.get(chrom, {}).get(pos)
 
-    def map_pos_target_to_root(self, chrom, pos):
+    def map_position_target_to_root(self, chrom, pos):
         return self.reverse.get(chrom, {}).get(pos)
     
     def map_interval_to_root(self, interval: GenomicInterval):
-        return self.map_pos_interval(
+        return self._map_interval(
             interval=interval,
-            mapper_method=self.map_pos_target_to_root
+            mapper_method=self.map_position_target_to_root
         )
     
     def map_interval_to_target(self, interval: GenomicInterval):
-        return self.map_pos_interval(
+        return self._map_interval(
             interval=interval,
-            mapper_method=self.map_pos_root_to_target
+            mapper_method=self.map_position_root_to_target
         )
 
     def map_row(self, row):
@@ -125,8 +132,10 @@ class BetweenSpeciesMap:
             self.map_row, axis=1
         )
 
-    def map_pos_interval(self, interval: GenomicInterval, mapper_method):
+    def _map_interval(self, interval: GenomicInterval, mapper_method):
         """
+        interval: interval to map
+        mapper_method: self.map_position_target_to_root or self.map_position_root_to_target
         Returns:
             GenomicInterval or None
         """
@@ -164,26 +173,26 @@ class ParsedFastaHandler:
     def __init__(
             self,
             parsed_fasta,
-            human_mouse_mapping: BetweenSpeciesMap,
-            initial_region: GenomicInterval
+            root_target_mapping: BetweenSpeciesMap,
         ):
+        """
+        General init of the class. Usually, not called directly. Use .from_fasta class method to instantiate the class instead.
+        root_target_mapping - BetweenSpeciesMap instance. Usually generated from maf file with BetweenSpeciesMap.from_maf()
+        """
         self.parsed_fasta = parsed_fasta
-        self.initial_region = initial_region
-        self.human_mouse_mapping = human_mouse_mapping
+        self.root_target_mapping = root_target_mapping
+        self.root_interval = root_target_mapping.root_interval
 
     @classmethod
-    def from_folder(cls, fpath, initial_region, human_mouse_mapping=None):
-        if os.path.isdir(fpath):
-            fname = f"{fpath}/{initial_region.to_ucsc()}.fasta"
-            human_mouse_mapping = f"{fpath}/{initial_region.to_ucsc()}.maf"
-        else:
-            fname = fpath
-            assert human_mouse_mapping is not None
+    def from_fasta(cls, fasta_path, root_target_mapping: BetweenSpeciesMap):
+        """
+        fasta_path - usually generated as `msa_view -f -G 1 --unmask` of the maf file
+        root_target_mapping - BetweenSpeciesMap instance. Usually generated from maf file with BetweenSpeciesMap.from_maf()
+        """
         parsed_fasta = {}
         key = None
         
-        
-        with open(fname) as f:
+        with open(fasta_path) as f:
             for line in tqdm(f.readlines()):
                 line = line.strip()
                 if line.startswith('>'):
@@ -194,15 +203,13 @@ class ParsedFastaHandler:
                 else:
                     sequence = sequence + line
         
-        if not isinstance(human_mouse_mapping, BetweenSpeciesMap):
-            human_mouse_mapping = BetweenSpeciesMap.from_maf(human_mouse_mapping)
-        return cls(parsed_fasta, human_mouse_mapping, initial_region)
+        return cls(parsed_fasta, root_target_mapping)
 
     def __getitem__(self, interval):
-        has_overlap = (self.initial_region.start <= interval.start) and (self.initial_region.end >= interval.end)
-        if not interval.overlaps(self.initial_region) or not has_overlap:
+        has_overlap = (self.root_interval.start <= interval.start) and (self.root_interval.end >= interval.end)
+        if not interval.overlaps(self.root_interval) or not has_overlap:
             raise ValueError(f'{interval.to_ucsc()} does not fully overlap with {self.initial_region.to_ucsc()}')
-        offset = interval.start - self.initial_region.start
+        offset = interval.start - self.root_interval.start
         length = interval.end - interval.start
 
         return {
