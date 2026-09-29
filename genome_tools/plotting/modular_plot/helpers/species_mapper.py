@@ -115,15 +115,15 @@ class BetweenSpeciesMap:
             mapper_method=self.map_position_root_to_target
         )
 
-    def map_row(self, row):
-        start_res = self.map_position_root_to_target(row['#chr'], row['start'])
+    def map_row_target_to_root(self, row):
+        start_res = self.map_position_target_to_root(row['#chr'], row['start'])
         if start_res is not None:
             new_chrom, new_start = start_res
         else:
             new_start = pd.NA
             new_chrom = pd.NA
         
-        end_res = self.map_position_root_to_target(row['#chr'], row['end'] - 1)
+        end_res = self.map_position_target_to_root(row['#chr'], row['end'] - 1)
         if end_res is not None:
             _, new_end = end_res
             new_end += 1
@@ -145,7 +145,7 @@ class BetweenSpeciesMap:
     
     def map_target_df_to_root(self, df):
         return df.progress_apply(
-            self.map_row, axis=1
+            self.map_row_target_to_root, axis=1
         )
 
     def _map_interval(self, interval: GenomicInterval, mapper_method):
