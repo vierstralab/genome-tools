@@ -191,25 +191,28 @@ class ParsedFastaHandler:
             parsed_fasta,
             root_target_mapping: BetweenSpeciesMap,
         ):
-        """
-        General init of the class. Usually, not called directly. Use .from_fasta class method to instantiate the class instead.
-        root_target_mapping - BetweenSpeciesMap instance. Usually generated from maf file with BetweenSpeciesMap.from_maf()
-        """
         self.parsed_fasta = parsed_fasta
         self.root_target_mapping = root_target_mapping
         self.root_interval = root_target_mapping.root_interval
 
+        root_seq = parsed_fasta[root_target_mapping.root_species]
+
+        self.root_pos_to_col = {
+            pos: col
+            for pos, col in zip(
+                range(self.root_interval.start, self.root_interval.end),
+                (i for i, b in enumerate(root_seq) if b != '-')
+            )
+        }
+        self.root_pos_to_col[self.root_interval.end] = len(root_seq)
+
     @classmethod
     def from_fasta(cls, fasta_path, root_target_mapping: BetweenSpeciesMap):
-        """
-        fasta_path - usually generated as `msa_view -f -G 1 --unmask` of the maf file
-        root_target_mapping - BetweenSpeciesMap instance. Usually generated from maf file with BetweenSpeciesMap.from_maf()
-        """
         parsed_fasta = {}
         key = None
-        
+
         with open(fasta_path) as f:
-            for line in tqdm(f.readlines()):
+            for line in tqdm(f):
                 line = line.strip()
                 if line.startswith('>'):
                     if key is not None:
@@ -217,21 +220,30 @@ class ParsedFastaHandler:
                     key = line[2:]
                     sequence = ""
                 else:
-                    sequence = sequence + line
-        
+                    sequence += line
+
+        if key is not None:
+            parsed_fasta[key] = sequence
+
         return cls(parsed_fasta, root_target_mapping)
 
     def __getitem__(self, interval):
-        has_overlap = (self.root_interval.start <= interval.start) and (self.root_interval.end >= interval.end)
-        if not interval.overlaps(self.root_interval) or not has_overlap:
-            raise ValueError(f'{interval.to_ucsc()} does not fully overlap with {self.initial_region.to_ucsc()}')
-        offset = interval.start - self.root_interval.start
-        length = interval.end - interval.start
+        if (
+            interval.chrom != self.root_interval.chrom
+            or interval.start < self.root_interval.start
+            or interval.end > self.root_interval.end
+        ):
+            raise ValueError(
+                f'{interval.to_ucsc()} does not fully overlap with '
+                f'{self.root_interval.to_ucsc()}'
+            )
+
+        start = self.root_pos_to_col[interval.start]
+        end = self.root_pos_to_col[interval.end]
 
         return {
-            x: y[offset:offset + length]
-            for x, y
-            in self.parsed_fasta.items()
+            species: seq[start:end]
+            for species, seq in self.parsed_fasta.items()
         }
 
 def map_matrix_to_interval(
