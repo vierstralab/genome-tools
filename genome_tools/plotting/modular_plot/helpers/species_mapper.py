@@ -40,7 +40,7 @@ class BetweenSpeciesMap:
         maf_path - result of hal2maf for a region
         """
         mapping = {}
-   
+
         if target_species == root_species:
             positions = np.arange(root_interval.start, root_interval.end)
             positions = {x: (root_interval.chrom, x) for x in positions}
@@ -53,45 +53,59 @@ class BetweenSpeciesMap:
 
                 for block in reader:
                     root = None
-                    target = None
+                    targets = []
 
                     for comp in block.components:
-                        if comp.src.startswith(root_species):
+                        if comp.src.startswith(root_species + '.'):
                             root = comp
-                        elif comp.src.startswith(target_species):
-                            target = comp
+                        elif comp.src.startswith(target_species + '.'):
+                            targets.append(comp)
                             skipped_all = False
 
-                    if not (root and target):
+                    if not root or not targets:
                         continue
 
-                    r_chrom = root.src.split('.')[-1]
-                    t_chrom = target.src.split('.')[-1]
+                    # Prefer the longest component; use shorter components
+                    # only for root positions not already mapped.
+                    targets = sorted(targets, key=lambda x: x.size, reverse=True)
 
-                    r_seq = root.text
-                    t_seq = target.text
+                    for target in targets:
 
-                    r_pos = root.start
-                    t_pos = target.start
+                        r_chrom = root.src.removeprefix(root_species + '.')
+                        t_chrom = target.src.removeprefix(target_species + '.')
 
-                    r_step = 1 if root.strand == '+' else -1
-                    t_step = 1 if target.strand == '+' else -1
+                        r_seq = root.text
+                        t_seq = target.text
 
-                    for i in range(len(r_seq)):
-                        cur_r = None
-                        cur_t = None
+                        if root.strand == '+':
+                            r_pos = root.start
+                            r_step = 1
+                        else:
+                            r_pos = root.src_size - root.start - 1
+                            r_step = -1
 
-                        if r_seq[i] != '-':
-                            cur_r = r_pos
-                            r_pos += r_step
+                        if target.strand == '+':
+                            t_pos = target.start
+                            t_step = 1
+                        else:
+                            t_pos = target.src_size - target.start - 1
+                            t_step = -1
 
-                        if t_seq[i] != '-':
-                            cur_t = t_pos
-                            t_pos += t_step
+                        for i in range(len(r_seq)):
+                            cur_r = None
+                            cur_t = None
 
-                        if cur_r is not None and cur_t is not None:
-                            assert GenomicInterval(r_chrom, cur_r, cur_r + 1).overlaps(root_interval), f'MAF file mapping contains position outside of root_interval {root_interval.to_ucsc()}. Are you sure the interval corresponds to provided MAF file?'
-                            mapping.setdefault(r_chrom, {})[cur_r] = (t_chrom, cur_t)
+                            if r_seq[i] != '-':
+                                cur_r = r_pos
+                                r_pos += r_step
+
+                            if t_seq[i] != '-':
+                                cur_t = t_pos
+                                t_pos += t_step
+
+                            if cur_r is not None and cur_t is not None:
+                                assert GenomicInterval(r_chrom, cur_r, cur_r + 1).overlaps(root_interval), f'MAF file mapping contains position outside of root_interval {root_interval.to_ucsc()}. Are you sure the interval corresponds to provided MAF file?'
+                                mapping.setdefault(r_chrom, {}).setdefault(cur_r, (t_chrom, cur_t))
 
             if skipped_all:
                 raise ValueError(f'Species {target_species} not present in the mapping. Check the spelling.')
@@ -102,13 +116,15 @@ class BetweenSpeciesMap:
 
     def map_position_target_to_root(self, chrom, pos):
         return self.reverse.get(chrom, {}).get(pos)
-    
+
+
     def map_interval_to_root(self, interval: GenomicInterval):
         return self._map_interval(
             interval=interval,
             mapper_method=self.map_position_target_to_root
         )
-    
+
+
     def map_interval_to_target(self, interval: GenomicInterval):
         return self._map_interval(
             interval=interval,
@@ -122,7 +138,7 @@ class BetweenSpeciesMap:
         else:
             new_start = pd.NA
             new_chrom = pd.NA
-        
+
         end_res = self.map_position_target_to_root(row['#chr'], row['end'] - 1)
         if end_res is not None:
             _, new_end = end_res
@@ -142,7 +158,6 @@ class BetweenSpeciesMap:
             }
         )
 
-    
     def map_target_df_to_root(self, df):
         return df.progress_apply(
             self.map_row_target_to_root, axis=1
@@ -168,7 +183,7 @@ class BetweenSpeciesMap:
                 m_chrom_e, m_end = m_end
 
                 if m_chrom_s == m_chrom_e:
-                    return GenomicInterval(m_chrom_s, m_start, m_end + 1)
+                    return GenomicInterval(m_chrom_s, min(m_start, m_end), max(m_start, m_end) + 1)
                 else:
                     raise ValueError("Chrom mismatch")
 
@@ -182,7 +197,7 @@ class BetweenSpeciesMap:
                 end -= 1
 
         return None
-    
+
 
 class ParsedFastaHandler:
 
@@ -217,7 +232,7 @@ class ParsedFastaHandler:
                 if line.startswith('>'):
                     if key is not None:
                         parsed_fasta[key] = sequence
-                    key = line[2:]
+                    key = line[1:].strip()
                     sequence = ""
                 else:
                     sequence += line
