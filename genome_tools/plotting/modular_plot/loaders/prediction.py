@@ -29,6 +29,9 @@ class BatchLoader(PlotDataLoader):
 # REFACTOR - change from anndata to raw inputs
 class PredictionBatchLoader(PlotDataLoader): # abstract class
 
+    def _load(self, data):
+        raise NotImplementedError
+
     @staticmethod
     def from_backed_anndata(
         anndata: ad.AnnData,
