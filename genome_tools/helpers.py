@@ -3,35 +3,57 @@
 import pysam
 import gzip
 import subprocess
-from io import StringIO, TextIOWrapper
+from io import StringIO, TextIOWrapper, BytesIO
 import numpy as np
 import pandas as pd
+import urllib.request
+from urllib.parse import urlparse
 
 
 magic_dict = {b"\x1f\x8b\x08": "gz", b"\x42\x5a\x68": "bz2", b"\x50\x4b\x03\x04": "zip"}
 
 max_len = max(len(x) for x in magic_dict)
 
+_REMOTE_SCHEMES = {"http", "https", "ftp"}
+
+
+def is_remote(filename):
+    return urlparse(str(filename)).scheme in _REMOTE_SCHEMES
+
+
+def _sniff(head):
+    for magic, filetype in magic_dict.items():
+        if head.startswith(magic):
+            return filetype
+    return None
 
 def get_file_type(filename):
+    if is_remote(filename):
+        with urllib.request.urlopen(filename) as r:
+            return _sniff(r.read(max_len))
     with open(filename, "rb") as f:
-        file_start = f.read(max_len)
-        for magic, filetype in magic_dict.items():
-            if file_start.startswith(magic):
-                return filetype
-        return None
+        return _sniff(f.read(max_len))
 
 
 def open_file(filename):
-    file_type = get_file_type(filename)
-    if file_type == "gz":
+    if is_remote(filename):
+        # Whole file is buffered in memory: fine for small files (ideograms, chrom sizes),
+        # not for large data. Use pysam/tabix for large remote files.
+        with urllib.request.urlopen(filename) as r:
+            buf = BytesIO(r.read())
+        if _sniff(buf.read(max_len)) == "gz":
+            buf.seek(0)
+            return gzip.open(buf, mode="rt")
+        buf.seek(0)
+        return TextIOWrapper(buf)
+
+    if get_file_type(filename) == "gz":
         return gzip.open(filename, mode="rt")
-    else:
-        return open(filename)
+    return open(filename)
 
 
 def read_starch(filename, columns=None):
-    # Not efficent, try to avoid starch files
+    # Not efficent, try to avoid starch files. Currently deprecated
     result = subprocess.run(
         ["unstarch", filename], stdout=subprocess.PIPE, text=True, check=True
     )
