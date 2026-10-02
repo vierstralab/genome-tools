@@ -10,6 +10,8 @@ import pyBigWig as pbw
 import pandas as pd
 import gzip
 import sys
+import itertools
+
 
 from genome_tools import GenomicInterval, VariantInterval
 
@@ -285,18 +287,31 @@ class TabixExtractor(BaseExtractor):
 
         self.tabix = pysam.TabixFile(filename)
 
-        with gzip.open(filename, "rt") as f:
-            for _ in range(skiprows):
-                next(f)
-            line = f.readline().strip("\n")
-            if columns is None:
-                if line.startswith(header_char):
-                    self.columns = line.split("\t")
+        try:
+            with gzip.open(filename, "rt") as f:
+                for _ in range(skiprows):
+                    next(f)
+                line = f.readline().strip("\n")
+                if columns is None:
+                    if line.startswith(header_char):
+                        self.columns = line.split("\t")
+                    else:
+                        self.columns = [i for i in range(len(line.split("\t")))]
                 else:
-                    self.columns = [i for i in range(len(line.split("\t")))]
-            else:
-                assert len(columns) == len(line.split("\t"))
-                self.columns = columns
+                    assert len(columns) == len(line.split("\t"))
+                    self.columns = columns
+        except:
+                print('Using pysam to parse the header')
+                if columns is None:
+                    header = [l for l in self.tabix.header if l.startswith(header_char)]
+                    if header:
+                        self.columns = header[-1].split("\t")
+                    else:
+                        # no header: infer column count from first data record
+                        first = next(itertools.islice(self.tabix.fetch(), skiprows, None))
+                        self.columns = list(range(len(first.split("\t"))))
+                else:
+                    self.columns = columns
 
     def __getitem__(self, interval):
         try:
