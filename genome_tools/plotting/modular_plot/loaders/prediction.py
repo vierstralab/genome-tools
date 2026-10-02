@@ -1,5 +1,6 @@
 import numpy as np
 import anndata as ad
+import pandas as pd
 
 from scipy.interpolate import interp1d
 
@@ -25,7 +26,8 @@ class BatchLoader(PlotDataLoader):
     required_loader_kwargs=['batch']
 
 
-class PredictionDataLoader(PlotDataLoader):
+# REFACTOR - change from anndata to raw inputs
+class PredictionBatchLoader(PlotDataLoader): # abstract class
 
     @staticmethod
     def from_backed_anndata(
@@ -45,7 +47,7 @@ class PredictionDataLoader(PlotDataLoader):
 
     @staticmethod
     def from_prediction_coordinates(
-        anndata: ad.AnnData,
+        embeddings: pd.DataFrame,
         sample_id: str,
         coordinates: np.ndarray,
         chrom: str,
@@ -54,7 +56,7 @@ class PredictionDataLoader(PlotDataLoader):
         raw_data = {
             'sample_id': np.array([sample_id] * len(coordinates), dtype=np.str_),
             'dhs_id': np.array([''] * len(coordinates), dtype=np.str_),
-            'read_depth': np.array([anndata.obs.loc[sample_id, 'nuclear_reads']] * len(coordinates)),
+            'read_depth': np.array([0] * len(coordinates)),
             'chrom': np.array([chrom] * len(coordinates), dtype=np.str_),
             'summit': np.array(coordinates),
             'background': np.array([0.0] * len(coordinates), dtype=np.float32), # dummy
@@ -65,11 +67,26 @@ class PredictionDataLoader(PlotDataLoader):
         return VinsonData.from_raw(
             raw_data=raw_data,
             is_variant=False,
-            embeddings_df=anndata[[sample_id], :].obsm['motif_embeddings'],
+            embeddings_df=embeddings[[sample_id], :],
+        )
+
+ 
+    def from_prediction_coordinates_anndata(
+        self,
+        anndata: ad.AnnData,
+        sample_id: str,
+        coordinates: np.ndarray,
+        chrom: str,
+    ):
+        return self.from_prediction_coordinates(
+            anndata.obsm['motif_embeddings'],
+            sample_id=sample_id,
+            coordinates=coordinates,
+            chrom=chrom
         )
 
     @staticmethod
-    def get_dataset(
+    def get_batch(
         data: VinsonData,
         model_config: dict,
         fasta_file: str,
@@ -105,7 +122,7 @@ class PredictionDataLoader(PlotDataLoader):
         return batch
 
 
-class DHSDatasetLoader(PredictionDataLoader):
+class BatchFromAnndataLoader(PredictionBatchLoader):
     def _load(self, data: DataBundle,
                 sample_id: str,
                 anndata: ad.AnnData,
@@ -121,7 +138,7 @@ class DHSDatasetLoader(PredictionDataLoader):
         )
         assert interval.overlaps(data.interval), f"Data interval {data.interval} does not overlap with the dhs interval {interval}, {dhs_id}"
 
-        batch = self.get_dataset(
+        batch = self.get_batch(
             input_data,
             model_config,
             fasta_file,
@@ -131,7 +148,37 @@ class DHSDatasetLoader(PredictionDataLoader):
         return data
 
 
-class IntervalDatasetLoader(PredictionDataLoader):
+# fix anndata input -> dfs
+class BatchFromIntervalCenterLoader(PredictionBatchLoader):
+    def _load(self, data: DataBundle,
+                    sample_id: str,
+                    embeddings: pd.DataFrame,
+                    model_config: dict,
+                    fasta_file: str,
+                    genotype_file: str=None,
+            ):
+
+        coordinates = np.array([data.interval.center.start])
+
+        input_data = self.from_prediction_coordinates(
+            embeddings=embeddings,
+            sample_id=sample_id,
+            coordinates=coordinates,
+            chrom=data.interval.chrom,
+        )
+
+        batch = self.get_batch(
+            input_data,
+            model_config,
+            fasta_file,
+            genotype_file,
+        )
+
+        data.batch = batch
+        return data
+
+
+class BatchFromSteppedIntervalLoader(PredictionBatchLoader):
     def _load(self, data: DataBundle,
                 sample_id: str,
                 anndata: ad.AnnData,
@@ -141,14 +188,15 @@ class IntervalDatasetLoader(PredictionDataLoader):
                 step=20
         ):
         coordinates = np.arange(data.interval.start, data.interval.end + step, step)
-        input_data = self.from_prediction_coordinates(
+
+        input_data = self.from_prediction_coordinates_anndata(
             anndata,
             sample_id=sample_id,
             coordinates=coordinates,
             chrom=data.interval.chrom,
         )
 
-        batch = self.get_dataset(
+        batch = self.get_batch(
             input_data,
             model_config,
             fasta_file,
@@ -159,7 +207,7 @@ class IntervalDatasetLoader(PredictionDataLoader):
         return data
 
 
-class PredictedSignalLoader(PredictionDataLoader):
+class PredictedSignalLoader(PlotDataLoader):
     def _load(self, data: DataBundle, model_wrapper: ModelWrapper, interp1d_kind='linear'):
         initial_interval: GenomicInterval = data.interval
 
@@ -190,6 +238,8 @@ class AttributionsLoader(PlotDataLoader):
                 random_state=42,
         ):
         batch = data.batch
+
+        assert len(batch['chrom']) == 1
         batch_interval = GenomicInterval(
             batch['chrom'][0],
             batch['summit'][0],
@@ -219,6 +269,7 @@ class AlignedAttributionsLoader(PlotDataLoader):
         ).T
         data.sequence_weights = data.matrix.sum(axis=1)
         return data
+
  
 class BetweenSpeciesAlignedAttributionsLoader(PlotDataLoader):
     def _load(self, data: DataBundle, mapping: BetweenSpeciesMap):
