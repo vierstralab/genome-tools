@@ -70,7 +70,7 @@ class PredictionBatchLoader(PlotDataLoader): # abstract class
         return VinsonData.from_raw(
             raw_data=raw_data,
             is_variant=False,
-            embeddings_df=embeddings[[sample_id], :],
+            embeddings_df=embeddings.loc[[sample_id], :],
         )
 
  
