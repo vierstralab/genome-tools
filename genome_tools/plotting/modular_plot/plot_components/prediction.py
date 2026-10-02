@@ -43,7 +43,7 @@ AttributionsWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
 # Attributions for custom region and sample from anndata 
 AttributionsFromRegionComponent = AttributionsComponent.with_loaders(
     BatchFromIntervalCenterLoader, AttributionsLoader, AlignedAttributionsLoader,
-    new_class_name='AttributionsFromBatchComponent',
+    new_class_name='AttributionsFromRegionComponent',
 )
 
 AttributionsWeightedMotifHitsFromRegionComponent = MotifHitsComponent.with_loaders(
