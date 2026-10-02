@@ -303,17 +303,19 @@ class TabixExtractor(BaseExtractor):
         except FileNotFoundError:
                 print(
                     f"'{filename}' not found locally; treating it as remote. "
-                    "Reading the header via pysam (skiprows is ignored; header kwargs for pandas are not applied)."
+                    "Reading the header via pysam (skiprows and header_char arguments are ignored)."
                 )
+                header = [l for l in self.tabix.header if l.startswith(header_char)]
+                parsed_columns = header[-1].split("\t")
                 if columns is None:
-                    header = [l for l in self.tabix.header if l.startswith(header_char)]
                     if header:
-                        self.columns = header[-1].split("\t")
+                        self.columns = parsed_columns
                     else:
                         # no header: infer column count from first data record
                         first = next(itertools.islice(self.tabix.fetch(), skiprows, None))
                         self.columns = list(range(len(first.split("\t"))))
                 else:
+                    assert len(columns) == len(parsed_columns)
                     self.columns = columns
 
     def __getitem__(self, interval):
