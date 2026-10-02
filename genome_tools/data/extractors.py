@@ -306,8 +306,9 @@ class TabixExtractor(BaseExtractor):
                     "Reading the header via pysam (skiprows and header_char arguments are ignored)."
                 )
                 header = [l for l in self.tabix.header if l.startswith(header_char)]
-                parsed_columns = header[-1].split("\t")
+ 
                 if columns is None:
+                    parsed_columns = header[-1].split("\t")
                     if header:
                         self.columns = parsed_columns
                     else:
@@ -315,7 +316,6 @@ class TabixExtractor(BaseExtractor):
                         first = next(itertools.islice(self.tabix.fetch(), skiprows, None))
                         self.columns = list(range(len(first.split("\t"))))
                 else:
-                    assert len(columns) == len(parsed_columns)
                     self.columns = columns
 
     def __getitem__(self, interval):
