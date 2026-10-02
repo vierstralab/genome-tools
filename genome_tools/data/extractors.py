@@ -300,8 +300,11 @@ class TabixExtractor(BaseExtractor):
                 else:
                     assert len(columns) == len(line.split("\t"))
                     self.columns = columns
-        except:
-                print('Using pysam to parse the header')
+        except FileNotFoundError:
+                print(
+                    f"'{filename}' not found locally; treating it as remote. "
+                    "Reading the header via pysam (skiprows is ignored; header kwargs for pandas are not applied)."
+                )
                 if columns is None:
                     header = [l for l in self.tabix.header if l.startswith(header_char)]
                     if header:
