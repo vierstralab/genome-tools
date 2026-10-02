@@ -91,19 +91,16 @@ class PredictionBatchLoader(PlotDataLoader): # abstract class
     @staticmethod
     def get_batch(
         data: VinsonData,
-        model_config: dict,
         fasta_file: str,
         genotype_file: str=None,
     ):
         # FIXME: avoid reading the whole dataset
-        dataset_kwargs: dict = model_config['data_params']
-        dataset_kwargs.update(
-            dict(
-                reverse_complement=False,
-                jitter=0,
-                noise=0,
-            )
+        dataset_kwargs = dict(
+            reverse_complement=False,
+            jitter=0,
+            noise=0,
         )
+        
 
         dataset = SequenceEmbedDataset(
             data=data,
@@ -129,10 +126,10 @@ class BatchFromAnndataLoader(PredictionBatchLoader):
     def _load(self, data: DataBundle,
                 sample_id: str,
                 anndata: ad.AnnData,
-                model_config: dict,
                 dhs_id: str,
                 fasta_file: str,
                 genotype_file: str=None,
+                model_config: dict = None # not used defunc
         ):
         input_data, interval = self.from_backed_anndata(
             anndata,
@@ -143,7 +140,6 @@ class BatchFromAnndataLoader(PredictionBatchLoader):
 
         batch = self.get_batch(
             input_data,
-            model_config,
             fasta_file,
             genotype_file,
         )
@@ -156,7 +152,6 @@ class BatchFromIntervalCenterLoader(PredictionBatchLoader):
     def _load(self, data: DataBundle,
                     sample_id: str,
                     embeddings: pd.DataFrame,
-                    model_config: dict,
                     fasta_file: str,
                     genotype_file: str=None,
             ):
@@ -172,7 +167,6 @@ class BatchFromIntervalCenterLoader(PredictionBatchLoader):
 
         batch = self.get_batch(
             input_data,
-            model_config,
             fasta_file,
             genotype_file,
         )
@@ -185,9 +179,9 @@ class BatchFromSteppedIntervalLoader(PredictionBatchLoader):
     def _load(self, data: DataBundle,
                 sample_id: str,
                 anndata: ad.AnnData,
-                model_config: dict,
                 fasta_file: str,
                 genotype_file: str=None,
+                model_config: dict=None, # not used defunc
                 step=20
         ):
         coordinates = np.arange(data.interval.start, data.interval.end + step, step)
@@ -201,7 +195,6 @@ class BatchFromSteppedIntervalLoader(PredictionBatchLoader):
 
         batch = self.get_batch(
             input_data,
-            model_config,
             fasta_file,
             genotype_file,
         )
