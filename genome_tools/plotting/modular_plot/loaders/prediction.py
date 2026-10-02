@@ -129,7 +129,6 @@ class BatchFromAnndataLoader(PredictionBatchLoader):
                 dhs_id: str,
                 fasta_file: str,
                 genotype_file: str=None,
-                model_config: dict = None # not used defunc
         ):
         input_data, interval = self.from_backed_anndata(
             anndata,
@@ -181,7 +180,6 @@ class BatchFromSteppedIntervalLoader(PredictionBatchLoader):
                 anndata: ad.AnnData,
                 fasta_file: str,
                 genotype_file: str=None,
-                model_config: dict=None, # not used defunc
                 step=20
         ):
         coordinates = np.arange(data.interval.start, data.interval.end + step, step)
