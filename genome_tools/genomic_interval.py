@@ -185,7 +185,20 @@ class GenomicInterval:
         assert isinstance(other, GenomicInterval), "other must be a GenomicInterval"
         if self.chrom != other.chrom:
             return False
+        
         return self.end > other.start and self.start < other.end
+
+    def within(self, other: 'GenomicInterval'):
+        if not self.overlaps(other):
+            return False
+        return self.end <= other.end and self.start >= other.start
+
+    def resize(self, window: int):
+        half_window = window // 2
+        if window % 2 == 0:
+            return self.center.widen(left=-half_window, right=half_window - 1)
+        else:
+            return self.center.widen(half_window)
     
 
 class VariantInterval(GenomicInterval):

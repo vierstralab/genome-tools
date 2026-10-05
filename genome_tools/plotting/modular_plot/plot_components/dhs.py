@@ -137,4 +137,9 @@ class DHSLoadingsComponent(IntervalPlotComponent):
         from nmf_tools.plotting.matrices_barplots import component_barplot
 
         for genomic_interval, ax in zip(genomic_intervals, axes):
-            component_barplot(H[:, genomic_interval.index: genomic_interval.index + 1], component_data, ax=ax, normalize=True)
+            component_barplot(
+                H[:, genomic_interval.index: genomic_interval.index + 1],
+                component_data,
+                ax=ax,
+                normalize=True
+            )
