@@ -196,7 +196,7 @@ class GenomicInterval:
     def resize(self, window: int):
         half_window = window // 2
         if window % 2 == 0:
-            return self.center.widen(left=-half_window, right=half_window - 1)
+            return self.center.widen(left=half_window, right=half_window - 1)
         else:
             return self.center.widen(half_window)
     
