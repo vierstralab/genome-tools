@@ -215,11 +215,13 @@ class PredictedSignalLoader(PlotDataLoader):
 
         full_positions = np.arange(initial_interval.start, initial_interval.end)
 
+        order = np.argsort(predictions_coords)
+
         data.signal = interp1d(
-            predictions_coords,
-            pred_density,
+            np.asarray(predictions_coords)[order],
+            pred_density[order],
             kind=interp1d_kind,
-            assume_sorted=True
+            assume_sorted=True,
         )(full_positions)
         return data
 
