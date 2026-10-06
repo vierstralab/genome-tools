@@ -183,7 +183,8 @@ class BetweenSpeciesMap:
                 m_chrom_e, m_end = m_end
 
                 if m_chrom_s == m_chrom_e:
-                    return GenomicInterval(m_chrom_s, min(m_start, m_end), max(m_start, m_end) + 1)
+                    return GenomicInterval(m_chrom_s, min(m_start, m_end), max(m_start, m_end) + 1,
+                                           strand='+' if m_start <= m_end else '-')
                 else:
                     raise ValueError("Chrom mismatch")
 
