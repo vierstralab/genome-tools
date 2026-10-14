@@ -392,7 +392,7 @@ def uses_loaders(*loaders):
         cls.__required_loaders__ = loaders
         loader_kwargs, args_info = _collect_all_kwargs(*loaders)
         cls.__loader_arg_sources__ = args_info
-        cls.__loader_kwargs_signature__ = {**cls.__loader_kwargs_signature__, **loader_kwargs}
+        cls.__loader_kwargs_signature__ = loader_kwargs
         if cls.__original_init__ is None:
             cls.__original_init__ = cls.__init__
         cls.__init__ = _update_signature(
