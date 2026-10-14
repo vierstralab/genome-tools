@@ -57,6 +57,9 @@ class DataBundle(LoggerMixin):
         if len(repr_str) > MAX_REPR_LEN:
             return str(self)
         return repr_str
+
+    def __repr_html__(self):
+        return str(self)
     
     def __getstate__(self):
         # Copy minimal state needed for multiprocessing
