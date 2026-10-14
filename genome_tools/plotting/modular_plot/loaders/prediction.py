@@ -12,142 +12,71 @@ from torch.utils.data import DataLoader
 from vinson.datasets.sequence import SequenceEmbedDataset
 from vinson.utils.data_formatting import extract_data_from_backed_anndata, VinsonData
 from vinson.postprocessing.interpretation import ModelWrapper
+from vinson.postprocessing.inference import score_bed_with_dhs_model
 
 from genome_tools import GenomicInterval
-
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
-
 from genome_tools.data.utils import realign_matrix
 from genome_tools.plotting.modular_plot.helpers.species_mapper import map_matrix_to_interval, BetweenSpeciesMap
+
+
+def from_prediction_coordinates(
+    embeddings: pd.DataFrame,
+    sample_id: str,
+    coordinates: np.ndarray,
+    chrom: str,
+):
+    raw_data = {
+        'sample_id': np.array([sample_id] * len(coordinates), dtype=np.str_),
+        'chrom': np.array([chrom] * len(coordinates), dtype=np.str_),
+        'summit': np.array(coordinates),
+    }
+
+    return VinsonData.from_raw(
+        raw_data=raw_data,
+        is_inference=False,
+        embeddings_df=embeddings.loc[[sample_id], :],
+    )
+
+
+def get_batch(
+    data: VinsonData,
+    fasta_file: str,
+    genotype_file: str=None,
+):
+    dataset_kwargs = dict(
+        reverse_complement=False,
+        jitter=0,
+        noise=0,
+    )
+
+    dataset = SequenceEmbedDataset(
+        data=data,
+        fasta_file=fasta_file,
+        genotype_file=genotype_file,
+        **dataset_kwargs,
+    )
+    
+    dataloader = DataLoader(
+        dataset,
+        batch_size=len(dataset),
+        shuffle=False,
+        num_workers=8,
+        pin_memory=True if torch.cuda.is_available() else False,
+        drop_last=False,
+    )
+
+    batch = next(iter(dataloader))
+    return batch
 
 
 class BatchLoader(PlotDataLoader):
     required_loader_kwargs=['batch']
 
 
-# REFACTOR - change from anndata to raw inputs
-class PredictionBatchLoader(PlotDataLoader): # abstract class
+class BatchFromIntervalCenterLoader(PlotDataLoader):
 
-    def _load(self, data):
-        raise NotImplementedError
-
-    @staticmethod
-    def from_backed_anndata(
-        anndata: ad.AnnData,
-        sample_id: str,
-        dhs_id: str,
-    ) -> Tuple[VinsonData, GenomicInterval]:
-        data = extract_data_from_backed_anndata(
-            anndata,
-            sample_ids=[sample_id],
-            dhs_ids=[dhs_id],
-        )
-
-        summit, chrom = anndata.var.loc[dhs_id, ['dhs_summit', '#chr']]
-        interval = GenomicInterval(chrom, summit, summit, dhs_summit=summit).widen(672)
-        return data, interval
-
-    @staticmethod
-    def from_prediction_coordinates(
-        embeddings: pd.DataFrame,
-        sample_id: str,
-        coordinates: np.ndarray,
-        chrom: str,
-    ):
-        
-        raw_data = {
-            'sample_id': np.array([sample_id] * len(coordinates), dtype=np.str_),
-            'dhs_id': np.array([''] * len(coordinates), dtype=np.str_),
-            'read_depth': np.array([0] * len(coordinates)),
-            'chrom': np.array([chrom] * len(coordinates), dtype=np.str_),
-            'summit': np.array(coordinates),
-            'background': np.array([0.0] * len(coordinates), dtype=np.float32), # dummy
-            'class': np.array([0] * len(coordinates), dtype=np.int8), # dummy
-            'density': np.array([0.0] * len(coordinates)), # dummy
-        }
-
-        return VinsonData.from_raw(
-            raw_data=raw_data,
-            is_variant=False,
-            embeddings_df=embeddings.loc[[sample_id], :],
-        )
-
- 
-    def from_prediction_coordinates_anndata(
-        self,
-        anndata: ad.AnnData,
-        sample_id: str,
-        coordinates: np.ndarray,
-        chrom: str,
-    ):
-        return self.from_prediction_coordinates(
-            anndata.obsm['motif_embeddings'],
-            sample_id=sample_id,
-            coordinates=coordinates,
-            chrom=chrom
-        )
-
-    @staticmethod
-    def get_batch(
-        data: VinsonData,
-        fasta_file: str,
-        genotype_file: str=None,
-    ):
-        # FIXME: avoid reading the whole dataset
-        dataset_kwargs = dict(
-            reverse_complement=False,
-            jitter=0,
-            noise=0,
-        )
-        
-
-        dataset = SequenceEmbedDataset(
-            data=data,
-            fasta_file=fasta_file,
-            genotype_file=genotype_file,
-            **dataset_kwargs,
-        )
-        
-        dataloader = DataLoader(
-            dataset,
-            batch_size=len(dataset),
-            shuffle=False,
-            num_workers=8,
-            pin_memory=True if torch.cuda.is_available() else False,
-            drop_last=False,
-        )
-
-        batch = next(iter(dataloader))
-        return batch
-
-
-class BatchFromAnndataLoader(PredictionBatchLoader):
-    def _load(self, data: DataBundle,
-                sample_id: str,
-                anndata: ad.AnnData,
-                dhs_id: str,
-                fasta_file: str,
-                genotype_file: str=None,
-        ):
-        input_data, interval = self.from_backed_anndata(
-            anndata,
-            sample_id=sample_id,
-            dhs_id=dhs_id,
-        )
-        assert interval.overlaps(data.interval), f"Data interval {data.interval} does not overlap with the dhs interval {interval}, {dhs_id}"
-
-        batch = self.get_batch(
-            input_data,
-            fasta_file,
-            genotype_file,
-        )
-        data.batch = batch
-        return data
-
-
-# fix anndata input -> dfs
-class BatchFromIntervalCenterLoader(PredictionBatchLoader):
     def _load(self, data: DataBundle,
                     sample_id: str,
                     embeddings: pd.DataFrame,
@@ -157,14 +86,14 @@ class BatchFromIntervalCenterLoader(PredictionBatchLoader):
 
         coordinates = np.array([data.interval.center.start])
 
-        input_data = self.from_prediction_coordinates(
+        input_data = from_prediction_coordinates( # replace with inference_from_bed
             embeddings=embeddings,
             sample_id=sample_id,
             coordinates=coordinates,
             chrom=data.interval.chrom,
         )
 
-        batch = self.get_batch(
+        batch = get_batch(
             input_data,
             fasta_file,
             genotype_file,
@@ -174,7 +103,7 @@ class BatchFromIntervalCenterLoader(PredictionBatchLoader):
         return data
 
 
-class BatchFromSteppedIntervalLoader(PredictionBatchLoader):
+class BatchFromSteppedIntervalLoader(PlotDataLoader):
     def _load(self, data: DataBundle,
                 sample_id: str,
                 embeddings: pd.DataFrame,
@@ -184,14 +113,14 @@ class BatchFromSteppedIntervalLoader(PredictionBatchLoader):
         ):
         coordinates = np.arange(data.interval.start, data.interval.end + step, step)
 
-        input_data = self.from_prediction_coordinates(
+        input_data = from_prediction_coordinates( # replace with inference_from_bed
             embeddings=embeddings,
             sample_id=sample_id,
             coordinates=coordinates,
             chrom=data.interval.chrom,
         )
 
-        batch = self.get_batch(
+        batch = get_batch(
             input_data,
             fasta_file,
             genotype_file,
@@ -205,7 +134,9 @@ class PredictedSignalLoader(PlotDataLoader):
     def _load(self, data: DataBundle, model_wrapper: ModelWrapper, interp1d_kind='linear'):
         initial_interval: GenomicInterval = data.interval
 
-        batch = data.batch
+        batch = data.batch 
+
+        # replace with predict_with_model
 
         predictions_coords = batch['summit']
         X_seq = batch["ohe_seq"].to(model_wrapper.model.device, non_blocking=True)
@@ -274,4 +205,46 @@ class BetweenSpeciesAlignedAttributionsLoader(PlotDataLoader):
             mapping=mapping
         ).T
         data.sequence_weights = data.matrix.sum(axis=1)
+        return data
+
+
+# Load batch from anndata, defunc
+class BatchFromAnndataLoader(PlotDataLoader):
+
+    @staticmethod
+    def from_backed_anndata(
+        anndata: ad.AnnData,
+        sample_id: str,
+        dhs_id: str,
+    ) -> Tuple[VinsonData, GenomicInterval]:
+        data = extract_data_from_backed_anndata(
+            anndata,
+            sample_ids=[sample_id],
+            dhs_ids=[dhs_id],
+        )
+
+        summit, chrom = anndata.var.loc[dhs_id, ['dhs_summit', '#chr']]
+        interval = GenomicInterval(chrom, summit, summit, dhs_summit=summit).widen(672)
+        return data, interval
+
+    def _load(self, data: DataBundle,
+                sample_id: str,
+                anndata: ad.AnnData,
+                dhs_id: str,
+                fasta_file: str,
+                genotype_file: str=None,
+        ):
+        input_data, interval = self.from_backed_anndata(
+            anndata,
+            sample_id=sample_id,
+            dhs_id=dhs_id,
+        )
+        assert interval.overlaps(data.interval), f"Data interval {data.interval} does not overlap with the dhs interval {interval}, {dhs_id}"
+
+        batch = get_batch(
+            input_data,
+            fasta_file,
+            genotype_file,
+        )
+        data.batch = batch
         return data
