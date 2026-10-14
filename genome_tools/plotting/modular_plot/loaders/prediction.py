@@ -9,7 +9,7 @@ from typing import Tuple
 import torch
 from torch.utils.data import DataLoader
 
-from vinson.datasets.sequence import SequenceEmbedDataset
+from vinson.datasets.sequence import InferenceSequenceEmbedDataset
 from vinson.utils.data_formatting import extract_data_from_backed_anndata, VinsonData
 from vinson.postprocessing.interpretation import ModelWrapper
 from vinson.postprocessing.inference import score_bed_with_dhs_model
@@ -51,7 +51,7 @@ def get_batch(
         noise=0,
     )
 
-    dataset = SequenceEmbedDataset(
+    dataset = InferenceSequenceEmbedDataset(
         data=data,
         fasta_file=fasta_file,
         genotype_file=genotype_file,
