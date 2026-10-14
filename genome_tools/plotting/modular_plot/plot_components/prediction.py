@@ -23,6 +23,11 @@ PredictedSignalComponent = TrackComponent.with_loaders(
     new_class_name='PredictedSignalComponent',
 )
 
+PredictedSignalFromBatchComponent = TrackComponent.with_loaders(
+    BatchLoader, PredictedSignalLoader,
+    new_class_name='PredictedSignalFromBatchComponent',
+)
+
 
 # Attributions for DHS from anndata
 @uses_loaders(BatchFromAnndataLoader, AttributionsLoader, AlignedAttributionsLoader)

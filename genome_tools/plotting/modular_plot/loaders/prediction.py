@@ -177,15 +177,15 @@ class BatchFromIntervalCenterLoader(PredictionBatchLoader):
 class BatchFromSteppedIntervalLoader(PredictionBatchLoader):
     def _load(self, data: DataBundle,
                 sample_id: str,
-                anndata: ad.AnnData,
+                embeddings: pd.DataFrame,
                 fasta_file: str,
                 genotype_file: str=None,
                 step=20
         ):
         coordinates = np.arange(data.interval.start, data.interval.end + step, step)
 
-        input_data = self.from_prediction_coordinates_anndata(
-            anndata,
+        input_data = self.from_prediction_coordinates(
+            embeddings=embeddings,
             sample_id=sample_id,
             coordinates=coordinates,
             chrom=data.interval.chrom,
