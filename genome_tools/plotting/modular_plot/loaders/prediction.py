@@ -163,8 +163,8 @@ class AttributionsLoader(PlotDataLoader):
             batch['chrom'][0],
             batch['summit'][0],
             batch['summit'][0]
-        ).widen(
-            batch['ohe_seq'][0].shape[1] // 2
+        ).resize(
+            batch['ohe_seq'][0].shape[1]
         )
 
         attrs = model_wrapper.get_sequence_attributions(
