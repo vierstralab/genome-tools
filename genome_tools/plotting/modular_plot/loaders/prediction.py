@@ -35,7 +35,7 @@ def from_prediction_coordinates(
 
     return VinsonData.from_raw(
         raw_data=raw_data,
-        is_inference=False,
+        is_inference=True,
         embeddings_df=embeddings.loc[[sample_id], :],
     )
 
