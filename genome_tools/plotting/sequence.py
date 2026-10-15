@@ -283,13 +283,14 @@ def add_geometry_to_axis(ax, geom, color, x, y, height, width_scale=1.0):
     ax.add_patch(patch)
     return patch
 
-def get_geoms(font, preserve_aspect_ratio=False):
+def get_geoms(font, preserve_aspect_ratio=False, approximation_scale=0.03):
     return (
         default_letter_geoms
-        if font == default_font and not preserve_aspect_ratio
+        if (font == default_font) and (not preserve_aspect_ratio) and (approximation_scale == 0.03)
         else get_letter_geometries(
             font,
-            preserve_aspect_ratio=preserve_aspect_ratio
+            preserve_aspect_ratio=preserve_aspect_ratio,
+            approximation_scale=approximation_scale
         )
     )
 
@@ -317,9 +318,10 @@ def seq_plot(
         width_scale=1.0,
         font=default_font,
         preserve_aspect_ratio=False,
+        approximation_scale=0.03,
         placeholder=None
     ):
-    geoms = get_geoms(font, preserve_aspect_ratio=preserve_aspect_ratio)
+    geoms = get_geoms(font, preserve_aspect_ratio=preserve_aspect_ratio, approximation_scale=approximation_scale)
 
     if ax is None:
         ax = plt.gca()
