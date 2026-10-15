@@ -45,17 +45,11 @@ def get_batch(
     fasta_file: str,
     genotype_file: str=None,
 ):
-    dataset_kwargs = dict(
-        reverse_complement=False,
-        jitter=0,
-        noise=0,
-    )
 
     dataset = InferenceSequenceEmbedDataset(
         data=data,
         fasta_file=fasta_file,
         genotype_file=genotype_file,
-        **dataset_kwargs,
     )
     
     dataloader = DataLoader(
