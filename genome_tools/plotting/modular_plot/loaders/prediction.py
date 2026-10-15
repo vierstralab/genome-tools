@@ -157,15 +157,17 @@ class AttributionsLoader(PlotDataLoader):
                 random_state=42,
         ):
         batch = data.batch
+        target_interval: GenomicInterval = data.interval
 
         assert len(batch['chrom']) == 1
         batch_interval = GenomicInterval(
             batch['chrom'][0],
             batch['summit'][0],
-            batch['summit'][0]
+            batch['summit'][0] + 1
         ).resize(
             batch['ohe_seq'][0].shape[1]
         )
+        assert target_interval.overlaps(batch_interval), 'Interval in loaded batch does not overlap target interval. Check batch coordinates'
 
         attrs = model_wrapper.get_sequence_attributions(
             batch['ohe_seq'],
