@@ -22,7 +22,7 @@ class RingPen(BasePen):
     Records glyph outlines as a list of rings (each ring = list of (x,y) points, closed).
     Cubic curves are approximated by line segments (no forced min segment count).
     """
-    def __init__(self, glyphSet, approximation_scale=0.03):
+    def __init__(self, glyphSet, approximation_scale):
         super().__init__(glyphSet)
         self.rings = []
         self.cur = []
@@ -181,14 +181,14 @@ def rings_to_geometry_winding(rings, repair_invalid=True, try_swap_if_empty=True
     return g
 
 
-def get_glyph_geometry(char, glyph_set, approximation_scale=0.03, **kwargs):
+def get_glyph_geometry(char, glyph_set, approximation_scale, **kwargs):
     pen = RingPen(glyph_set, approximation_scale=approximation_scale)
     glyph_set[char].draw(pen)
     rings = standardize_rings(pen.get_rings(), **kwargs)
     return rings_to_geometry_winding(rings)
 
 
-def get_letter_geometries(font_name, letters=None, approximation_scale=0.03, **kwargs):
+def get_letter_geometries(font_name, letters=None, **kwargs):
     """
     dict: char -> shapely geometry
     """
@@ -197,7 +197,7 @@ def get_letter_geometries(font_name, letters=None, approximation_scale=0.03, **k
     out = {}
 
     for ch in glyph_set:
-        out[ch] = get_glyph_geometry(ch, glyph_set, approximation_scale=approximation_scale, **kwargs)
+        out[ch] = get_glyph_geometry(ch, glyph_set, **kwargs)
 
     if letters is not None:
         letters_set = set(x for x in letters)
@@ -210,7 +210,14 @@ def get_letter_geometries(font_name, letters=None, approximation_scale=0.03, **k
 required_symbols = string.ascii_uppercase + string.ascii_lowercase
 
 default_font = "Arial"
-default_letter_geoms = get_letter_geometries(default_font, required_symbols, preserve_aspect_ratio=False)
+default_approximation_scale = 0.0017
+
+default_letter_geoms = get_letter_geometries(
+    default_font,
+    letters=required_symbols,
+    preserve_aspect_ratio=False,
+    approximation_scale=default_approximation_scale
+)
 
 
 def _ring_to_path(ring):
@@ -283,16 +290,16 @@ def add_geometry_to_axis(ax, geom, color, x, y, height, width_scale=1.0):
     ax.add_patch(patch)
     return patch
 
-def get_geoms(font, preserve_aspect_ratio=False, approximation_scale=0.03):
-    return (
-        default_letter_geoms
-        if (font == default_font) and (not preserve_aspect_ratio) and (approximation_scale == 0.03)
-        else get_letter_geometries(
+def get_geoms(font, preserve_aspect_ratio=False, approximation_scale=default_approximation_scale):
+    if (font == default_font) \
+                and (not preserve_aspect_ratio) \
+                and (approximation_scale == default_approximation_scale):
+        return default_letter_geoms
+    return get_letter_geometries(
             font,
             preserve_aspect_ratio=preserve_aspect_ratio,
             approximation_scale=approximation_scale
         )
-    )
 
 
 def plot_letter(letter, x, y, height=1.0, width=1.0, preserve_aspect_ratio=False,
@@ -318,10 +325,16 @@ def seq_plot(
         width_scale=1.0,
         font=default_font,
         preserve_aspect_ratio=False,
-        approximation_scale=0.03,
+        approximation_scale=default_approximation_scale,
+        geoms=None,
         placeholder=None
     ):
-    geoms = get_geoms(font, preserve_aspect_ratio=preserve_aspect_ratio, approximation_scale=approximation_scale)
+    if geoms is None:
+        geoms = get_geoms(
+            font,
+            preserve_aspect_ratio=preserve_aspect_ratio,
+            approximation_scale=approximation_scale
+        )
 
     if ax is None:
         ax = plt.gca()
