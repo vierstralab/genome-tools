@@ -12,7 +12,6 @@ from torch.utils.data import DataLoader
 from vinson.datasets.sequence import InferenceSequenceEmbedDataset
 from vinson.utils.data_formatting import extract_data_from_backed_anndata, VinsonData
 from vinson.postprocessing.interpretation import ModelWrapper
-from vinson.postprocessing.inference import score_bed_with_dhs_model
 
 from genome_tools import GenomicInterval
 from genome_tools.plotting.modular_plot import PlotDataLoader

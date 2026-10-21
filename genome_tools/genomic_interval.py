@@ -23,12 +23,12 @@ class GenomicInterval:
         self.extra_fields.append("name")
         super().__setattr__('_initialized', True)
 
-    @staticmethod
-    def from_ucsc(ucsc_str):
+    @classmethod
+    def from_ucsc(cls, ucsc_str):
         """Parses a UCSC-style string to a GenomicInterval object"""
         chrom, rest = ucsc_str.split(":")
         start, end = rest.split("-")
-        return GenomicInterval(chrom, int(start.replace(',', '')), int(end.replace(',', '')))
+        return cls(chrom, int(start.replace(',', '')), int(end.replace(',', '')))
 
     def copy(self):
         """Returns a copy of the object"""
@@ -59,7 +59,14 @@ class GenomicInterval:
         that the start coordinate is shifted by 1 to
         reflect 1-based"""
         return f"{self.chrom}:{self.start}-{self.end}"
-    
+
+    def to_str(self):
+        return self.to_ucsc()
+
+    @classmethod
+    def from_str(cls, ucsc_str):
+        return cls.from_ucsc(ucsc_str)
+
     def _get_kwargs(self, keys):
         return {
             key: getattr(self, key)
@@ -216,10 +223,10 @@ class VariantInterval(GenomicInterval):
     def to_str(self):
         return f"{self.chrom}:{self.pos}:{self.ref}:{self.alt}"
 
-    @staticmethod
-    def from_str(variant_str: str):
+    @classmethod
+    def from_str(cls, variant_str: str):
         chrom, pos, ref, alt = variant_str.split(":")
-        return VariantInterval(chrom, int(pos) - 1, int(pos), ref, alt)
+        return cls(chrom, int(pos) - 1, int(pos), ref, alt)
     
     def to_genomic_interval(self):
         return GenomicInterval(**self._all_kwargs)
