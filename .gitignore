@@ -7,5 +7,6 @@ sdist/
 build/
 *.egg-info/
 
+**__pycache__/**
 docs/build/
 .ipynb_checkpoints/

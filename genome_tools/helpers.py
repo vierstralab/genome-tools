@@ -6,6 +6,7 @@ import subprocess
 from io import StringIO, TextIOWrapper, BytesIO
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 import urllib.request
 from urllib.parse import urlparse
 
@@ -64,6 +65,21 @@ def read_starch(filename, columns=None):
     assert len(columns) == ncols
     bed_data.columns = columns
     return bed_data
+
+
+def load_from_file(filepath):
+    """
+    Load data from a .npy or .npz file, inferring if the .npz contains a sparse matrix.
+    """
+    if filepath.endswith('.npy'):
+        return np.load(filepath)
+    elif filepath.endswith('.npz'):
+        try:
+            return sp.load_npz(filepath)
+        except (OSError, IOError):
+            return dict(np.load(filepath))
+    else:
+        raise ValueError("Unsupported file format. Expected formats are .npy or .npz")
 
 
 def df_to_tabix(df: pd.DataFrame, tabix_path, **kwargs):
