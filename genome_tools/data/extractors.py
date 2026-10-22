@@ -8,9 +8,11 @@ using multiprocessing.
 import pysam
 import pyBigWig as pbw
 import pandas as pd
+import numpy as np
 import gzip
 import sys
 import itertools
+from tqdm import tqdm
 
 
 from genome_tools import GenomicInterval, VariantInterval
@@ -54,6 +56,38 @@ class FastaExtractor(BaseExtractor):
     def close(self):
         if self.fasta is not None and not self.fasta.closed:
             self.fasta.close()
+
+
+# ------------------------
+
+class InMemoryFastaExtractor(BaseExtractor):
+    """
+    Loads whole chromosomes into memory as uint8-encoded arrays instead of
+    re-reading the fasta file on every __getitem__ call. Trades RAM
+    (~1 byte/base) for speed when sampling many examples during training.
+    """
+
+    _ALPHABET = np.frombuffer(b"ACGTNRYSWKMBDHV", dtype=np.uint8)
+    _ENCODE_TABLE = np.zeros(256, dtype=np.uint8)
+    _ENCODE_TABLE[_ALPHABET] = np.arange(len(_ALPHABET), dtype=np.uint8)
+
+    def __init__(self, filename, **kwargs):
+        super().__init__(filename, **kwargs)
+
+        with pysam.FastaFile(filename) as fasta:
+            self.chrom_sizes = dict(zip(fasta.references, fasta.lengths))
+
+            self.sequences = {}
+            for chrom in tqdm(self.chrom_sizes, desc="Loading fasta into memory"):
+                raw = np.frombuffer(fasta.fetch(chrom).upper().encode("ascii"), dtype=np.uint8)
+                self.sequences[chrom] = self._ENCODE_TABLE[raw]
+
+    def __getitem__(self, interval):
+        codes = self.sequences[interval.chrom][interval.start:interval.end]
+        return self._ALPHABET[codes].tobytes().decode("ascii")
+
+    def close(self):
+        pass
 
 
 # ------------------------
