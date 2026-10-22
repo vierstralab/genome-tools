@@ -1,10 +1,10 @@
-from typing import List
-
 import zarr
 import anndata as ad
 import dask.array as da
 import numpy as np
 import scipy.sparse as sp
+
+from genome_tools.helpers import load_from_file
 
 
 def _read_zarr_group(dat):
@@ -59,22 +59,6 @@ def convert_to_sparse_if_sufficiently_sparse(matrix, threshold=0.7):
     return sp.csr_matrix(matrix) if sparsity > threshold else matrix
 
 
-def get_matrices_mapping_by_types(matrices: List[str], matrices_types):
-    """
-    Map each matrix file path to the matrix_type (from matrices_types) its filename encodes,
-    based on the '<matrix_type>.npy' / '<matrix_type>.matrix.npy' naming convention.
-    """
-    matrices_mapping = {}
-    for matrix in matrices:
-        for matrix_type in matrices_types:
-            if matrix.endswith(f'.{matrix_type}.npy') or matrix.endswith(f'{matrix_type}.matrix.npy'):
-                matrices_mapping[matrix_type] = matrix
-                break
-        else:
-            raise ValueError(f"Matrix {matrix} not recognized. Expected one of {matrices_types}")
-    return matrices_mapping
-
-
 def add_matrices_to_anndata(adata, matrices_mapping: dict, mask=None):
     """
     Load each matrix file in matrices_mapping and add it as a layer to adata, keyed by its mapping key.
@@ -84,7 +68,7 @@ def add_matrices_to_anndata(adata, matrices_mapping: dict, mask=None):
         if matrix_name in adata.layers:
             print(f"Layer {matrix_name} already exists in anndata. Skipping.")
             continue
-        matrix = np.load(matrix).T
+        matrix = load_from_file(matrix).T
         if matrix.dtype == np.float64:
             matrix = matrix.astype(np.float32)
 
