@@ -1,5 +1,6 @@
 # Copyright 2015 Jeff Vierstra
 
+import numbers
 from typing import List
 import pandas as pd
 from tqdm import tqdm
@@ -153,9 +154,10 @@ class GenomicInterval:
         return self.widen(padding, inplace=inplace)
 
     def shift(self, x: int, inplace=False):
-        if not isinstance(x, int):
+        if not isinstance(x, numbers.Integral):
             raise TypeError("shift must be an integer")
         """Shifts the coordinates"""
+        x = int(x)
         return self.widen(left=-x, right=x, inplace=inplace)
     
     def to_variant_interval(self, ref=None, alt=None):
