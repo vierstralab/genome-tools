@@ -138,7 +138,6 @@ Commonly used components:
 | `IdeogramComponent` | `plot_components.basic` | chromosome ideogram | `ideogram_data` |
 | `GencodeComponent` | `plot_components.basic` | gene models | `gencode_annotation_file` |
 | `TrackComponent` | `plot_components.basic` | BigWig signal | `signal_file` |
-
 | `SequencePlotComponent` | `plot_components.sequence` | DNA sequence | `fasta_file` |
 | `PredictedSignalComponent` | `plot_components.prediction` | vinson predicted signal | `model_wrapper`, `sample_id`, `embeddings`, `fasta_file` |
 | `AttributionsFromBatchComponent` | `plot_components.prediction` | vinson attributions as a sequence logo | `model_wrapper`, `batch` |
