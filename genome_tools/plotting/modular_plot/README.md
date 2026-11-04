@@ -13,7 +13,7 @@ Using plot components to plot model predictions and peak calls: the [vinson tuto
   - [(Not fully tested) Parallel Data Loading](#not-fully-tested-parallel-data-loading)
 - [Available Plot Components](#available-plot-components)
   - [Basic Components](#basic-components)
-  - [Sequence Components. API might be not up to date](#sequence-components-api-might-be-not-up-to-date)
+  - [Sequence Components](#sequence-components)
   - [Footprint components](#footprint-components)
   - [Variant components](#variant-components)
   - [Prediction components](#prediction-components)
@@ -50,9 +50,9 @@ from genome_tools.plotting.ideogram import read_ideogram
 # Define the genomic interval to visualize
 interval = GenomicInterval('chr1', 1_350_000, 1_400_000)
 
-signal_file = '/net/seq/data2/projects/ENCODE4Plus/REGULOME/per_sample//AG80080/AG80080.normalized_density.bw'
-gencode_file = '/home/sabramov/projects/ENCODE4/gencode/gencode.v42.basic.annotation.gtf.gz'
-ideogram_file = '/home/sabramov/projects/extraData/cytoBandIdeo.txt'
+signal_file = 'https://regulome.altius.org/data/per_sample/AG80080/AG80080.normalized_density.bw'
+gencode_file = 'https://resources.altius.org/~sabramov/collaborations/vinson/examples/gencode.v49.basic.annotation.sorted.gff3.gz'
+ideogram_file = 'https://resources.altius.org/~sabramov/collaborations/vinson/examples/cytoBandIdeo.txt'
 
 # Define plot components with their heights and margins
 plot_components = [
@@ -202,7 +202,7 @@ Displays chromosome ideogram with cytobands.
 **Example:**
 ```python
 from genome_tools.plotting.modular_plot.plot_components.basic import IdeogramComponent
-ideogram_file = '/home/sabramov/projects/extraData/cytoBandIdeo.txt'
+ideogram_file = 'https://resources.altius.org/~sabramov/collaborations/vinson/examples/cytoBandIdeo.txt'
 IdeogramComponent(
     height=0.1,
     margins=(0.1, 0.0),
@@ -212,12 +212,12 @@ IdeogramComponent(
 
 ![IdeogramComponent](example_images/IdeogramComponent.png)
 ### **GencodeComponent**
-Plots gene annotations from GENCODE GTF files.
+Plots gene annotations from a tabix-indexed GENCODE annotation file (e.g. GFF3).
 
 **Loaders:** `GencodeLoader`
 
 **Required arguments:**
-- `gencode_annotation_file` (str): Path to GENCODE GTF file
+- `gencode_annotation_file` (str): Path or URL of the GENCODE annotation file
 
 **Optional plotting arguments:**
 - `gene_symbol_exclude_regex` (str): Regex to exclude certain gene symbols (default: `r'^ENSG|^MIR|^LINC|.*-AS.*'`)
@@ -226,7 +226,7 @@ Plots gene annotations from GENCODE GTF files.
 ```python
 from genome_tools.plotting.modular_plot.plot_components.basic import GencodeComponent
 
-gencode_file = '/home/sabramov/projects/ENCODE4/gencode/gencode.v42.basic.annotation.gtf.gz'
+gencode_file = 'https://resources.altius.org/~sabramov/collaborations/vinson/examples/gencode.v49.basic.annotation.sorted.gff3.gz'
 GencodeComponent(
     height=0.3,
     margins=(0.05, 0.05),
@@ -247,7 +247,7 @@ Plots signal track from bigWig files.
 **Example:**
 ```python
 from genome_tools.plotting.modular_plot.plot_components.basic import TrackComponent
-signal_file = '/net/seq/data2/projects/ENCODE4Plus/REGULOME/per_sample//AG80080/AG80080.normalized_density.bw'
+signal_file = 'https://regulome.altius.org/data/per_sample/AG80080/AG80080.normalized_density.bw'
 TrackComponent(
     height=1.5,
     margins=(0.1, 0.1),
@@ -276,7 +276,7 @@ FigwigTrackComponent(
 )
 ```
 
-## Sequence Components. API might be not up to date
+## Sequence Components
 
 ### **SequencePlotComponent**
 Plots DNA sequence as colored nucleotides.
@@ -293,7 +293,7 @@ Plots DNA sequence as colored nucleotides.
 ```python
 from genome_tools.plotting.modular_plot.plot_components.sequence import SequencePlotComponent
 
-fasta_file='/net/seq/data/genomes/human/GRCh38/noalts/GRCh38_no_alts.fa'
+fasta_file = 'https://resources.altius.org/~sabramov/collaborations/vinson/examples/GRCh38_no_alts.fa'
 
 SequencePlotComponent(
     height=0.2,
@@ -327,8 +327,10 @@ Base component that displays transcription factor motif hits as sequence logos.
 ```python
 from genome_tools.plotting.modular_plot.plot_components.sequence import MotifHitsComponent
 
-motif_annotations_path = '/net/seq/data2/projects/sabramov/ENCODE4/dnase-genotypes.v4/round1/output/moods_scans_ref.merged.sorted.bed.gz'   # tabix-indexed annotations. Motif hits at 1e-4 p-value
-motif_meta_df = pd.read_table('/home/sabramov/projects/ENCODE4/ENCODE4_DHS/metadata/source/motifs_meta.tsv').set_index('motif_id')
+motif_annotations_path = 'https://resources.altius.org/~sabramov/collaborations/vinson/examples/moods_scans_ref.merged.sorted.bed.gz'   # tabix-indexed annotations. Motif hits at 1e-4 p-value
+motif_meta_df = pd.read_table('https://resources.altius.org/~sabramov/collaborations/vinson/examples/motifs_meta.tsv').set_index('motif_id')
+# PFM paths in the table are on the cluster; use their public copies
+motif_meta_df['pfm'] = motif_meta_df['pfm'].str.replace('/home/jvierstra/public_html/', 'https://resources.altius.org/~jvierstra/')
 min_motif_overlap = 0.8
 n_top_hits = 2
 
@@ -453,7 +455,7 @@ See [FPWeightedMotifHitsComponent](#FPWeightedMotifHitsComponent) for more detai
 
 ## Prediction components
 
-Components that run a [vinson](https://github.com/vierstralab/vinson) model on the fly (requires `vinson` and `torch`). Worked examples are in the vinson tutorials [`2.Predict_density`](https://github.com/vierstralab/vinson/blob/main/tutorials/2.Predict_density.ipynb) (true vs predicted signal tracks) and [`3.Interpretation`](https://github.com/vierstralab/vinson/blob/main/tutorials/3.Interpretation.ipynb) (attribution logos, motif hits and connectors). All of them need `model_wrapper` (`vinson.postprocessing.interpretation.ModelWrapper`), which is usually passed once to `IntervalPlotter`.
+Components that run a [vinson](https://github.com/vierstralab/vinson) model on the fly (requires `vinson` and `torch`). For these components used to plot vinson predictions and attributions, see the vinson tutorials [`2.Predict_density`](https://github.com/vierstralab/vinson/blob/main/tutorials/2.Predict_density.ipynb) (true vs predicted signal tracks) and [`3.Interpretation`](https://github.com/vierstralab/vinson/blob/main/tutorials/3.Interpretation.ipynb) (attribution logos, motif hits and connectors). All of them need `model_wrapper` ([`vinson.postprocessing.interpretation.ModelWrapper`](https://github.com/vierstralab/vinson/blob/main/src/vinson/postprocessing/interpretation.py)), which is usually passed once to `IntervalPlotter`.
 
 ### PredictedSignalComponent
 Predicted signal for one sample. The model is run every `step` bp across the interval and predictions are interpolated to per-base resolution; plotted like `TrackComponent`.
@@ -526,21 +528,6 @@ Variants of the same components:
 - `PredictedSignalFromBatchComponent` — predicted signal from a pre-built `batch`
 - `AttributionsFromRegionComponent` / `AttributionsWeightedMotifHitsFromRegionComponent` — build a single-example batch centered on the interval from `sample_id`, `embeddings`, `fasta_file`
 - `BetweenSpeciesAlignedAttributionsFromBatchComponent` / `...WeightedMotifHitsFromBatchComponent` — map attributions to another species' coordinates through a `BetweenSpeciesMap` from HAL file.
-
-To plot attributions from your own model, swap the loaders:
-```python
-class MyAttributionsLoader(PlotDataLoader):
-    def _load(self, data, model, my_input):
-        data.matrix = my_attributions(model, my_input, data.interval)  # (len(interval), 4)
-        return data
-
-MyAttributionsComponent = SequencePlotComponent.with_loaders(
-    MyAttributionsLoader,
-    new_class_name='MyAttributionsComponent',
-    doc="Attributions of my model as a sequence logo.",
-)
-```
-for more details about custom loaders see [README_develop.md](README_develop.md)
 
 ## hotspot3 components
 
@@ -682,17 +669,17 @@ By default, components are named after their class. Multiple components within o
 
 ```python
 plotter = IntervalPlotter([
-    TrackComponent(name='ATAC', signal_file='atac.bw', height=1.0),
-    TrackComponent(name='H3K27ac', signal_file='h3k27ac.bw', height=1.0),
-    TrackComponent(name='H3K4me3', signal_file='h3k4me3.bw', height=1.0),
+    TrackComponent(name='AG95384', signal_file='https://regulome.altius.org/data/per_sample/AG95384/AG95384.normalized_density.bw', height=1.0),
+    TrackComponent(name='AG95451', signal_file='https://regulome.altius.org/data/per_sample/AG95451/AG95451.normalized_density.bw', height=1.0),
+    TrackComponent(name='AG80853', signal_file='https://regulome.altius.org/data/per_sample/AG80853/AG80853.normalized_density.bw', height=1.0),
 ])
 
 data, axes = plotter.plot(interval)
 
 # Access by custom name
-axes.ATAC
-axes.H3K27ac
-axes.H3K4me3
+axes.AG95384
+axes.AG95451
+axes.AG80853
 ```
 
 # Debugging Data Loading
@@ -736,7 +723,5 @@ axes[-1].set_xlabel('Genomic Position')
 ```
 
 # Developing your own components
-
-A component is a set of loaders, which read files for the interval and attach the data, and a `_plot` method that draws it; loader arguments become the component's keyword arguments.
 
 Step-by-step guide, multiple loaders, abstract base components and a complete heatmap component on public data: [README_develop.md](README_develop.md).
