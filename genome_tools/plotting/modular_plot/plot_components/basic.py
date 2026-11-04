@@ -7,7 +7,7 @@ from genome_tools.plotting.utils import clear_spines
 
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
 
-from genome_tools.plotting.modular_plot.loaders.basic import IdeogramLoader, GencodeLoader, SignalLoader, SegmentsLoader, SegmentsTabixLoader
+from genome_tools.plotting.modular_plot.loaders.basic import IdeogramLoader, GencodeLoader, SignalLoader, FigwigSignalLoader, SegmentsLoader, SegmentsTabixLoader
 
 from .abstract import SegmentPlotComponent
 
@@ -75,14 +75,23 @@ class GencodeComponent(IntervalPlotComponent):
 
 @uses_loaders(SignalLoader)
 class TrackComponent(IntervalPlotComponent):
-    """Plot a continuous signal track over an interval.
+    """Plot a continuous per-base signal track (e.g. DNase density) over an interval.
 
     Loaders: `SignalLoader`
 
     Required loader args (via `SignalLoader`):
-    - `signal_file`: path to a BigWig file
+    - `signal_file`: path to a BigWig file. NaNs are replaced with 0.
 
-    Plot kwargs passed to `genome_tools.plotting.signal_plot`
+    Plot kwargs passed to `genome_tools.plotting.signal_plot`, e.g.
+    `color`, `lw`, `fill`. Set y-limits on the returned axes.
+
+    Subclasses that keep this `_plot` and only swap loaders
+    (`FigwigTrackComponent`, `PredictedSignalComponent`) need a loader that sets
+    `data.signal` to a 1D array of length `len(interval)`.
+
+    Example:
+        TrackComponent(signal_file='sample.normalized_density.bw',
+                       height=0.5, margins=(0.05, 0.1), color='tab:blue')
 
     Returns: `matplotlib.axes.Axes`
     """
@@ -90,6 +99,31 @@ class TrackComponent(IntervalPlotComponent):
     def _plot(self, data, ax, **kwargs):
         signal_plot(data.interval, data.signal, ax=ax, **kwargs)
         return ax
+
+
+FigwigTrackComponent = TrackComponent.with_loaders(
+    FigwigSignalLoader,
+    new_class_name='FigwigTrackComponent',
+    doc="""Plot one track of a figwig (.fw) file over an interval.
+
+    Same as `TrackComponent`, but the signal is read from a multi-track figwig
+    file (https://github.com/jmschrei/figwig, requires python >= 3.10).
+
+    Loaders: `FigwigSignalLoader`
+
+    Required loader args:
+    - `figwig_file`: path to the .fw file
+    - `track`: name of the track to plot
+
+    Plot kwargs passed to `genome_tools.plotting.signal_plot`
+
+    Example:
+        FigwigTrackComponent(figwig_file='samples.fw', track='AG80080',
+                             height=0.5, color='tab:blue')
+
+    Returns: `matplotlib.axes.Axes`
+    """
+)
 
 
 SegmentBedComponent = SegmentPlotComponent.with_loaders(SegmentsLoader, new_class_name='SegmentBedComponent')

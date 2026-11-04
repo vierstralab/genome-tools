@@ -43,6 +43,13 @@ class BaseExtractor:
 
 
 class FastaExtractor(BaseExtractor):
+    """
+    Returns the genome sequence of an interval as a str (case as in the FASTA file).
+
+    Usage:
+        with FastaExtractor('genome.fa') as fasta:
+            seq = fasta[GenomicInterval('chr1', 1000, 2000)].upper()
+    """
     def __init__(self, filename, **kwargs):
         super(FastaExtractor, self).__init__(filename, **kwargs)
 
@@ -398,8 +405,14 @@ class ChromParquetExtractor(BaseExtractor):
 
 
 class BigwigExtractor(BaseExtractor):
+    """
+    Returns per-base BigWig values of an interval as a numpy array (NaN where there is no data).
+
+    Usage:
+        with BigwigExtractor('signal.bw') as bw:
+            values = bw[GenomicInterval('chr1', 1000, 2000)]
+    """
     def __init__(self, filename, **kwargs):
-        """ """
         super(BigwigExtractor, self).__init__(filename, **kwargs)
 
         self.bw = pbw.open(filename)

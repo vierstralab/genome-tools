@@ -181,7 +181,8 @@ from genome_tools.plotting.modular_plot.loaders.basic import AverageSignalLoader
 # Create a variant that averages multiple signal files
 AverageTrackComponent = TrackComponent.with_loaders(
     AverageSignalLoader,
-    new_class_name='AverageTrackComponent'
+    new_class_name='AverageTrackComponent',
+    doc="Average of several signal files (`signal_files`), optionally smoothed.",  # docstring of the new class
 )
 
 # Use the new component

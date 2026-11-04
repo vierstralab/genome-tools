@@ -1,6 +1,13 @@
 # genome-tools
 
-genome-tools is a shared Python toolkit for working with genomic intervals and sequencing data: interval arithmetic, BED/tabix/BigWig/FASTA I/O, batched data loading for model training, and a modular framework for composing multi-track genome-browser-style plots. It underlies several downstream Altius/Vierstra-lab packages (e.g. hotspot3, vinson, nmf-tools) rather than being a standalone end-user tool.
+genome-tools is a shared Python toolkit built around a single core object, the `GenomicInterval`. Everything else is keyed by it:
+
+- **Data extraction and manipulation** — pull sequence, signal and records for an interval from FASTA, BigWig, FigWig, tabix, parquet, D4 and VCF/BAM files, and convert between intervals and pandas DataFrames.
+- **Plotting** — standalone plot functions and a modular framework for composing multi-track, genome-browser-style figures of an interval.
+
+It underlies several downstream Vierstra lab packages as well (e.g. hotspot3, vinson, nmf-tools).
+
+Coding agents: read [AGENTS.md](AGENTS.md) first.
 
 ## Table of contents
 
@@ -8,7 +15,7 @@ genome-tools is a shared Python toolkit for working with genomic intervals and s
 - [Installation](#installation)
 - [Core components](#core-components)
   - [Genomic intervals](#genomic-intervals)
-  - [Data extraction and loading](#data-extraction-and-loading)
+  - [Data extraction](#data-extraction)
   - [Plotting](#plotting)
   - [Modular plotting framework](#modular-plotting-framework)
 - [Authors](#authors)
@@ -16,7 +23,7 @@ genome-tools is a shared Python toolkit for working with genomic intervals and s
 ## Repository layout
 
 - [`genome_tools/genomic_interval.py`](genome_tools/genomic_interval.py) — `GenomicInterval` / `VariantInterval` classes and DataFrame <-> interval conversion helpers.
-- [`genome_tools/data/`](genome_tools/data/) — file extractors (FASTA, BigWig, tabix, parquet, D4, VCF genotypes/reads),
+- [`genome_tools/data/`](genome_tools/data/) — file extractors (FASTA, BigWig, FigWig, tabix, parquet, D4, VCF genotypes/reads) and `AnnData` helpers.
 - [`genome_tools/plotting/`](genome_tools/plotting/) — standalone plot functions (`signal_plot`, `gene_annotation_plot`, `ideogram_plot`, sequence/motif-logo plotting, color palettes/colormaps) and the [modular plotting framework](genome_tools/plotting/modular_plot/) for building composable, multi-track interval plots.
 - [`genome_tools/utils/`](genome_tools/utils/) — signal smoothing/aggregation and sequence helpers.
 
@@ -41,6 +48,13 @@ Or directly from git:
 pip install git+https://github.com/vierstralab/genome-tools.git
 ```
 
+Optional extras:
+```bash
+pip install "genome-tools[figwig]"   # FigwigExtractor / FigwigTrackComponent, python >= 3.10
+pip install "genome-tools[anndata]"  # read_zarr_backed (anndata, zarr 2, dask)
+```
+Some plot components need the package they visualize (`vinson` for prediction/attribution components, `hotspot3`, `footprint-tools`, `bx-python` for between-species alignment). They are imported only when you import those component modules.
+
 ## Core components
 
 ### Genomic intervals
@@ -55,18 +69,19 @@ iv.to_ucsc()          # "chr1:1000000-1001000"
 GenomicInterval.from_ucsc("chr1:1,000,000-1,001,000")
 
 iv.widen(500)          # expand both ends by 500bp
-iv.zoom(2.0)           # zoom out 2x around the center
+iv.zoom(2.0)           # zoom in 2x around the center (zoom(-2.0) zooms out)
 iv.shift(100)          # shift coordinates
 iv.overlaps(other_iv)  # bool
 ```
 
 `VariantInterval` is a 1bp specialization carrying `ref`/`alt`/`pos`; Helpers `df_to_genomic_intervals`, `df_to_variant_intervals`, `intervals_to_df`, and `filter_df_to_interval` convert between pandas DataFrames and lists of intervals.
 
-### Data extraction and loading
+### Data extraction
 
 [`genome_tools/data/extractors.py`](genome_tools/data/extractors.py) provides context-manager extractors keyed by `GenomicInterval`, each wrapping the relevant file format:
 - `FastaExtractor` / `InMemoryFastaExtractor` — pysam-backed and fully-in-RAM FASTA sequence access
 - `BigwigExtractor` — per-base signal from BigWig
+- `FigwigExtractor` — per-base signal from one or many tracks of a [figwig](https://github.com/jmschrei/figwig) (`.fw`) file, returns `(n_tracks, len(interval))` (or 1D for a single track name)
 - `TabixExtractor` — tabix-indexed BED/GFF-style records
 - `ChromParquetExtractor` — per-chromosome-partitioned parquet signal
 - `D4Extractor` — D4 coverage files
@@ -74,7 +89,19 @@ iv.overlaps(other_iv)  # bool
 
 ⚠️ Most extractors wrap non-thread-safe file handles (`pysam`, `pyBigWig`) — open separate instances per worker when using multiprocessing.
 
-[`genome_tools/data/anndata.py`](genome_tools/data/anndata.py) provides `read_zarr_backed()` for loading large sample-by-peak matrices as `AnnData` objects for legacy versions of anndata package.
+[`genome_tools/data/anndata.py`](genome_tools/data/anndata.py) provides `read_zarr_backed()` for opening large sample-by-peak AnnData saved with `AnnData.write_zarr` without reading every matrix into RAM (older anndata versions can't do this). Needs the `anndata` extra (`pip install "genome-tools[anndata]"`). Latest versions of anndata already implement analogous `read_lazy` function
+
+```python
+from genome_tools.data.anndata import read_zarr_backed
+
+adata = read_zarr_backed('index.anndata.zarr')               # lazy_attrs=('layers', 'varm')
+adata.layers['counts']                                       # dask array, nothing read yet
+adata[:, mask].layers['counts'].compute()                    # read only the selected columns
+```
+
+- `X`, `obs`, `var`, `obsm`, `obsp`, `varp` and `uns` are read into memory.
+- Every entry of the groups named in `lazy_attrs` (default `layers` and `varm`) becomes a `dask.array`, read only when you call `.compute()`. A sparse entry in one of these groups is read into memory instead.
+- Tested with anndata 0.10.9, zarr 2.18
 
 ### Plotting
 
@@ -83,6 +110,41 @@ iv.overlaps(other_iv)  # bool
 ### Modular plotting framework
 
 [`genome_tools/plotting/modular_plot/`](genome_tools/plotting/modular_plot/) decouples **loading** data for a genomic interval from **rendering** it (`DataBundle`, `PlotDataLoader`, `IntervalPlotComponent`, `IntervalPlotter`), so multi-track figures (ideogram + gene model + signal + motifs + predictions, etc.) can be assembled from reusable, mix-and-match components instead of per-figure plotting code.
+
+```python
+from genome_tools import GenomicInterval
+from genome_tools.plotting.ideogram import read_ideogram
+from genome_tools.plotting.modular_plot import IntervalPlotter
+from genome_tools.plotting.modular_plot.plot_components.basic import (
+    IdeogramComponent, GencodeComponent, TrackComponent,
+)
+
+plotter = IntervalPlotter(
+    [
+        IdeogramComponent(height=0.1, margins=0),
+        GencodeComponent(height=0.3),
+        TrackComponent(signal_file="sample.normalized_density.bw", height=0.5, color="tab:blue"),
+    ],
+    ideogram_data=read_ideogram("cytoBandIdeo.txt"),   # loader args shared by components
+    gencode_annotation_file="gencode.basic.annotation.gtf.gz",
+)
+data, axes = plotter.plot(GenomicInterval.from_ucsc("chr14:72,600,000-72,800,000"))
+```
+
+Commonly used components:
+
+| Component | Module | Shows | Key loader args |
+|---|---|---|---|
+| `IdeogramComponent` | `plot_components.basic` | chromosome ideogram | `ideogram_data` |
+| `GencodeComponent` | `plot_components.basic` | gene models | `gencode_annotation_file` |
+| `TrackComponent` | `plot_components.basic` | BigWig signal | `signal_file` |
+
+| `SequencePlotComponent` | `plot_components.sequence` | DNA sequence | `fasta_file` |
+| `PredictedSignalComponent` | `plot_components.prediction` | vinson predicted signal | `model_wrapper`, `sample_id`, `embeddings`, `fasta_file` |
+| `AttributionsFromBatchComponent` | `plot_components.prediction` | vinson attributions as a sequence logo | `model_wrapper`, `batch` |
+| `AttributionsWeightedMotifHitsFromBatchComponent` | `plot_components.prediction` | motif logos in annotated regions | + `annotation_regions`, `motif_annotations_path`, `motif_meta` |
+
+Every component lists its loader arguments (required and with defaults) in its signature, and describes them in its docstring: `help(TrackComponent)` or `?TrackComponent` in jupyter.
 
 See [`genome_tools/plotting/modular_plot/README.md`](genome_tools/plotting/modular_plot/README.md) for the full guide — quick start, available plot components, overriding loader parameters, and debugging data loading — and [`README_develop.md`](genome_tools/plotting/modular_plot/README_develop.md) for writing your own components.
 

@@ -28,6 +28,7 @@ class GencodeLoader(PlotDataLoader):
 
 
 class SignalLoader(PlotDataLoader):
+    """Read per-base signal for the interval from a BigWig (`signal_file`). Sets `data.signal`."""
     def _load(self, data, signal_file):
         with BigwigExtractor(signal_file) as extractor:
             signal = np.nan_to_num(extractor[data.interval])
@@ -36,6 +37,7 @@ class SignalLoader(PlotDataLoader):
 
 
 class FigwigSignalLoader(PlotDataLoader):
+    """Read per-base signal for the interval from one `track` of a figwig file (`figwig_file`). Sets `data.signal`."""
     def _load(self, data, figwig_file, track):
         with FigwigExtractor(figwig_file, tracks=track) as extractor:
             data.signal = np.nan_to_num(extractor[data.interval])

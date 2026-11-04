@@ -232,6 +232,26 @@ TrackComponent(
 ```
 ![TrackComponent](example_images/TrackComponent.png)
 
+### **FigwigTrackComponent**
+Same as `TrackComponent`, but plots one track of a multi-track [figwig](https://github.com/jmschrei/figwig) (`.fw`) file. Requires `pip install "genome-tools[figwig]"` (python >= 3.10).
+
+**Loaders:** `FigwigSignalLoader`
+
+**Required arguments:**
+- `figwig_file` (str): Path to the `.fw` file
+- `track` (str): Name of the track to plot
+
+**Example:**
+```python
+from genome_tools.plotting.modular_plot.plot_components.basic import FigwigTrackComponent
+FigwigTrackComponent(
+    height=1.5,
+    margins=(0.1, 0.1),
+    figwig_file='samples.fw',
+    track='AG80080',
+)
+```
+
 ## Sequence Components. API might be not up to date
 
 ### **SequencePlotComponent**
@@ -409,37 +429,94 @@ See [FPWeightedMotifHitsComponent](#FPWeightedMotifHitsComponent) for more detai
 
 ## Prediction components
 
-### AttributionsComponent
-```python
-from genome_tools.plotting.modular_plot.plot_components.prediction import AttributionsComponent
+Components that run a [vinson](https://github.com/vierstralab/vinson) model on the fly (requires `vinson` and `torch`). They are used in the vinson tutorials `2.Predict_density` and `3.Interpretation`. All of them need `model_wrapper` (`vinson.postprocessing.interpretation.ModelWrapper`), which is usually passed once to `IntervalPlotter`.
 
-AttributionsComponent(
-    model_config=legnet_model_config,
-    model_wrapper=model_wrapper,
-    anndata=dhs_anndata,
-    sample_id=sample_id,
-    dhs_id=dhs_id,
-    fasta_file=human_fasta_file,
+### PredictedSignalComponent
+Predicted signal for one sample. The model is run every `step` bp across the interval and predictions are interpolated to per-base resolution; plotted like `TrackComponent`.
+
+**Loaders:** `BatchFromSteppedIntervalLoader`, `PredictedSignalLoader`
+
+**Required arguments:** `sample_id`, `embeddings` (DataFrame indexed by sample_id), `fasta_file`, `model_wrapper`
+
+**Optional arguments:** `step` (20), `genotype_file` (None), `interp1d_kind` ('linear')
+
+### AttributionsFromBatchComponent
+Per-nucleotide DeepLIFT/SHAP attributions as a sequence logo, for a single-example `batch` (e.g. from `vinson.inference.assemble_batch`). The component interval must overlap the model input (1344 bp); use a small interval (tens of bp).
+
+**Loaders:** `BatchLoader`, `AttributionsLoader`, `AlignedAttributionsLoader`
+
+**Required arguments:** `batch`, `model_wrapper`
+
+**Optional arguments:** `n_shuffles` (20), `random_state` (42), `print_convergence_deltas` (False)
+
+### AttributionsWeightedMotifHitsFromBatchComponent
+Motif logos for the best motif hit in each of `annotation_regions`, computed from the same attributions. Use `choose_by='weighted_dg'` to rank hits by attribution-weighted dG.
+
+**Loaders:** attribution loaders above + `AnnotationRegionsLoader`, `MotifHitsLoader`, `MotifHitsSelectorLoader`
+
+**Required arguments:** `batch`, `model_wrapper`, `annotation_regions`, `motif_annotations_path`, `motif_meta`
+
+**Optional arguments:** `choose_by` ('dg'), `n_top_hits` (1), `motif_hits_threshold` (None), `min_motif_overlap` (0.9); plot kwargs `pack`, `pad`
+
+**Example** (from `3.Interpretation`):
+```python
+from genome_tools.plotting.modular_plot import IntervalPlotter
+from genome_tools.plotting.modular_plot.plot_components.basic import TrackComponent, IdeogramComponent, GencodeComponent
+from genome_tools.plotting.modular_plot.plot_components.prediction import (
+    PredictedSignalComponent,
+    AttributionsFromBatchComponent,
+    AttributionsWeightedMotifHitsFromBatchComponent,
 )
+
+plot_components = [
+    IdeogramComponent(interval_key='big', height=0.03, margins=0),
+    GencodeComponent(interval_key='big', height=0.05, margins=(0, 0.02)),
+    TrackComponent(name='TrueSignal', interval_key='big', signal_file=bw_file,
+                   color='tab:blue', height=0.1, margins=(0, 0.05)),
+    PredictedSignalComponent(name='PredictedSignal', interval_key='big', sample_id=sample_id,
+                             color='tab:orange', height=0.1, margins=(0, 0.05)),
+    AttributionsFromBatchComponent(interval_key='small', height=0.06, margins=0, n_shuffles=100),
+    AttributionsWeightedMotifHitsFromBatchComponent(interval_key='small', height=0.06, margins=0,
+                                                    n_shuffles=100, motif_annotations_path=motif_annotations_path),
+]
+
+plotter = IntervalPlotter(
+    plot_components,
+    ideogram_data=idg,
+    model_wrapper=model_wrapper,
+    motif_meta=motif_metadata,
+    fasta_file=fasta_file,
+    gencode_annotation_file=gencode_annotation_file,
+)
+
+data = plotter.get_interval_data(
+    {'big': interval.zoom(-7), 'small': interval.zoom(10)},
+    batch=assemble_batch(sample_id, interval=interval, embeddings=embeddings, fasta=fasta_file),
+    embeddings=embeddings,
+    annotation_regions=annotation_regions,
+)
+axes = plotter.plot_interval(data)
 ```
 
-You can add custom loader e.g.
+Variants of the same components:
+- `PredictedSignalFromBatchComponent` — predicted signal from a pre-built `batch`
+- `AttributionsFromRegionComponent` / `AttributionsWeightedMotifHitsFromRegionComponent` — build a single-example batch centered on the interval from `sample_id`, `embeddings`, `fasta_file`
+- `BetweenSpeciesAlignedAttributionsFromBatchComponent` / `...WeightedMotifHitsFromBatchComponent` — map attributions to another species' coordinates through a `BetweenSpeciesMap` from HAL file.
+
+To plot attributions from your own model, swap the loaders:
 ```python
-class MyLoader(PlotDataLoader):
-    def _load(self, data, model, input_data_for_batch):
-        data.interval: GenomicInterval
-        batch = make_batch_from_input(input_data_for_batch, data.interval)
-        attributions_matrix = attributions_scores(model, batch)
-        data.matrix = attributions_matrix
+class MyAttributionsLoader(PlotDataLoader):
+    def _load(self, data, model, my_input):
+        data.matrix = my_attributions(model, my_input, data.interval)  # (len(interval), 4)
         return data
 
-MyAttributionsComponent = AttributionsComponent.with_loaders(MyLoader, new_class_name='MyAttributionsComponent')
+MyAttributionsComponent = SequencePlotComponent.with_loaders(
+    MyAttributionsLoader,
+    new_class_name='MyAttributionsComponent',
+    doc="Attributions of my model as a sequence logo.",
+)
 ```
-MyAttributionsComponent is ready to use, see basic components.
-
-
-### AttributionsWeightedMotifHitsComponent (duplicate)
-See [AttributionsWeightedMotifHitsComponent](#AttributionsWeightedMotifHitsComponent) for more details
+for more details about custom loaders see [README_develop.md](README_develop.md)
 
 ## DHS components
 

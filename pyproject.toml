@@ -1,6 +1,6 @@
 [project]
 name = "genome-tools"
-version = "2.0.0"
+version = "3.0.0"
 description = "A toolkit for genome analysis and manipulation."
 authors = [
     { name = "Jeff Vierstra", email = "jvierstra@altius.org" }
@@ -12,6 +12,7 @@ keywords = ["genome", "bioinformatics", "analysis", "toolkit"]
 
 dependencies = [
     "numpy",
+    "scipy",
     "pandas",
     "pysam",
     "pyBigWig",
@@ -19,8 +20,15 @@ dependencies = [
     "descartes",
     "fonttools==4.49.0",
     "openpyxl",
-    "shapely"
+    "shapely>=2.0.5",
+    "makefun",
+    "tqdm",
+    "pyarrow"
 ]
+
+[project.optional-dependencies]
+figwig = ["figwig; python_version >= '3.10'"]
+anndata = ["anndata>=0.10.9", "zarr>=2.18.3,<3", "dask"]
 
 [project.urls]
 Homepage = "https://github.com/vierstralab/genome-tools"
@@ -28,8 +36,13 @@ Repository = "https://github.com/vierstralab/genome-tools"
 Issues = "https://github.com/vierstralab/genome-tools/issues"
 
 [tool.setuptools]
-packages = ["genome_tools"]
 license-files = []
+
+[tool.setuptools.packages.find]
+include = ["genome_tools*"]
+
+[tool.setuptools.package-data]
+"genome_tools.plotting.modular_plot" = ["README.md", "README_develop.md"]
 
 [build-system]
 requires = [

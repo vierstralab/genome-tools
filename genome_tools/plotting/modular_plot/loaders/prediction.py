@@ -6,10 +6,7 @@ from scipy.interpolate import interp1d
 
 from typing import Tuple
 
-import torch
-from torch.utils.data import DataLoader
-
-from vinson.datasets.sequence import InferenceSequenceEmbedDataset
+from vinson.inference import assemble_batch, assemble_batch_from_data
 from vinson.utils.data_formatting import extract_data_from_backed_anndata, VinsonData
 from vinson.postprocessing.interpretation import ModelWrapper
 
@@ -20,55 +17,13 @@ from genome_tools.data.utils import realign_matrix
 from genome_tools.plotting.modular_plot.helpers.species_mapper import map_matrix_to_interval, BetweenSpeciesMap
 
 
-def from_prediction_coordinates(
-    embeddings: pd.DataFrame,
-    sample_id: str,
-    coordinates: np.ndarray,
-    chrom: str,
-):
-    raw_data = {
-        'sample_id': np.array([sample_id] * len(coordinates), dtype=np.str_),
-        'chrom': np.array([chrom] * len(coordinates), dtype=np.str_),
-        'summit': np.array(coordinates),
-    }
-
-    return VinsonData.from_raw(
-        raw_data=raw_data,
-        is_inference=True,
-        embeddings_df=embeddings.loc[[sample_id], :],
-    )
-
-
-def get_batch(
-    data: VinsonData,
-    fasta_file: str,
-    genotype_file: str=None,
-):
-
-    dataset = InferenceSequenceEmbedDataset(
-        data=data,
-        fasta_file=fasta_file,
-        genotype_file=genotype_file,
-    )
-    
-    dataloader = DataLoader(
-        dataset,
-        batch_size=len(dataset),
-        shuffle=False,
-        num_workers=8,
-        pin_memory=True if torch.cuda.is_available() else False,
-        drop_last=False,
-    )
-
-    batch = next(iter(dataloader))
-    return batch
-
-
 class BatchLoader(PlotDataLoader):
+    """Use a pre-built model input `batch` as is. Sets `data.batch`."""
     required_loader_kwargs=['batch']
 
 
 class BatchFromIntervalCenterLoader(PlotDataLoader):
+    """Build a single-example vinson batch centered on the interval center for `sample_id`. Sets `data.batch`."""
 
     def _load(self, data: DataBundle,
                     sample_id: str,
@@ -77,19 +32,12 @@ class BatchFromIntervalCenterLoader(PlotDataLoader):
                     genotype_file: str=None,
             ):
 
-        coordinates = np.array([data.interval.center.start])
-
-        input_data = from_prediction_coordinates( # replace with inference_from_bed
-            embeddings=embeddings,
-            sample_id=sample_id,
-            coordinates=coordinates,
-            chrom=data.interval.chrom,
-        )
-
-        batch = get_batch(
-            input_data,
+        batch = assemble_batch(
+            sample_id,
+            data.interval,
+            embeddings,
             fasta_file,
-            genotype_file,
+            genotype_file=genotype_file,
         )
 
         data.batch = batch
@@ -97,6 +45,7 @@ class BatchFromIntervalCenterLoader(PlotDataLoader):
 
 
 class BatchFromSteppedIntervalLoader(PlotDataLoader):
+    """Build a vinson batch with model inputs centered every `step` bp across the interval for `sample_id`. Sets `data.batch`."""
     def _load(self, data: DataBundle,
                 sample_id: str,
                 embeddings: pd.DataFrame,
@@ -104,19 +53,13 @@ class BatchFromSteppedIntervalLoader(PlotDataLoader):
                 genotype_file: str=None,
                 step=20
         ):
-        coordinates = np.arange(data.interval.start, data.interval.end + step, step)
-
-        input_data = from_prediction_coordinates( # replace with inference_from_bed
-            embeddings=embeddings,
-            sample_id=sample_id,
-            coordinates=coordinates,
-            chrom=data.interval.chrom,
-        )
-
-        batch = get_batch(
-            input_data,
+        batch = assemble_batch(
+            sample_id,
+            data.interval,
+            embeddings,
             fasta_file,
-            genotype_file,
+            genotype_file=genotype_file,
+            step=step,
         )
 
         data.batch = batch
@@ -124,6 +67,7 @@ class BatchFromSteppedIntervalLoader(PlotDataLoader):
 
 
 class PredictedSignalLoader(PlotDataLoader):
+    """Run `model_wrapper` on `data.batch` and interpolate predictions to per-base `data.signal` over the interval."""
     def _load(self, data: DataBundle, model_wrapper: ModelWrapper, interp1d_kind='linear'):
         initial_interval: GenomicInterval = data.interval
 
@@ -151,6 +95,10 @@ class PredictedSignalLoader(PlotDataLoader):
 
 
 class AttributionsLoader(PlotDataLoader):
+    """Compute DeepLIFT/SHAP attributions for a single-example `data.batch`.
+
+    Sets `data.raw_attributions` (4 x model input length) and `data.raw_attributions_coords` (model input interval).
+    """
     def _load(self, data: DataBundle,
                 model_wrapper: ModelWrapper,
                 print_convergence_deltas=False,
@@ -183,6 +131,7 @@ class AttributionsLoader(PlotDataLoader):
 
 
 class AlignedAttributionsLoader(PlotDataLoader):
+    """Crop/pad raw attributions to the interval. Sets `data.matrix` and `data.sequence_weights`."""
     def _load(self, data: DataBundle):
         data.matrix = realign_matrix(
             matrix=data.raw_attributions,
@@ -194,6 +143,7 @@ class AlignedAttributionsLoader(PlotDataLoader):
 
  
 class BetweenSpeciesAlignedAttributionsLoader(PlotDataLoader):
+    """Map raw attributions onto the interval through a `BetweenSpeciesMap`. Sets `data.matrix` and `data.sequence_weights`."""
     def _load(self, data: DataBundle, mapping: BetweenSpeciesMap):
         data.matrix = map_matrix_to_interval(
             matrix=data.raw_attributions,
@@ -238,10 +188,10 @@ class BatchFromAnndataLoader(PlotDataLoader):
         )
         assert interval.overlaps(data.interval), f"Data interval {data.interval} does not overlap with the dhs interval {interval}, {dhs_id}"
 
-        batch = get_batch(
+        batch = assemble_batch_from_data(
             input_data,
             fasta_file,
-            genotype_file,
+            genotype_file=genotype_file,
         )
         data.batch = batch
         return data

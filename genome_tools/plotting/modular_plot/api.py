@@ -167,15 +167,18 @@ class PlotComponent(LoggerMixin):
                 )
 
     @classmethod
-    def with_loaders(cls, *loaders, new_class_name):
+    def with_loaders(cls, *loaders, new_class_name, doc=""):
         """
         Create a new class that inherits from the current class
         but requires the specified loaders.
+
+        `doc` becomes the docstring of the new class. Loader arguments are
+        visible in the signature of the new class (`help(NewClass)`).
         """
         new_class = type(
             new_class_name,
             (cls,),
-            {}
+            {'__doc__': doc}
         )
         new_class = uses_loaders(*loaders)(new_class)
         module = sys.modules[cls.__module__]

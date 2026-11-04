@@ -275,7 +275,7 @@ class IntervalPlotter(VerticalConnectorMixin):
     or can be a single GenomicInterval for all components
 
     # plot with just one command
-    component_axes, data = interval_plotter.plot(interval)
+    data, component_axes = interval_plotter.plot(interval)
 
     # Alternatively you can run 2 separate commands for more control:
     # Get the data for the interval
@@ -567,7 +567,7 @@ class IntervalPlotter(VerticalConnectorMixin):
         Usage
         -----
         # Plot the interval
-        component_axes, data = interval_plotter.plot(interval)
+        data, component_axes = interval_plotter.plot(interval)
         """
         if loaders_kwargs is None:
             loaders_kwargs = {}
