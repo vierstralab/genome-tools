@@ -7,6 +7,8 @@ genome-tools is a shared Python toolkit built around a single core object, the `
 
 It underlies several downstream Vierstra lab packages as well (e.g. hotspot3, vinson, nmf-tools).
 
+Examples: [UsageExamples.ipynb](examples/UsageExamples.ipynb) (reading data and basic plots, runs on public data); more, including multi-track plots and their use in vinson and regulome, in [examples/README.md](examples/README.md).
+
 Coding agents: read [AGENTS.md](AGENTS.md) first.
 
 ## Table of contents
@@ -26,6 +28,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) first.
 - [`genome_tools/data/`](genome_tools/data/) — file extractors (FASTA, BigWig, FigWig, tabix, parquet, D4, VCF genotypes/reads) and `AnnData` helpers.
 - [`genome_tools/plotting/`](genome_tools/plotting/) — standalone plot functions (`signal_plot`, `gene_annotation_plot`, `ideogram_plot`, sequence/motif-logo plotting, color palettes/colormaps) and the [modular plotting framework](genome_tools/plotting/modular_plot/) for building composable, multi-track interval plots.
 - [`genome_tools/utils/`](genome_tools/utils/) — signal smoothing/aggregation and sequence helpers.
+- [`examples/`](examples/) — [UsageExamples.ipynb](examples/UsageExamples.ipynb) and an [index of examples](examples/README.md), including plot components used in vinson and regulome.
 
 
 ## Installation

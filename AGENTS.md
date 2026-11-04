@@ -16,9 +16,11 @@ public names and signatures stable, and keep the core light (see "Dependencies")
 | Read FASTA / BigWig / figwig / tabix / parquet / VCF for an interval | `genome_tools/data/extractors.py` |
 | Open local/remote/gz files, write tabix | `genome_tools/helpers.py` |
 | Backed AnnData from zarr | `genome_tools/data/anndata.py` |
-| Single plot functions (`signal_plot`, `gene_annotation_plot`, `ideogram_plot`, `seq_plot`) | `genome_tools/plotting/` |
+| Single plot functions (`signal_plot`, `gene_annotation_plot`, `ideogram_plot`, `seq_plot`, `plot_motif_logo`) | `genome_tools/plotting/` |
+| Axis helpers (`format_axes_to_interval`, `clear_spines`, `cm2inch`) | `genome_tools/plotting/utils.py` |
 | Multi-track figures | `genome_tools/plotting/modular_plot/` (user guide: `README.md`, writing components: `README_develop.md`) |
 | Signal smoothing, one-hot encoding | `genome_tools/utils/` |
+| Runnable examples on public data | `examples/UsageExamples.ipynb` (data extraction, basic plots); `examples/README.md` indexes it and links component usage in vinson and regulome |
 
 `genome_tools/data/dataset.py`, `loaders.py`, `samplers.py` are legacy training dataloaders
 and will be removed. Don't use or extend them.
@@ -69,6 +71,19 @@ with TabixExtractor(bed_gz, columns=[...]) as tbx: # if columns not provided - i
   required loader args show as `Required loader arg`. A missing one raises at load time naming
   the component and loader.
 - Two components of the same class need distinct `name=`.
+- `axes` (and `data`) are namedtuples keyed by component name: `axes.TrackComponent` or
+  `getattr(axes, name)`, not `axes['TrackComponent']`.
+- To plot a new data source with an existing plot, use `Component.with_loaders(..., doc=...)`
+  instead of subclassing; subclass only to change `_plot`.
+- To reuse a loader for another field, subclass it and override the attribute it sets
+  (`SignalLoader.__signal_attr__`, `SegmentsLoader.__intervals_attr__`), e.g.
+  `BackgroundBigwigLoader(SignalLoader)` sets `fit_threshold`. Give the subclass's `_load` its own
+  argument name (`background_bw`, not `signal_file`): loader args are matched by name across all
+  loaders of a component.
+- hotspot3 components: `DensityAndBackgroundComponent` needs only the release bigWigs
+  (`{id}.normalized_density.bw`, `{id}.background.bw`); `SignalAndMeanBGComponent`,
+  `SmoothedSignalAndMeanBGComponent` and `FdrComponent` need parquet files from hotspot3's
+  `debug/` output, which is not in the regulome release. 
 
 ## Dependencies
 
@@ -101,5 +116,10 @@ the module only if the package is installed):
   `plot_components/prediction.py`: what it plots, `Loaders:`, required/optional loader args,
   plot kwargs, a short example, `Returns:`. Keep the tables in `README.md` and
   `modular_plot/README.md` in sync when adding components.
+- Docs and examples:
+  - Examples use public files (regulome.altius.org, resources.altius.org), so they run anywhere;
+  - `examples/UsageExamples.ipynb` covers data extraction and basic plot functions only;
+    Don't repeat the same example in several places; link instead.
+
 - A stale `build/` directory can shadow the source when building wheels; build from a clean
   checkout if packaging looks wrong.
