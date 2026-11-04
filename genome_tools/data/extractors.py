@@ -416,6 +416,53 @@ class BigwigExtractor(BaseExtractor):
 # ------------------------
 
 
+class FigwigExtractor(BaseExtractor):
+    def __init__(self, filename, tracks=None, dtype=np.float32, n_jobs=1, **kwargs):
+        """
+        Extracts per-base values from a figwig file (https://github.com/jmschrei/figwig).
+
+        Parameters
+        ----------
+        filename : str
+            Path to the figwig (.fw) file.
+        tracks : list, optional
+            Track names or indices returned by `__getitem__`. If None, all tracks.
+        dtype : numpy dtype
+            Output dtype. Default is float32.
+        n_jobs : int
+            Threads per read. Keep 1 inside DataLoader workers.
+        """
+        super(FigwigExtractor, self).__init__(filename, **kwargs)
+        from figwig import FigWigReader # requires python >= 3.10
+
+        self.fw = FigWigReader(filename)
+        self.tracks = tracks
+        self.dtype = dtype
+        self.n_jobs = n_jobs
+
+    def __getitem__(self, interval):
+        return self.read(interval)
+
+    def read(self, interval, tracks=None):
+        """
+        Returns an array of shape (tracks, len(interval)), or (len(interval),) for a single track name.
+        """
+        if tracks is None:
+            tracks = self.tracks
+        out = self.fw.read(
+            [interval.chrom], [interval.start], len(interval),
+            tracks=tracks, dtype=self.dtype, n_jobs=self.n_jobs,
+        )
+        return out[0]
+
+    def close(self):
+        # FigWigReader holds no open file between reads
+        pass
+
+
+# ------------------------
+
+
 class D4Extractor(BaseExtractor):
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
