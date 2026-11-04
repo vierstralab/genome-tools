@@ -21,7 +21,7 @@ from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 # registers custom colormaps
 # from .colors import cm
-from .utils import rescale_data, format_axes_to_interval, clear_spines, pack_rows, rescale_data_n_points
+from .utils import rescale_data, format_axes_to_interval, clear_spines, pack_rows, rescale_data_n_points, cm2inch
 
 from genome_tools import GenomicInterval
 

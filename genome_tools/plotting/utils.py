@@ -9,7 +9,17 @@ __all__ = [
     "get_genomic_axis_tick_formatter",
     "format_axes_to_interval",
     "rescale_data",
+    "cm2inch",
 ]
+
+
+def cm2inch(*values):
+    """Convert centimeters to inches (matplotlib sizes are in inches).
+
+    One value returns a float, several return a tuple, e.g. `figsize=cm2inch(8, 3)`.
+    """
+    inches = tuple(v / 2.54 for v in values)
+    return inches[0] if len(inches) == 1 else inches
 
 
 def clear_spines(ax):
