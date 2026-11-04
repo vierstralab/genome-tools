@@ -8,9 +8,11 @@ using multiprocessing.
 import pysam
 import pyBigWig as pbw
 import pandas as pd
+import numpy as np
 import gzip
 import sys
 import itertools
+from tqdm import tqdm
 
 
 from genome_tools import GenomicInterval, VariantInterval
@@ -54,6 +56,38 @@ class FastaExtractor(BaseExtractor):
     def close(self):
         if self.fasta is not None and not self.fasta.closed:
             self.fasta.close()
+
+
+# ------------------------
+
+class InMemoryFastaExtractor(BaseExtractor):
+    """
+    Loads whole chromosomes into memory as uint8-encoded arrays instead of
+    re-reading the fasta file on every __getitem__ call. Trades RAM
+    (~1 byte/base) for speed when sampling many examples during training.
+    """
+
+    _ALPHABET = np.frombuffer(b"ACGTNRYSWKMBDHV", dtype=np.uint8)
+    _ENCODE_TABLE = np.zeros(256, dtype=np.uint8)
+    _ENCODE_TABLE[_ALPHABET] = np.arange(len(_ALPHABET), dtype=np.uint8)
+
+    def __init__(self, filename, **kwargs):
+        super().__init__(filename, **kwargs)
+
+        with pysam.FastaFile(filename) as fasta:
+            self.chrom_sizes = dict(zip(fasta.references, fasta.lengths))
+
+            self.sequences = {}
+            for chrom in tqdm(self.chrom_sizes, desc="Loading fasta into memory"):
+                raw = np.frombuffer(fasta.fetch(chrom).upper().encode("ascii"), dtype=np.uint8)
+                self.sequences[chrom] = self._ENCODE_TABLE[raw]
+
+    def __getitem__(self, interval):
+        codes = self.sequences[interval.chrom][interval.start:interval.end]
+        return self._ALPHABET[codes].tobytes().decode("ascii")
+
+    def close(self):
+        pass
 
 
 # ------------------------
@@ -377,6 +411,53 @@ class BigwigExtractor(BaseExtractor):
     def close(self):
         if getattr(self, "bw", None):
             self.bw.close()
+
+
+# ------------------------
+
+
+class FigwigExtractor(BaseExtractor):
+    def __init__(self, filename, tracks=None, dtype=np.float32, n_jobs=1, **kwargs):
+        """
+        Extracts per-base values from a figwig file (https://github.com/jmschrei/figwig).
+
+        Parameters
+        ----------
+        filename : str
+            Path to the figwig (.fw) file.
+        tracks : list, optional
+            Track names or indices returned by `__getitem__`. If None, all tracks.
+        dtype : numpy dtype
+            Output dtype. Default is float32.
+        n_jobs : int
+            Threads per read. Keep 1 inside DataLoader workers.
+        """
+        super(FigwigExtractor, self).__init__(filename, **kwargs)
+        from figwig import FigWigReader # requires python >= 3.10
+
+        self.fw = FigWigReader(filename)
+        self.tracks = tracks
+        self.dtype = dtype
+        self.n_jobs = n_jobs
+
+    def __getitem__(self, interval):
+        return self.read(interval)
+
+    def read(self, interval, tracks=None):
+        """
+        Returns an array of shape (tracks, len(interval)), or (len(interval),) for a single track name.
+        """
+        if tracks is None:
+            tracks = self.tracks
+        out = self.fw.read(
+            [interval.chrom], [interval.start], len(interval),
+            tracks=tracks, dtype=self.dtype, n_jobs=self.n_jobs,
+        )
+        return out[0]
+
+    def close(self):
+        # FigWigReader holds no open file between reads
+        pass
 
 
 # ------------------------

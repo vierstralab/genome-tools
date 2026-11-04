@@ -4,6 +4,8 @@ import dask.array as da
 import numpy as np
 import scipy.sparse as sp
 
+from genome_tools.helpers import load_from_file
+
 
 def _read_zarr_group(dat):
 
@@ -44,3 +46,47 @@ def read_zarr_backed(filename, lazy_attrs=('layers', 'varm')):
         adata = ad.AnnData(**d)
 
     return adata
+
+
+def convert_to_sparse_if_sufficiently_sparse(matrix, threshold=0.7):
+    """
+    Convert a matrix to sparse format if the proportion of zero values exceeds the threshold.
+    """
+    if sp.issparse(matrix):
+        return matrix
+
+    sparsity = np.count_nonzero(matrix == 0) / matrix.size
+    return sp.csr_matrix(matrix) if sparsity > threshold else matrix
+
+
+def add_matrices_to_anndata(adata, matrices_mapping: dict, mask=None):
+    """
+    Load each matrix file in matrices_mapping and add it as a layer to adata, keyed by its mapping key.
+    Each matrix file is expected to be var x obs on disk (transposed to obs x var to match adata).
+    """
+    for matrix_name, matrix in matrices_mapping.items():
+        if matrix_name in adata.layers:
+            print(f"Layer {matrix_name} already exists in anndata. Skipping.")
+            continue
+        matrix = load_from_file(matrix).T
+        if matrix.dtype == np.float64:
+            matrix = matrix.astype(np.float32)
+
+        if matrix.shape[0] != adata.shape[0]:
+            raise ValueError(f"Matrix {matrix_name} has {matrix.shape[0]} samples, but the number of samples in anndata is {adata.shape[0]}")
+        if mask is not None:
+            assert mask.sum() == matrix.shape[1]
+            data = np.empty(adata.shape, dtype=np.float32)
+            data[:] = np.nan
+            data[:, mask] = matrix
+            matrix = data
+
+        adata.layers[matrix_name] = convert_to_sparse_if_sufficiently_sparse(matrix)
+
+
+def get_mask_from_column_name(adata, mask_name):
+    if mask_name != "":
+        mask = adata.var[mask_name]
+    else:
+        mask = np.ones(adata.var.shape[0], dtype=bool)
+    return mask

@@ -2,7 +2,7 @@ from typing import List
 import pandas as pd
 import numpy as np
 
-from genome_tools.data.extractors import TabixExtractor, BigwigExtractor, ChromParquetExtractor
+from genome_tools.data.extractors import TabixExtractor, BigwigExtractor, FigwigExtractor, ChromParquetExtractor
 from genome_tools.utils.signal import smooth_and_aggregate_per_nucleotide_signal
 from genome_tools import GenomicInterval, df_to_genomic_intervals
 
@@ -32,6 +32,13 @@ class SignalLoader(PlotDataLoader):
         with BigwigExtractor(signal_file) as extractor:
             signal = np.nan_to_num(extractor[data.interval])
         data.signal = signal
+        return data
+
+
+class FigwigSignalLoader(PlotDataLoader):
+    def _load(self, data, figwig_file, track):
+        with FigwigExtractor(figwig_file, tracks=track) as extractor:
+            data.signal = np.nan_to_num(extractor[data.interval])
         return data
 
 

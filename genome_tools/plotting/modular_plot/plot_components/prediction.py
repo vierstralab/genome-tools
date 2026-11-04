@@ -23,25 +23,14 @@ PredictedSignalComponent = TrackComponent.with_loaders(
     new_class_name='PredictedSignalComponent',
 )
 
-
-# Attributions for DHS from anndata
-@uses_loaders(BatchFromAnndataLoader, AttributionsLoader, AlignedAttributionsLoader)
-class AttributionsComponent(SequencePlotComponent):
-    
-    @IntervalPlotComponent.set_xlim_interval
-    def _plot(self, data, ax, **kwargs):
-        ax = super()._plot(data, ax, **kwargs)
-        ax.axhline(0, color='black', lw=0.25, ls='--')
-        return ax
-
-AttributionsWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
-    *AttributionsComponent.__required_loaders__, *MotifHitsComponent.__required_loaders__,
-    new_class_name='AttributionsWeightedMotifHitsComponent',
+PredictedSignalFromBatchComponent = TrackComponent.with_loaders(
+    BatchLoader, PredictedSignalLoader,
+    new_class_name='PredictedSignalFromBatchComponent',
 )
 
 
-# Attributions for custom region and sample from anndata 
-AttributionsFromRegionComponent = AttributionsComponent.with_loaders(
+# Attributions for custom region and sample
+AttributionsFromRegionComponent = SequencePlotComponent.with_loaders(
     BatchFromIntervalCenterLoader, AttributionsLoader, AlignedAttributionsLoader,
     new_class_name='AttributionsFromRegionComponent',
 )
@@ -54,7 +43,7 @@ AttributionsWeightedMotifHitsFromRegionComponent = MotifHitsComponent.with_loade
 
 
 # Attributions from custom batch
-AttributionsFromBatchComponent = AttributionsComponent.with_loaders(
+AttributionsFromBatchComponent = SequencePlotComponent.with_loaders(
     BatchLoader, AttributionsLoader, AlignedAttributionsLoader,
     new_class_name='AttributionsFromBatchComponent',
 )
@@ -67,7 +56,7 @@ AttributionsWeightedMotifHitsFromBatchComponent = MotifHitsComponent.with_loader
 
 
 # Attributions from custom batch with between species alignment
-BetweenSpeciesAlignedAttributionsFromBatchComponent = AttributionsComponent.with_loaders(
+BetweenSpeciesAlignedAttributionsFromBatchComponent = SequencePlotComponent.with_loaders(
     BatchLoader, AttributionsLoader, BetweenSpeciesAlignedAttributionsLoader,
     new_class_name='BetweenSpeciesAlignedAttributionsFromBatchComponent',
 )
@@ -76,4 +65,20 @@ BetweenSpeciesAlignedAttributionsWeightedMotifHitsFromBatchComponent = MotifHits
     *BetweenSpeciesAlignedAttributionsFromBatchComponent.__required_loaders__,
     *MotifHitsComponent.__required_loaders__,
     new_class_name='BetweenSpeciesAlignedAttributionsWeightedMotifHitsFromBatchComponent',
+)
+
+
+# Attributions for DHS from anndata. Defunc
+@uses_loaders(BatchFromAnndataLoader, AttributionsLoader, AlignedAttributionsLoader)
+class AttributionsFromAnndataComponent(SequencePlotComponent):
+    
+    @IntervalPlotComponent.set_xlim_interval
+    def _plot(self, data, ax, **kwargs):
+        ax = super()._plot(data, ax, **kwargs)
+        ax.axhline(0, color='black', lw=0.25, ls='--')
+        return ax
+
+AttributionsFromAnndataWeightedMotifHitsComponent = MotifHitsComponent.with_loaders(
+    *AttributionsFromAnndataComponent.__required_loaders__, *MotifHitsComponent.__required_loaders__,
+    new_class_name='AttributionsFromAnndataWeightedMotifHitsComponent',
 )
