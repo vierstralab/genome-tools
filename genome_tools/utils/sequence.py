@@ -8,7 +8,7 @@ IN_MAP = np.asarray(
 
 
 def get_base_encoding():
-    base_encoding = np.zeros((ord("t") + 1, 1), dtype=np.int)
+    base_encoding = np.zeros((ord("t") + 1, 1), dtype=int)
     base_encoding[ord("A")] = 1
     base_encoding[ord("C")] = 2
     base_encoding[ord("G")] = 3

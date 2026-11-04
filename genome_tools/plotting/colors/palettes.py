@@ -22,7 +22,8 @@ QUAL_PALETTES_SIZES = {name: len(COLOR_MAPS[name]) for name in QUAL_PALETTES}
 
 def get_color_cycle():
     """Returns the current color cycle from matplotlib prop cycler"""
-    cyl = mpl.rcParams["axes.prop_cycler"]
+    key = "axes.prop_cycle" if "axes.prop_cycle" in mpl.rcParams else "axes.prop_cycler"
+    cyl = mpl.rcParams[key]
     return cyl.by_key()["color"] if "color" in cyl.keys else ["k"]
 
 

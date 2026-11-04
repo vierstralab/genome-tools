@@ -1,6 +1,6 @@
 # Examples
 
-- [UsageExamples.ipynb](UsageExamples.ipynb): genomic intervals, reading FASTA / BigWig / tabix data for an interval, and the basic plot functions (ideogram, motif logo, signal, gene annotation). Uses public data only.
+- [UsageExamples.ipynb](UsageExamples.ipynb): genomic and variant intervals, reading FASTA / BigWig / tabix data for an interval, DataFrame <-> intervals, and the basic plot functions (ideogram, motif logo, signal, gene annotation, segments, DNA sequence, color palettes and colormaps). Uses public data only.
 
 To plot several tracks together (`IntervalPlotter` and plot components, including vinson predictions and hotspot3 results), see the [modular plotting guide](../genome_tools/plotting/modular_plot/README.md).
 
