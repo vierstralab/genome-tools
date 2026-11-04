@@ -1,9 +1,15 @@
 # Examples
 
-- [UsageExamples.ipynb](UsageExamples.ipynb): genomic intervals, reading FASTA / BigWig / tabix data for an interval, single plots (ideogram, motif logo, signal, gene annotation), multi-track figures with `IntervalPlotter`, zoom levels with connectors, and writing your own plot component (a heatmap). Uses public data only.
+- [UsageExamples.ipynb](UsageExamples.ipynb): genomic intervals, reading FASTA / BigWig / tabix data for an interval, and the basic plot functions (ideogram, motif logo, signal, gene annotation). Uses public data only.
 
-Examples in the [vinson](https://github.com/vierstralab/vinson) tutorials (need `vinson` and a trained model to run):
+To plot several tracks together (`IntervalPlotter` and plot components, including vinson predictions and hotspot3 results), see the [modular plotting guide](../genome_tools/plotting/modular_plot/README.md).
 
-- [2.Predict_density](https://github.com/vierstralab/vinson/blob/main/tutorials/2.Predict_density.ipynb): true vs predicted DNase I signal tracks under an ideogram and gene annotation (`PredictedSignalComponent`).
-- [3.Interpretation](https://github.com/vierstralab/vinson/blob/main/tutorials/3.Interpretation.ipynb): attribution logos, motif hits in annotated regions and connectors (`AttributionsFromBatchComponent`, `AttributionsWeightedMotifHitsFromBatchComponent`).
-- [4.Predict_variant](https://github.com/vierstralab/vinson/blob/main/tutorials/4.Predict_variant.ipynb): `FastaExtractor` and `read_zarr_backed` to score a variant with the model.
+Additional examples that use modular plot framework:
+- [hotspot3 figures](https://github.com/vierstralab/regulome/blob/master/Figure1.index/hotspot3.ipynb) in regulome: cut counts with the fitted background, peak delineation
+
+- [vinson tutorials](https://github.com/vierstralab/vinson/tree/main/tutorials): [predicted vs true signal tracks](https://github.com/vierstralab/vinson/blob/main/tutorials/2.Predict_density.ipynb), [attribution logos and motif hits](https://github.com/vierstralab/vinson/blob/main/tutorials/3.Interpretation.ipynb), [scoring a variant](https://github.com/vierstralab/vinson/blob/main/tutorials/4.Predict_variant.ipynb) (`FastaExtractor`, `read_zarr_backed`)
+- regulome figure notebooks with the vinson model:
+  - [per-sample DHS validation](https://github.com/vierstralab/regulome/blob/master/Figure7.SequenceModel/SeqModel.PerSampleDHSValidation.ipynb): predicted vs true signal with peaks
+  - [cell-selective DHS validation](https://github.com/vierstralab/regulome/blob/master/Figure7.SequenceModel/SeqModel.CellSelectiveValidation.ipynb): predicted signal, attributions, motif hits and footprints
+  - [between-species predictions](https://github.com/vierstralab/regulome/blob/master/Figure8.SpeciesPrediction/SeqModel.BetweenSpeciesPredictions.ipynb): attributions and motif hits aligned between species
+  - [mouse cell-selective tracks](https://github.com/vierstralab/regulome/blob/master/Figure8.SpeciesPrediction/SeqModel.CellSelective.tracks_mouse.ipynb): predicted signal for mouse samples

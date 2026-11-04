@@ -9,7 +9,7 @@ from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loade
 from genome_tools.plotting.modular_plot.utils import DataBundle
 from genome_tools.plotting import signal_plot
 
-from genome_tools.plotting.modular_plot.loaders.hotspot3 import AggCutcountsLoader, PerBpBackgroundTrackLoader, HighSignalMaskLoader, SmoothedSignalLoader, BackgroundDensityLoader
+from genome_tools.plotting.modular_plot.loaders.hotspot3 import AggCutcountsLoader, PerBpBackgroundTrackLoader, HighSignalMaskLoader, SmoothedSignalLoader, BackgroundDensityLoader, BackgroundBigwigLoader
 from genome_tools.plotting.modular_plot.loaders.basic import ParquetSignalLoader, SignalLoader
 
 from hotspot3.peak_calling import find_stretches
@@ -19,7 +19,27 @@ from .basic import TrackComponent
 
 @uses_loaders(AggCutcountsLoader, PerBpBackgroundTrackLoader, HighSignalMaskLoader)
 class SignalAndMeanBGComponent(IntervalPlotComponent):
-    def _plot(self, data: DataBundle, ax: plt.Axes, stride=500, hs_color='#31a354', bg_color='#C0C0C0', line_lw=0.25, fit_threshold_stride=500, fit_threshold_alpha=0.1, **kwargs):
+    """Per-base cut counts aggregated as in hotspot3, colored where above the fitted background
+    threshold (`hs_color`) and gray elsewhere (`bg_color`), with the threshold as a dotted, shaded line.
+
+    Loaders: `AggCutcountsLoader`, `PerBpBackgroundTrackLoader`, `HighSignalMaskLoader`
+
+    Required loader args:
+    - `cutcounts_tabix_file`: `{id}.cutcounts.bed.gz`
+    - `chrom_sizes`: `pd.DataFrame` indexed by chromosome with a `len` column
+    - `parquet_bg_file`: `debug/{id}.fit_params.parquet`
+    Optional loader args:
+    - `mappable_bases_tabix`: mappable bases file passed to hotspot3 (default None, all bases mappable)
+
+    Plot kwargs:
+    - `stride`, `fit_threshold_stride`: plot every n-th base of the signal / of the threshold
+      (default 20). Larger values plot large regions (e.g. whole chromosomes) faster; use 1 to
+      plot every base of a short region.
+    - `hs_color`, `bg_color`, `line_lw`, `fit_threshold_alpha`
+
+    Returns: `matplotlib.axes.Axes`
+    """
+    def _plot(self, data: DataBundle, ax: plt.Axes, stride=20, hs_color='#31a354', bg_color='#C0C0C0', line_lw=0.25, fit_threshold_stride=20, fit_threshold_alpha=0.1, **kwargs):
         
         self.plot_bg_and_signal(
             data.signal,
@@ -56,6 +76,34 @@ class SignalAndMeanBGComponent(IntervalPlotComponent):
         ax.fill_between(np.linspace(region.start, region.end, len(bg_data)), bg_data, linewidth=linewidth, color=bg_color, rasterized=True, **kwargs)
         format_axes_to_interval(ax, region)
         return ax
+
+
+DensityAndBackgroundComponent = SignalAndMeanBGComponent.with_loaders(
+    SignalLoader,
+    BackgroundBigwigLoader,
+    HighSignalMaskLoader,
+    new_class_name='DensityAndBackgroundComponent',
+    doc="""Same plot as `SignalAndMeanBGComponent` from hotspot3 bigWigs instead of cut counts and
+    debug parquet files: normalized density, colored above the background, with the background
+    as the dotted line.
+
+    Loaders: `SignalLoader`, `BackgroundBigwigLoader`, `HighSignalMaskLoader`
+
+    Required loader args:
+    - `signal_file`: `{id}.normalized_density.bw`
+    - `background_bw`: `{id}.background.bw`
+
+    Plot kwargs as in `SignalAndMeanBGComponent`, e.g. `stride` and `fit_threshold_stride`: plot
+    every n-th base of the density / of the background (default 20). Raise them for large regions
+    to plot faster; use 1 to plot every base.
+
+    Example:
+        DensityAndBackgroundComponent(signal_file='AG95384.normalized_density.bw',
+                                      background_bw='AG95384.background.bw')
+
+    Returns: `matplotlib.axes.Axes`
+    """
+)
 
 
 @uses_loaders(*SignalAndMeanBGComponent.__required_loaders__, SmoothedSignalLoader)

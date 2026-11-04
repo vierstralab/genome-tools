@@ -1,4 +1,23 @@
 # Develop
+
+## Table of contents
+- [Creating Custom Components](#creating-custom-components)
+  - [Step 1: Create a Data Loader](#step-1-create-a-data-loader)
+  - [Step 2: Create a Simple Loader (No Custom Logic)](#step-2-create-a-simple-loader-no-custom-logic)
+  - [Step 3: Create a Plot Component](#step-3-create-a-plot-component)
+  - [Step 4: Use Your Custom Component](#step-4-use-your-custom-component)
+  - [Example: heatmap of several BigWigs](#example-heatmap-of-several-bigwigs)
+- [Advanced: Abstract Base Components](#advanced-abstract-base-components)
+  - [SegmentPlotComponent](#segmentplotcomponent)
+- [Advanced Component Features](#advanced-component-features)
+  - [Using Multiple Loaders](#using-multiple-loaders)
+  - [Creating Component Variants with `with_loaders`](#creating-component-variants-with-with_loaders)
+  - [Custom Component with Configurable Loader](#custom-component-with-configurable-loader)
+- [Best Practices](#best-practices)
+  - [Loader Design](#loader-design)
+  - [Component Design](#component-design)
+  - [Logging](#logging)
+
 ## Creating Custom Components
 
 ### Step 1: Create a Data Loader
@@ -60,6 +79,7 @@ Plot components visualize the loaded data:
 
 ```python
 from genome_tools.plotting.modular_plot import IntervalPlotComponent, uses_loaders
+import numpy as np
 import matplotlib.pyplot as plt
 
 @uses_loaders(MyCustomLoader)
@@ -84,7 +104,7 @@ class MyCustomComponent(IntervalPlotComponent):
             Additional matplotlib arguments
         """
         # Access loaded data
-        x = data.interval.to_array()
+        x = np.arange(data.interval.start, data.interval.end)
         y = data.custom_data
         
         # Create the plot
@@ -121,6 +141,71 @@ plotter = IntervalPlotter([
 
 # Plot
 data, axes = plotter.plot(interval)
+```
+
+### Example: heatmap of several BigWigs
+
+A complete component that runs on public data: DNase-seq density of three samples as a heatmap, one row per sample, under the gene annotation.
+
+```python
+import numpy as np
+from genome_tools import GenomicInterval
+from genome_tools.data.extractors import BigwigExtractor
+from genome_tools.plotting import cm2inch
+from genome_tools.plotting.modular_plot import IntervalPlotter, IntervalPlotComponent, PlotDataLoader, uses_loaders
+from genome_tools.plotting.modular_plot.plot_components.basic import GencodeComponent
+
+
+class MultiSignalLoader(PlotDataLoader):
+    """Read per-base signal from several BigWigs (`signal_files`), averaged in `bin_size` bp bins.
+    Sets `data.matrix` (n_files, n_bins) and `data.row_labels`."""
+    def _load(self, data, signal_files, row_labels=None, bin_size=1):
+        rows = []
+        for f in signal_files:
+            with BigwigExtractor(f) as bw:
+                rows.append(np.nan_to_num(bw[data.interval]))
+        matrix = np.stack(rows)
+        if bin_size > 1:
+            n_bins = matrix.shape[1] // bin_size
+            matrix = matrix[:, :n_bins * bin_size].reshape(len(rows), n_bins, bin_size).mean(axis=2)
+        data.matrix = matrix
+        data.row_labels = row_labels if row_labels is not None else [str(i) for i in range(len(rows))]
+        return data
+
+
+@uses_loaders(MultiSignalLoader)
+class HeatmapComponent(IntervalPlotComponent):
+    """Several signals over an interval as a heatmap, one row per file."""
+    @IntervalPlotComponent.set_xlim_interval
+    def _plot(self, data, ax, cmap='Reds', **kwargs):
+        ax.imshow(
+            data.matrix,
+            aspect='auto',
+            interpolation='nearest',
+            cmap=cmap,
+            extent=(data.interval.start, data.interval.end, len(data.matrix), 0),  # genomic x coordinates
+            **kwargs,
+        )
+        ax.set_yticks(np.arange(len(data.row_labels)) + 0.5)
+        ax.set_yticklabels(data.row_labels)
+        return ax
+
+
+samples = ['AG95384', 'AG95451', 'AG80853']
+plotter = IntervalPlotter(
+    [
+        GencodeComponent(height=cm2inch(0.6)),
+        HeatmapComponent(
+            signal_files=[f'https://regulome.altius.org/data/per_sample/{s}/{s}.normalized_density.bw' for s in samples],
+            row_labels=samples, bin_size=50,                # loader args
+            cmap='magma_r', vmin=0, vmax=10,                # plot kwargs, passed to ax.imshow
+            height=cm2inch(1),
+        ),
+    ],
+    gencode_annotation_file='https://resources.altius.org/~sabramov/collaborations/vinson/examples/gencode.v49.basic.annotation.sorted.gff3.gz',
+    width=cm2inch(8),
+)
+data, axes = plotter.plot(GenomicInterval.from_ucsc('chr2:60,485,000-60,505,000'))
 ```
 
 

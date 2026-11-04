@@ -1,5 +1,29 @@
 # Modular Plot Framework
-The modular plot framework provides a flexible, composable system for creating complex genomic interval visualizations. It separates data loading from plotting logic, enabling reusable components that can be easily combined and configured. Details on individual components along with examples can be found in PlotComponents section
+The modular plot framework provides a flexible, composable system for creating complex genomic interval visualizations. It separates data loading from plotting logic, enabling reusable components that can be easily combined and configured. Details on individual components along with examples are in [Available Plot Components](#available-plot-components).
+
+Using plot components to plot model predictions and peak calls: the [vinson tutorials](https://github.com/vierstralab/vinson/tree/main/tutorials) ([predicted vs true signal](https://github.com/vierstralab/vinson/blob/main/tutorials/2.Predict_density.ipynb), [attributions and motif hits](https://github.com/vierstralab/vinson/blob/main/tutorials/3.Interpretation.ipynb)) and regulome figure notebooks: [hotspot3](https://github.com/vierstralab/regulome/blob/master/Figure1.index/hotspot3.ipynb), [per-sample](https://github.com/vierstralab/regulome/blob/master/Figure7.SequenceModel/SeqModel.PerSampleDHSValidation.ipynb) and [cell-selective](https://github.com/vierstralab/regulome/blob/master/Figure7.SequenceModel/SeqModel.CellSelectiveValidation.ipynb) DHS validation, [between-species predictions](https://github.com/vierstralab/regulome/blob/master/Figure8.SpeciesPrediction/SeqModel.BetweenSpeciesPredictions.ipynb), [mouse tracks](https://github.com/vierstralab/regulome/blob/master/Figure8.SpeciesPrediction/SeqModel.CellSelective.tracks_mouse.ipynb).
+
+## Table of contents
+- [Key concepts](#key-concepts)
+- [Basic functionality](#basic-functionality)
+  - [Quick start](#quick-start)
+  - [Two-step workflow (load then plot)](#two-step-workflow-load-then-plot)
+  - [Different intervals for components](#different-intervals-for-components)
+  - [Adding connectors](#adding-connectors)
+  - [(Not fully tested) Parallel Data Loading](#not-fully-tested-parallel-data-loading)
+- [Available Plot Components](#available-plot-components)
+  - [Basic Components](#basic-components)
+  - [Sequence Components. API might be not up to date](#sequence-components-api-might-be-not-up-to-date)
+  - [Footprint components](#footprint-components)
+  - [Variant components](#variant-components)
+  - [Prediction components](#prediction-components)
+  - [hotspot3 components](#hotspot3-components)
+  - [DHS components](#dhs-components)
+- [Overriding loader parameters](#overriding-loader-parameters)
+- [Using the same component multiple times](#using-the-same-component-multiple-times)
+- [Debugging Data Loading](#debugging-data-loading)
+- [Accessing Component Axes](#accessing-component-axes)
+- [Developing your own components](#developing-your-own-components)
 
 # Key concepts
 - **IntervalPlotter**: The main orchestrator that manages components and creates figures
@@ -429,7 +453,7 @@ See [FPWeightedMotifHitsComponent](#FPWeightedMotifHitsComponent) for more detai
 
 ## Prediction components
 
-Components that run a [vinson](https://github.com/vierstralab/vinson) model on the fly (requires `vinson` and `torch`). They are used in the vinson tutorials `2.Predict_density` and `3.Interpretation`. All of them need `model_wrapper` (`vinson.postprocessing.interpretation.ModelWrapper`), which is usually passed once to `IntervalPlotter`.
+Components that run a [vinson](https://github.com/vierstralab/vinson) model on the fly (requires `vinson` and `torch`). Worked examples are in the vinson tutorials [`2.Predict_density`](https://github.com/vierstralab/vinson/blob/main/tutorials/2.Predict_density.ipynb) (true vs predicted signal tracks) and [`3.Interpretation`](https://github.com/vierstralab/vinson/blob/main/tutorials/3.Interpretation.ipynb) (attribution logos, motif hits and connectors). All of them need `model_wrapper` (`vinson.postprocessing.interpretation.ModelWrapper`), which is usually passed once to `IntervalPlotter`.
 
 ### PredictedSignalComponent
 Predicted signal for one sample. The model is run every `step` bp across the interval and predictions are interpolated to per-base resolution; plotted like `TrackComponent`.
@@ -517,6 +541,46 @@ MyAttributionsComponent = SequencePlotComponent.with_loaders(
 )
 ```
 for more details about custom loaders see [README_develop.md](README_develop.md)
+
+## hotspot3 components
+
+Components for inspecting [hotspot3](https://github.com/vierstralab/hotspot3) peak calls (requires `hotspot3`), in `plot_components.hotspot3`. Files in `debug/` are written to the hotspot3 output directory and are not in the regulome release, so components that need them require a local hotspot3 run.
+
+| Component | Shows | Required arguments |
+|---|---|---|
+| `DensityAndBackgroundComponent` | normalized density, colored above the background (dotted line, shaded) | `signal_file` (`{id}.normalized_density.bw`), `background_bw` (`{id}.background.bw`) |
+| `SignalAndMeanBGComponent` | the same for per-base cut counts and the fitted background threshold | `cutcounts_tabix_file` (`{id}.cutcounts.bed.gz`), `chrom_sizes` (`pd.DataFrame` indexed by chromosome with a `len` column), `parquet_bg_file` (`debug/{id}.fit_params.parquet`); optional `mappable_bases_tabix` (hotspot3 `--mappable_bases` file) |
+| `SmoothedSignalAndMeanBGComponent` | `SignalAndMeanBGComponent` plus the smoothed signal used for peak calling | as above + `smoothed_signal_parquet` (`debug/{id}.smoothed_signal.parquet`) |
+| `FdrComponent` | -log10 FDR with the `fdr_tr` threshold and stretches above it in red | `signal_file` (`debug/{id}.fdrs.parquet`), `column='log10_fdr'`; plot kwarg `fdr_tr` (0.001) |
+
+Example usages of all of them (browser shots, peak delineation) are in the hotspot3 figures notebook [`vierstralab/regulome/Figure1.index/hotspot3.ipynb`](https://github.com/vierstralab/regulome/blob/master/Figure1.index/hotspot3.ipynb).
+
+Example with the hotspot3 output of a sample on regulome (online files): normalized density colored above the background (dotted line), hotspots and peaks.
+
+```python
+from genome_tools import GenomicInterval
+from genome_tools.plotting import cm2inch
+from genome_tools.plotting.modular_plot import IntervalPlotter
+from genome_tools.plotting.modular_plot.plot_components.basic import SegmentsTabixComponent
+from genome_tools.plotting.modular_plot.plot_components.hotspot3 import DensityAndBackgroundComponent
+
+density_bw = 'https://regulome.altius.org/data/per_sample/AG95384/AG95384.normalized_density.bw'
+background_bw = 'https://regulome.altius.org/data/per_sample/AG95384/peaks/AG95384.background.bw'
+hotspots = 'https://regulome.altius.org/data/per_sample/AG95384/peaks/fdr0.05/AG95384.hotspots.fdr0.05.bed.gz'
+peaks = 'https://regulome.altius.org/data/per_sample/AG95384/peaks/fdr0.05/AG95384.peaks.fdr0.05.bed.gz'
+
+plotter = IntervalPlotter(
+    [
+        DensityAndBackgroundComponent(name='DensityAndBackground', signal_file=density_bw, background_bw=background_bw,
+                                      height=cm2inch(1.2)),
+        SegmentsTabixComponent(name='Hotspots', tabix_file=hotspots, height=cm2inch(0.25)),
+        SegmentsTabixComponent(name='Peaks', tabix_file=peaks, height=cm2inch(0.25)),
+    ],
+    width=cm2inch(12),
+)
+data, axes = plotter.plot(GenomicInterval.from_ucsc('chr2:60485000-60505000'))
+```
+![DensityAndBackgroundComponent](example_images/DensityAndBackgroundComponent.png)
 
 ## DHS components
 
@@ -658,7 +722,10 @@ data, axes = plotter.plot(interval)
 # Access by component name
 ideogram_ax = axes.IdeogramComponent
 gencode_ax = axes.GencodeComponent
-track_ax = axes['TrackComponent']
+
+# Name in a variable
+name = 'TrackComponent'
+track_ax = getattr(axes, name)  # or axes._asdict()[name]
 
 # Access by index (top to bottom)
 first_ax = axes[0]
@@ -669,4 +736,7 @@ axes[-1].set_xlabel('Genomic Position')
 ```
 
 # Developing your own components
-You can easily develop your own components see [README_develop.md](README_develop.md)
+
+A component is a set of loaders, which read files for the interval and attach the data, and a `_plot` method that draws it; loader arguments become the component's keyword arguments.
+
+Step-by-step guide, multiple loaders, abstract base components and a complete heatmap component on public data: [README_develop.md](README_develop.md).

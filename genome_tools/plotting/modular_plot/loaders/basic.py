@@ -28,11 +28,14 @@ class GencodeLoader(PlotDataLoader):
 
 
 class SignalLoader(PlotDataLoader):
-    """Read per-base signal for the interval from a BigWig (`signal_file`). Sets `data.signal`."""
+    """Read per-base signal for the interval from a BigWig (`signal_file`). Sets `data.signal`
+    (override `__signal_attr__` in a subclass to set another field)."""
+    __signal_attr__ = 'signal'
+
     def _load(self, data, signal_file):
         with BigwigExtractor(signal_file) as extractor:
             signal = np.nan_to_num(extractor[data.interval])
-        data.signal = signal
+        setattr(data, self.__signal_attr__, signal)
         return data
 
 

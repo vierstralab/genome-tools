@@ -17,7 +17,7 @@ from genome_tools.plotting.modular_plot.loaders.basic import SignalLoader
 
 
 class AggCutcountsLoader(PlotDataLoader):
-    def _load(self, data: DataBundle, cutcounts_tabix_file, mappable_bases_tabix, chrom_sizes: pd.DataFrame):
+    def _load(self, data: DataBundle, cutcounts_tabix_file, chrom_sizes: pd.DataFrame, mappable_bases_tabix=None):
         chrom_interval = GenomicInterval(
             data.interval.chrom,
             0,
@@ -39,6 +39,14 @@ class PerBpBackgroundTrackLoader(PlotDataLoader):
             data.mean_bg = df.eval('sliding_r * sliding_p / (1 - sliding_p)').values
             data.fit_threshold = df['tr'].values
         return data
+
+
+class BackgroundBigwigLoader(SignalLoader):
+    """hotspot3 background bigWig (`background_bw`, `{id}.background.bw`) as `data.fit_threshold`."""
+    __signal_attr__ = 'fit_threshold'
+
+    def _load(self, data: DataBundle, background_bw):
+        return super()._load(data, signal_file=background_bw)
 
 
 class HighSignalMaskLoader(PlotDataLoader):
