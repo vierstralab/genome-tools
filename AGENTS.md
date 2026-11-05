@@ -93,7 +93,8 @@ dependencies. hotspot3 imports the core, so never import vinson, torch or other 
 packages there, not even indirectly.
 
 pip extras (`pyproject.toml`): `figwig` (`FigwigExtractor`), `anndata` (anndata, zarr 2, dask; only for
-`genome_tools.data.anndata.read_zarr_backed`).
+`genome_tools.data.anndata.read_zarr_backed`), `pyranges` (imported inside
+`genome_tools.bed_overlaps`).
 
 Optional dependencies are imported at module level by these plot component modules (import
 the module only if the package is installed):

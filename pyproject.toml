@@ -29,6 +29,7 @@ dependencies = [
 [project.optional-dependencies]
 figwig = ["figwig; python_version >= '3.10'"]
 anndata = ["anndata>=0.10.9", "zarr>=2.18.3,<3", "dask"]
+pyranges = ["pyranges"]
 
 [project.urls]
 Homepage = "https://github.com/vierstralab/genome-tools"
