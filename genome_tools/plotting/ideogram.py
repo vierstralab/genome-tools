@@ -47,10 +47,11 @@ def ideogram_plot(data, chrom, pos=None, ax=None, **kwargs):
     try:
         xranges = data[0][chrom]
         colors = data[1][chrom]
-        centromeres = data[2][chrom]
-    except:
+    except KeyError:
         print("Error: No chromosome named: {}".format(chrom))
         return
+    # no centromere bands for acrocentric (e.g. all mouse) chromosomes and unplaced contigs
+    centromeres = data[2].get(chrom, [])
 
     yranges = (0, 0.5)
 
@@ -76,30 +77,31 @@ def ideogram_plot(data, chrom, pos=None, ax=None, **kwargs):
 
     center = yranges[0] + yranges[1] / 2.0
 
-    x0, y0 = centromeres[0][0], yranges[0]
-    x1, y1 = centromeres[0][0], yranges[1]
-    x2, y2 = centromeres[0][0] + centromeres[0][1], center
-    cent = mpatches.Polygon(
-        np.array([[x0, y0], [x1, y1], [x2, y2]]),
-        closed=True,
-        fc=get_vocab_color("acen", "ideogram"),
-        ec="black",
-        linewidth=0.5,
-    )
-    ax.add_patch(cent)
+    if len(centromeres) == 2:
+        x0, y0 = centromeres[0][0], yranges[0]
+        x1, y1 = centromeres[0][0], yranges[1]
+        x2, y2 = centromeres[0][0] + centromeres[0][1], center
+        cent = mpatches.Polygon(
+            np.array([[x0, y0], [x1, y1], [x2, y2]]),
+            closed=True,
+            fc=get_vocab_color("acen", "ideogram"),
+            ec="black",
+            linewidth=0.5,
+        )
+        ax.add_patch(cent)
 
-    x0, y0 = centromeres[1][0], center
-    x1, y1 = centromeres[1][0] + centromeres[1][1], yranges[1]
-    x2, y2 = centromeres[1][0] + centromeres[1][1], yranges[0]
+        x0, y0 = centromeres[1][0], center
+        x1, y1 = centromeres[1][0] + centromeres[1][1], yranges[1]
+        x2, y2 = centromeres[1][0] + centromeres[1][1], yranges[0]
 
-    cent = mpatches.Polygon(
-        np.array([[x0, y0], [x1, y1], [x2, y2]]),
-        closed=True,
-        fc=get_vocab_color("acen", "ideogram"),
-        ec="black",
-        linewidth=0.5,
-    )
-    ax.add_patch(cent)
+        cent = mpatches.Polygon(
+            np.array([[x0, y0], [x1, y1], [x2, y2]]),
+            closed=True,
+            fc=get_vocab_color("acen", "ideogram"),
+            ec="black",
+            linewidth=0.5,
+        )
+        ax.add_patch(cent)
 
     ax.set_yticks([center])
     ax.set_yticklabels([chrom])

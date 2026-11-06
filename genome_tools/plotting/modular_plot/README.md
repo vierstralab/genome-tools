@@ -52,7 +52,7 @@ interval = GenomicInterval('chr1', 1_350_000, 1_400_000)
 
 signal_file = 'https://regulome.altius.org/data/per_sample/AG80080/AG80080.normalized_density.bw'
 gencode_file = 'https://resources.altius.org/~sabramov/collaborations/vinson/examples/gencode.v49.basic.annotation.sorted.gff3.gz'
-ideogram_file = 'https://resources.altius.org/~sabramov/collaborations/vinson/examples/cytoBandIdeo.txt'
+ideogram_file = 'http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/cytoBandIdeo.txt.gz'
 
 # Define plot components with their heights and margins
 plot_components = [
@@ -202,7 +202,7 @@ Displays chromosome ideogram with cytobands.
 **Example:**
 ```python
 from genome_tools.plotting.modular_plot.plot_components.basic import IdeogramComponent
-ideogram_file = 'https://resources.altius.org/~sabramov/collaborations/vinson/examples/cytoBandIdeo.txt'
+ideogram_file = 'http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/cytoBandIdeo.txt.gz'
 IdeogramComponent(
     height=0.1,
     margins=(0.1, 0.0),

@@ -128,7 +128,7 @@ plotter = IntervalPlotter(
         GencodeComponent(height=0.3),
         TrackComponent(signal_file="sample.normalized_density.bw", height=0.5, color="tab:blue"),
     ],
-    ideogram_data=read_ideogram("cytoBandIdeo.txt"),   # loader args shared by components
+    ideogram_data=read_ideogram("http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/cytoBandIdeo.txt.gz"),   # loader args shared by components
     gencode_annotation_file="gencode.basic.annotation.gtf.gz",
 )
 data, axes = plotter.plot(GenomicInterval.from_ucsc("chr14:72,600,000-72,800,000"))
