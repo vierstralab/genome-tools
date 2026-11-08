@@ -229,7 +229,7 @@ class LetterGeometries(dict):
 required_symbols = string.ascii_uppercase + string.ascii_lowercase
 
 default_font = "Arial"
-default_approximation_scale = 0.0017
+default_approximation_scale = 0.02  # line segments per font unit of curve length
 
 
 def _ring_to_path(ring):
@@ -312,11 +312,11 @@ default_letter_geoms = get_geoms(default_font)
 
 
 def plot_letter(letter, x, y, height=1.0, width=1.0, preserve_aspect_ratio=False,
-                vocab="dna", color=None, font=default_font, ax=None):
+                vocab="dna", color=None, font=default_font, approximation_scale=default_approximation_scale, ax=None):
     if ax is None:
         ax = plt.gca()
 
-    geoms = get_geoms(font, preserve_aspect_ratio=preserve_aspect_ratio)
+    geoms = get_geoms(font, preserve_aspect_ratio=preserve_aspect_ratio, approximation_scale=approximation_scale)
 
     geom = geoms[letter]
     if color is None:
