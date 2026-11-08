@@ -1,3 +1,4 @@
+import functools
 import pandas as pd
 from typing import List
 import numpy as np
@@ -11,6 +12,9 @@ from genome_tools.data.pwm import read_pfm, get_allelic_scores, seq_logp, seq_he
 from genome_tools.plotting.modular_plot import PlotDataLoader
 from genome_tools.plotting.modular_plot.utils import DataBundle
 from genome_tools.plotting.modular_plot.helpers.species_mapper import BetweenSpeciesMap
+
+
+cached_read_pfm = functools.lru_cache(maxsize=None)(read_pfm)    # motif files are read once per session; arrays are only read
 
 
 class SequenceLoader(PlotDataLoader):
@@ -204,7 +208,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
         return data
     
     def get_weighted_dg(self, row, interval: GenomicInterval, sequence_weights: np.ndarray):
-        pfm_matrix = read_pfm(row['pfm'])
+        pfm_matrix = cached_read_pfm(row['pfm'])
         weights = sequence_weights[
             row['start'] - interval.start: row['end'] - interval.start
         ]
@@ -219,7 +223,7 @@ class MotifHitsSelectorLoader(PlotDataLoader):
     def _select_hits(motif_hits: pd.DataFrame, metric_name: str, top: int, threshold: float=None) -> pd.DataFrame:
         motif_hits = motif_hits.sort_values(metric_name, ascending=False)
         if threshold is not None:
-            result = motif_hits.query(f"{metric_name} >= {threshold}")
+            motif_hits = motif_hits.query(f"{metric_name} >= {threshold}")
         result = (
             motif_hits
             .groupby("region", group_keys=False)
@@ -227,12 +231,12 @@ class MotifHitsSelectorLoader(PlotDataLoader):
         )
 
         if 'pfm_matrix' not in result.columns:
-            result['pfm_matrix'] = result['pfm'].apply(read_pfm)
+            result['pfm_matrix'] = result['pfm'].apply(cached_read_pfm)
         return result
 
     @staticmethod
     def score_row(row: pd.Series, variant_interval: VariantInterval) -> pd.Series:
-        pfm_matrix = read_pfm(row['pfm'])
+        pfm_matrix = cached_read_pfm(row['pfm'])
         offset = variant_interval.start - row['start']
         ref_score, alt_score = get_allelic_scores(
             pfm_matrix=pfm_matrix,

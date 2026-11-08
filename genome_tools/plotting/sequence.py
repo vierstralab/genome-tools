@@ -1,4 +1,5 @@
 import os, string
+import functools
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -207,17 +208,28 @@ def get_letter_geometries(font_name, letters=None, **kwargs):
     return out
 
 
+class LetterGeometries(dict):
+    """
+    dict: glyph name -> shapely geometry, built on first use and kept.
+    Building a glyph takes milliseconds; building every glyph of a font takes seconds.
+    """
+    def __init__(self, font_name, **kwargs):
+        super().__init__()
+        self._font = TTFont(font_name) if os.path.isfile(font_name) else TTFont(font_manager.findfont(font_name))
+        self._glyph_set = self._font.getGlyphSet()
+        self._kwargs = kwargs
+
+    def __missing__(self, ch):
+        if ch not in self._glyph_set:
+            raise KeyError(f"Font {self._font.reader.file.name} is missing glyph {ch!r}")
+        geom = self[ch] = get_glyph_geometry(ch, self._glyph_set, **self._kwargs)
+        return geom
+
+
 required_symbols = string.ascii_uppercase + string.ascii_lowercase
 
 default_font = "Arial"
 default_approximation_scale = 0.0017
-
-default_letter_geoms = get_letter_geometries(
-    default_font,
-    letters=required_symbols,
-    preserve_aspect_ratio=False,
-    approximation_scale=default_approximation_scale
-)
 
 
 def _ring_to_path(ring):
@@ -290,16 +302,13 @@ def add_geometry_to_axis(ax, geom, color, x, y, height, width_scale=1.0):
     ax.add_patch(patch)
     return patch
 
+@functools.lru_cache(maxsize=None)
 def get_geoms(font, preserve_aspect_ratio=False, approximation_scale=default_approximation_scale):
-    if (font == default_font) \
-                and (not preserve_aspect_ratio) \
-                and (approximation_scale == default_approximation_scale):
-        return default_letter_geoms
-    return get_letter_geometries(
-            font,
-            preserve_aspect_ratio=preserve_aspect_ratio,
-            approximation_scale=approximation_scale
-        )
+    """Letter geometries of a font, one cached instance per (font, preserve_aspect_ratio, approximation_scale)."""
+    return LetterGeometries(font, preserve_aspect_ratio=preserve_aspect_ratio, approximation_scale=approximation_scale)
+
+
+default_letter_geoms = get_geoms(default_font)
 
 
 def plot_letter(letter, x, y, height=1.0, width=1.0, preserve_aspect_ratio=False,
