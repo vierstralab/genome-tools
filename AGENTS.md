@@ -22,8 +22,7 @@ public names and signatures stable, and keep the core light (see "Dependencies")
 | Signal smoothing, one-hot encoding | `genome_tools/utils/` |
 | Runnable examples on public data | `examples/UsageExamples.ipynb` (data extraction, basic plots); `examples/README.md` indexes it and links component usage in vinson and regulome |
 
-`genome_tools/data/dataset.py`, `loaders.py`, `samplers.py` are legacy training dataloaders
-and will be removed. Don't use or extend them.
+`genome_tools/data/footprints/`: legacy dataloaders used by footprint-tools.
 
 ## GenomicInterval
 

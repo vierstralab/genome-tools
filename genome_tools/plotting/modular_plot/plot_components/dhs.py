@@ -141,5 +141,5 @@ class DHSLoadingsComponent(IntervalPlotComponent):
                 H[:, genomic_interval.index: genomic_interval.index + 1],
                 component_data,
                 ax=ax,
-                normalize=True
+                normalize_for_plotting=True
             )

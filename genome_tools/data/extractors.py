@@ -385,6 +385,7 @@ class ChromParquetExtractor(BaseExtractor):
     def __init__(self, filename, columns=None, **kwargs):
         """
         Extracts data from a single bp resolution parquet file partitioned by chromosome
+        (hotspot3 per-bp outputs, e.g. its debug/ parquet files)
         """
         super(ChromParquetExtractor, self).__init__(filename, **kwargs)
         self.columns = columns

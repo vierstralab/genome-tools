@@ -1,7 +1,7 @@
 """General class structure to load and process datasets
 """
 
-from genome_tools.data.loaders import data_loader
+from genome_tools.data.footprints.loaders import Dataloader
 from genome_tools.data.utils import (
     iterable_cycle,
     numpy_collate,
@@ -60,7 +60,7 @@ class Dataset(BaseDataset):
         raise NotImplementedError
 
     def _batch_iterable(self, batch_size=1, num_workers=0, **kwargs):
-        dl = data_loader(self, batch_size=batch_size, num_workers=num_workers, **kwargs)
+        dl = Dataloader(self, batch_size=batch_size, num_workers=num_workers, **kwargs)
 
         return dl
 
@@ -109,7 +109,7 @@ class PreloadedDataset(BaseDataset):
         return get_dataset_item(self.data, index)
 
     def _batch_iterable(self, batch_size=32, shuffle=False, drop_last=False, **kwargs):
-        dl = data_loader(
+        dl = Dataloader(
             self,
             batch_size=batch_size,
             collate_fn=numpy_collate,

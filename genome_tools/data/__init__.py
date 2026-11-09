@@ -2,4 +2,4 @@
 inspired/copied from Kipoi (http://github.com/kipoi) and pyTorch
 data loaders"""
 
-__all__ = ["extractors", "utils"]
+__all__ = ["extractors", "footprints", "utils"]

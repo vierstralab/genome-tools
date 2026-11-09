@@ -5,7 +5,7 @@ import multiprocessing
 import threading
 import traceback
 
-from genome_tools.data.samplers import (
+from genome_tools.data.footprints.samplers import (
     RandomSampler,
     SequentialSampler,
     MinibatchSampler,
