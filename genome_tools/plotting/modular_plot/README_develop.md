@@ -327,11 +327,10 @@ comp = TrackComponent(
     height=1.5,
 )
 
-# Plotter with info logging
-plotter = IntervalPlotter(
-    [comp1, comp2],
-    logger_level=logging.INFO,
-)
+# Plotter with info logging: extra IntervalPlotter kwargs go to the loaders,
+# so set the level on its logger instead
+plotter = IntervalPlotter([comp])
+plotter.logger.setLevel(logging.INFO)
 ```
 
 Per component returned axes match with whatever is returned by `_plot`. When returning multiple axes, first axis should be the input ax to ensure compatibility with connectors.

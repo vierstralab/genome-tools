@@ -1,1 +1,1 @@
-__all__ = ["sequence", "sampling"]
+__all__ = ["sequence", "signal"]

@@ -93,20 +93,22 @@ packages there, not even indirectly.
 
 pip extras (`pyproject.toml`): `figwig` (`FigwigExtractor`), `anndata` (anndata, zarr 2, dask; only for
 `genome_tools.data.anndata.read_zarr_backed`), `pyranges` (imported inside
-`genome_tools.bed_overlaps`).
+`genome_tools.bed_overlaps`), `sampling` (numba, imported at module level by `genome_tools.utils.sampling`).
 
-Optional dependencies are imported at module level by these plot component modules (import
-the module only if the package is installed):
+Optional dependencies of the plot component modules. "Needs at import" is imported at module
+level (directly or through the `loaders/` and `helpers/` modules the component module imports):
+import the module only if these are installed. "Needs when used" is imported inside a function,
+only when that component/loader runs:
 
-| Module (`modular_plot.plot_components.*`) | Needs |
-|---|---|
-| `basic` | — |
-| `sequence` | bx-python |
-| `variant` | bx-python, footprint-tools, hotspot3 |
-| `footprint` | bx-python, footprint-tools, anndata |
-| `hotspot3` | hotspot3 |
-| `dhs` | nmf-tools |
-| `prediction` | vinson (torch), anndata, bx-python |
+| Module (`modular_plot.plot_components.*`) | Needs at import | Needs when used |
+|---|---|---|
+| `basic` | — | figwig (`FigwigTrackComponent`) |
+| `sequence` | bx-python | — |
+| `variant` | bx-python | hotspot3 (`CutcountsComponent`, `AllelicCutcountsComponent`), footprint-tools (`ReadsLoader` in `CutcountsComponent`) |
+| `footprint` | bx-python, footprint-tools, anndata | — |
+| `hotspot3` | hotspot3 | — |
+| `dhs` | — | nmf-tools (`DHSLoadingsComponent`) |
+| `prediction` | vinson (torch), anndata, bx-python | — |
 
 ## Working in this repo
 

@@ -16,7 +16,6 @@ import matplotlib.text as mtext
 import matplotlib.transforms as mtransforms
 import matplotlib.ticker as mticker
 
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 # registers custom colormaps
@@ -376,108 +375,6 @@ def signal_plot(interval, data, ax=None, **kwargs):
     ax.set_ylim(bottom=0)
 
     format_axes_to_interval(ax, interval)
-
-    return ax
-
-
-# ------------------------
-
-
-def grouped_heatmap_plot(
-    interval,
-    data,
-    group_level=None,
-    sort_col=None,
-    hspace=0.01,
-    cmap="wolfgang_extra",
-    ax=None,
-    cb_loc="bottom",
-    cb_label="",
-    **kwargs,
-):
-    try:
-        from mpl_toolkits.axes_grid1.inset_locator import InsetPosition
-    except ImportError:
-        raise ImportError(
-            "Please install mpl version <= 3.10 to use grouped_heatmap_plot."
-        )
-    if not ax:
-        ax = plt.gca()
-    fig = ax.get_figure()
-
-    if sort_col is not None:
-        df = data.sort_values(by=sort_col)
-    else:
-        df = data.copy()
-
-    group_sizes = data.groupby(level=group_level).size()
-
-    height_ratios = group_sizes / np.sum(group_sizes)
-    total = np.sum(height_ratios) + (hspace * (len(group_sizes) - 1)) + 0.15
-
-    height_ratios /= total
-
-    cb_height = 0.15 / total
-    hspace /= total
-
-    ax.set_xlim(interval.start, interval.end)
-    ax.set_ylim(0, 1)
-
-    if cb_loc == "top":
-        axes_pos = 0
-        cb_pos = 1.0 - cb_height
-    else:
-        axes_pos = cb_height
-        cb_pos = 0
-
-    ticks = []
-    ticklabels = []
-
-    for group, group_df in data.groupby(level=group_level):
-        inset_ax = fig.add_axes([0, 0, 1, 1])
-
-        ip = InsetPosition(
-            ax, [0, axes_pos, 1, height_ratios[group]]
-        )  # posx, posy, width, height
-        inset_ax.set_axes_locator(ip)
-
-        hm = inset_ax.pcolormesh(group_df, cmap=cmap)
-
-        inset_ax.xaxis.set_visible(False)
-        inset_ax.yaxis.set_visible(False)
-
-        mid = axes_pos + (height_ratios[group] / 2)
-        ticks.append(mid)
-        ticklabels.append(group)
-
-        axes_pos += height_ratios[group] + hspace
-
-    # reserve a portion of ax for colorbar
-    cb_bbox_ax = fig.add_axes([0, 0, 1, 1], frameon=False)
-    ip = InsetPosition(ax, [0, cb_pos, 0.15, cb_height])  # posx, posy, width, height
-    cb_bbox_ax.set_axes_locator(ip)
-    cb_bbox_ax.xaxis.set_visible(False)
-    cb_bbox_ax.yaxis.set_visible(False)
-
-    cb_ax = inset_axes(
-        cb_bbox_ax, width="100%", height="30%", borderpad=0, loc="center left"
-    )
-    cb = fig.colorbar(hm, cax=cb_ax, orientation="horizontal")
-    cb_ax.tick_params(labelsize="xx-small", direction="in")
-    cb_ax.yaxis.set_label_position("right")
-    cb_ax.set_ylabel(
-        cb_label, fontsize="x-small", rotation=0, ha="left", va="center_baseline"
-    )
-
-    if hasattr(ax.yaxis, "add_annotation"):
-        [ax.yaxis.add_annotation(text, pos) for pos, text in zip(ticks, ticklabels)]
-        ax.yaxis.set_ticks([])
-    else:
-        ax.yaxis.set_ticks(ticks)
-        ax.yaxis.set_ticklabels(ticklabels)
-
-    format_axes_to_interval(ax, interval, xaxis=xaxis, yaxis=yaxis)
-    clear_spines(ax)
 
     return ax
 

@@ -37,6 +37,7 @@ try:
 except ImportError:
     from collections import Mapping, Sequence
 
+import functools
 import itertools
 # collections.(Mapping,Sequence) were
 # deprecated in newer version of python
@@ -44,28 +45,30 @@ import itertools
 string_classes = (str, bytes)
 
 
-def _list_collate(stack_fn=list):
-    def list_collate_fn(batch):
-        if isinstance(batch[0], Mapping):
-            return {key: list_collate_fn([d[key] for d in batch]) for key in batch[0]}
-        elif isinstance(batch[0], Sequence):
-            transposed = zip(*batch)
-            return [list_collate_fn(samples) for samples in transposed]
-        else:
-            return stack_fn(batch)
+# Collate functions are module-level functions bound with functools.partial (not closures),
+# so they can be pickled for multiprocessing with the spawn start method (macOS default)
+def _list_collate_fn(batch, stack_fn=list):
+    if isinstance(batch[0], Mapping):
+        return {key: _list_collate_fn([d[key] for d in batch], stack_fn) for key in batch[0]}
+    elif isinstance(batch[0], Sequence):
+        transposed = zip(*batch)
+        return [_list_collate_fn(samples, stack_fn) for samples in transposed]
+    else:
+        return stack_fn(batch)
 
-    return list_collate_fn
+
+def _chain_list(x):
+    return list(itertools.chain(*x))
 
 
-list_collate = _list_collate(list)
+list_collate = functools.partial(_list_collate_fn, stack_fn=list)
 list_collate.__doc__ = __name__ + ".list_collate"
 
-list_collate_concat = _list_collate(lambda x: list(itertools.chain(*x)))
+list_collate_concat = functools.partial(_list_collate_fn, stack_fn=_chain_list)
 list_collate_concat.__doc__ = __name__ + ".list_collate_concat"
 
 
-def _numpy_collate(stack_fn=np.stack):
-    def numpy_collate_fn(batch):
+def _numpy_collate_fn(batch, stack_fn=np.stack):
         "Puts each data field into a tensor with outer dimension batch size"
         if type(batch[0]).__module__ == "numpy":
             elem = batch[0]
@@ -84,10 +87,10 @@ def _numpy_collate(stack_fn=np.stack):
             return np.asarray(batch)
             # return batch
         elif isinstance(batch[0], Mapping):
-            return {key: numpy_collate_fn([d[key] for d in batch]) for key in batch[0]}
+            return {key: _numpy_collate_fn([d[key] for d in batch], stack_fn) for key in batch[0]}
         elif isinstance(batch[0], Sequence):
             transposed = zip(*batch)
-            return [numpy_collate_fn(samples) for samples in transposed]
+            return [_numpy_collate_fn(samples, stack_fn) for samples in transposed]
 
         raise TypeError(
             (
@@ -97,13 +100,11 @@ def _numpy_collate(stack_fn=np.stack):
             )
         )
 
-    return numpy_collate_fn
 
-
-numpy_collate = _numpy_collate(np.stack)
+numpy_collate = functools.partial(_numpy_collate_fn, stack_fn=np.stack)
 numpy_collate.__doc__ = __name__ + ".numpy_collate"
 
-numpy_collate_concat = _numpy_collate(np.concatenate)
+numpy_collate_concat = functools.partial(_numpy_collate_fn, stack_fn=np.concatenate)
 numpy_collate_concat.__doc__ = __name__ + ".numpy_collate_concat"
 
 # ------------------------

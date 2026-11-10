@@ -226,7 +226,7 @@ class PlotComponent(LoggerMixin):
             runtime_loader_specific_overrides = extract_class_specific_overrides(
                 runtime_overrides,
                 classes=[LoaderClass]
-            )
+            ).get(LoaderClass.__name__, {})
 
             kwargs_for_loader = {
                 **loader_defaults,
@@ -461,40 +461,40 @@ def _update_signature(original_init, loader_kwargs: dict):
 
 
 def extract_class_specific_overrides(kwargs: dict, classes: List[Union[PlotDataLoader, PlotComponent]]):
-        """
-        Extract loader or component specific override dicts from kwargs.
+    """
+    Extract loader or component specific override dicts from kwargs.
 
-        Parameters
-        ----------
-        kwargs : dict
-            The keyword arguments passed to the plot component or loader.
-        
-        classes : List[Union[PlotDataLoader, 'PlotComponent']]
-            The list of loader or component classes to extract overrides for.
+    Parameters
+    ----------
+    kwargs : dict
+        The keyword arguments passed to the plot component or loader.
+    
+    classes : List[Union[PlotDataLoader, 'PlotComponent']]
+        The list of loader or component classes to extract overrides for.
 
-        Example:
-            kwargs = {"SomeLoader": {"a": 1}, "color": "red"}
-            returns {"SomeLoader": {"a": 1}}
-            and kwargs becomes {"color": "red"}
+    Example:
+        kwargs = {"SomeLoader": {"a": 1}, "color": "red"}
+        returns {"SomeLoader": {"a": 1}}
+        and kwargs becomes {"color": "red"}
 
-        Returns
-        -------
-        dict : Dict[str, dict]
-            A dictionary mapping loader class names to their specific override dictionaries.
-        """
-        overrides = {}
+    Returns
+    -------
+    dict : Dict[str, dict]
+        A dictionary mapping loader class names to their specific override dictionaries.
+    """
+    overrides = {}
 
-        for key in list(kwargs.keys()):
-            for class_ in classes:
-                name = class_.name
-                if key == name:
-                    val = kwargs.pop(key)
-                    if not isinstance(val, dict):
-                        raise TypeError(
-                            f"Loader-specific override for '{key}' must be a dict, "
-                            f"got {val} {type(val).__name__}"
-                        )
-                    overrides[name] = val
-                    break
+    for key in list(kwargs.keys()):
+        for class_ in classes:
+            name = class_.name
+            if key == name:
+                val = kwargs.pop(key)
+                if not isinstance(val, dict):
+                    raise TypeError(
+                        f"Loader-specific override for '{key}' must be a dict, "
+                        f"got {val} {type(val).__name__}"
+                    )
+                overrides[name] = val
+                break
 
-        return overrides
+    return overrides

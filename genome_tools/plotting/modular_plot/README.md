@@ -50,7 +50,7 @@ from genome_tools.plotting.ideogram import read_ideogram
 # Define the genomic interval to visualize
 interval = GenomicInterval('chr1', 1_350_000, 1_400_000)
 
-signal_file = 'https://regulome.altius.org/data/per_sample/AG80080/AG80080.normalized_density.bw'
+signal_file = 'https://regulome.altius.org/data/per_sample/AG95384/AG95384.normalized_density.bw'
 gencode_file = 'https://resources.altius.org/~sabramov/collaborations/vinson/examples/gencode.v49.basic.annotation.sorted.gff3.gz'
 ideogram_file = 'http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/cytoBandIdeo.txt.gz'
 
@@ -180,12 +180,16 @@ For large datasets or slow loaders, enable parallel processing:
 ```python
 data, axes = plotter.plot(
     interval,
-    n_cpus=4,  # Use 4 processes for data loading
-    **loader_kwargs
+    n_cpus=4,  # Use up to 4 processes for data loading (one per component)
+    loaders_kwargs=dict(),  # runtime loader arguments, if any
 )
+
+# or, in the two-step workflow
+data = plotter.get_interval_data(interval, n_cpus=4)  # runtime loader arguments go to **kwargs
 ```
 
 **Note:** Due to multiprocessing overhead, parallel loading may be slower for fast loaders. Best for I/O-bound operations.
+In a script (not a notebook), call it under `if __name__ == '__main__':`, otherwise worker processes started with `spawn` (default on macOS and Windows) fail to start.
 
 # Available Plot Components
 
@@ -202,6 +206,8 @@ Displays chromosome ideogram with cytobands.
 **Example:**
 ```python
 from genome_tools.plotting.modular_plot.plot_components.basic import IdeogramComponent
+from genome_tools.plotting.ideogram import read_ideogram
+
 ideogram_file = 'http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/cytoBandIdeo.txt.gz'
 IdeogramComponent(
     height=0.1,
@@ -247,7 +253,7 @@ Plots signal track from bigWig files.
 **Example:**
 ```python
 from genome_tools.plotting.modular_plot.plot_components.basic import TrackComponent
-signal_file = 'https://regulome.altius.org/data/per_sample/AG80080/AG80080.normalized_density.bw'
+signal_file = 'https://regulome.altius.org/data/per_sample/AG95384/AG95384.normalized_density.bw'
 TrackComponent(
     height=1.5,
     margins=(0.1, 0.1),
@@ -272,7 +278,7 @@ FigwigTrackComponent(
     height=1.5,
     margins=(0.1, 0.1),
     figwig_file='samples.fw',
-    track='AG80080',
+    track='AG95384',
 )
 ```
 
@@ -287,7 +293,7 @@ Plots DNA sequence as colored nucleotides.
 - `fasta_file` (str): Path to genome FASTA file
 
 **Optional plotting arguments:**
-- `vocab` (dict): Dictionary for vocabulary ({letter: color}). Expected order of keys is ACGT. E.g. `vocab = {x: 'k' for x in ACGT}` to plot all letters as black
+- `vocab` (dict): Dictionary for vocabulary ({letter: color}). Expected order of keys is ACGT. E.g. `vocab = {x: 'k' for x in 'ACGT'}` to plot all letters as black
 
 **Example:**
 ```python
@@ -325,6 +331,9 @@ Base component that displays transcription factor motif hits as sequence logos.
 
 **Example:**
 ```python
+import pandas as pd
+from genome_tools import GenomicInterval
+from genome_tools.plotting.modular_plot import IntervalPlotter
 from genome_tools.plotting.modular_plot.plot_components.sequence import MotifHitsComponent
 
 motif_annotations_path = 'https://resources.altius.org/~sabramov/collaborations/vinson/examples/moods_scans_ref.merged.sorted.bed.gz'   # tabix-indexed annotations. Motif hits at 1e-4 p-value
@@ -334,18 +343,22 @@ motif_meta_df['pfm'] = motif_meta_df['pfm'].str.replace('/home/jvierstra/public_
 min_motif_overlap = 0.8
 n_top_hits = 2
 
-annotation_regions=[GenomicInterval('chr1', 1_000_000, 1_000_020)]
+interval = GenomicInterval('chr1', 1_000_000, 1_000_020)
+annotation_regions = [interval]
 
-MotifHitsComponent(
-    height=0.5,
-    annotation_regions=annotation_regions,
-    motif_annotations_path=motif_annotations_path,
-    motif_meta=motif_meta_df,  # DataFrame indexed by motif_id with metadata
-    pack=True,
-    choose_by='dg',
-    min_motif_overlap=min_motif_overlap,
-    n_top_hits=2
-)
+plotter = IntervalPlotter([
+    MotifHitsComponent(
+        height=0.5,
+        annotation_regions=annotation_regions,
+        motif_annotations_path=motif_annotations_path,
+        motif_meta=motif_meta_df,  # DataFrame indexed by motif_id with metadata
+        pack=True,
+        choose_by='dg',
+        min_motif_overlap=min_motif_overlap,
+        n_top_hits=n_top_hits,
+    )
+])
+data, axes = plotter.plot(interval)
 ```
 TODO: Add example
 
@@ -358,37 +371,8 @@ Extension of MotifHitsComponent. Has two alternative methods for choosing best m
 **Required loader arguments**
 `variant_interval`: `genome_tools.VariantInterval` - variant interval based on which alleles and position the delta dg score is calculated. Should be within `data.interval`
 
-```python
-from genome_tools import VariantInterval
-from genome_tools.plotting.modular_plot.plot_components.sequence import VariantDdgMotifHitsComponent
 
-variant_interval = VariantInterval(
-    'chr1', 1_000_005, 1_000_006,
-    ref='A',
-    alt='G',
-    value=1.3
-)
-
-VariantDdgMotifHitsComponent(
-    height=0.5,
-    motif_annotations_path=motif_annotations_path,
-    motif_meta=motif_meta_df,  # DataFrame indexed by motif_id with metadata
-    pack=True,
-    choose_by='ddg',
-    min_motif_overlap=min_motif_overlap,
-    n_top_hits=2
-)
-
-plotter.plot(
-    dhs_interval,
-    loaders_kwargs=dict(
-        variant_interval=variant_interval,
-        annotation_regions=annotation_regions,
-    )
-)
-```
-
-TODO: Add example image
+TODO: Add example
 #### FPWeightedMotifHitsComponent
 
 Extension of MotifHitsComponent. Has an alternative method for choosing best motif hits -
@@ -396,13 +380,16 @@ Extension of MotifHitsComponent. Has an alternative method for choosing best mot
 
 ! Note: weighted_dg works only if motif hits *fully* overlap `data.interval`. The motif hits on the edges of the `data.interval` are filtered out.
 
-**Loaders:** `PosteriorLoader`, `FastaLoader`, `ProtectedNucleotidesLoader`, `AnnotationRegionsLoader`, `SequenceWeightsFromProtectedNucleotidesLoader`, `MotifHitsLoader`, `MotifHitsSelectorLoader`
+**Loaders:** `GroupsDataLoader`, `PosteriorLoader`, `FastaLoader`, `ProtectedNucleotidesLoader`, `SequenceWeightsFromProtectedNucleotidesLoader`, `AnnotationRegionsLoader`, `MotifHitsLoader`, `MotifHitsSelectorLoader`
+
+**Required loader arguments**
+
+In addition to [MotifHitsComponent](#MotifHitsComponent) required arguments: `groups_data`, `posterior_file`, `fasta_file`.
 
 **Optional loader arguments**
 
 In addition to [MotifHitsComponent](#MotifHitsComponent) loader arguments the following options are available:
 `protected_nuc_sample_ids`: subset of sample_ids to take into account when calculating protected nucleotides (useful when want to get protected nucleotides only for a subset of samples, e.g. a certain cell type). (default: None)
-`posterior_threshold`: threshold to binarize the posterior probabilities (default: 0.99)
 
 
 **Example:**
@@ -414,9 +401,9 @@ FPWeightedMotifHitsComponent(
 )
 TODO: Add example
 ```
-#### AttributionsWeightedMotifHitsComponent
+#### Attribution-weighted motif hits
 
-TODO: add description
+`AttributionsWeightedMotifHitsFromBatchComponent`, `AttributionsWeightedMotifHitsFromRegionComponent` and `AttributionsFromAnndataWeightedMotifHitsComponent` (in `plot_components.prediction`) choose motif hits weighted by vinson attributions. See [Prediction components](#prediction-components).
 
 ## Footprint components
 
@@ -527,7 +514,7 @@ axes = plotter.plot_interval(data)
 Variants of the same components:
 - `PredictedSignalFromBatchComponent` — predicted signal from a pre-built `batch`
 - `AttributionsFromRegionComponent` / `AttributionsWeightedMotifHitsFromRegionComponent` — build a single-example batch centered on the interval from `sample_id`, `embeddings`, `fasta_file`
-- `BetweenSpeciesAlignedAttributionsFromBatchComponent` / `...WeightedMotifHitsFromBatchComponent` — map attributions to another species' coordinates through a `BetweenSpeciesMap` from HAL file.
+- `BetweenSpeciesAlignedAttributionsFromBatchComponent` / `...WeightedMotifHitsFromBatchComponent` — map attributions to another species' coordinates through a `BetweenSpeciesMap` built with `BetweenSpeciesMap.from_maf` from a MAF file of the region (output of `hal2maf`).
 
 ## hotspot3 components
 
@@ -622,41 +609,44 @@ Loader parameters can be overridden at multiple levels (from lowest to highest p
 1. **Loader defaults** - Defined in the loader's `_load` method signature
 2. **Global overrides** - Passed to `IntervalPlotter.__init__`. Recommended for metadata files, and something that can be safely be used by any component
 3. **Component-level overrides** - Passed to component `__init__`. Recommended when these overrides define the component.
-4. **Loader-specific component overrides** - Using loader name as key. Generally, shouldn't be used.
-5. **Runtime overrides** - Passed to `plot()` or `get_interval_data()`. Recommended for passing variable args that should change with the data.interval (e.g. variant_interval, annotation_regions, e.t.c.)
-6. **Runtime loader-specific overrides** - Using loader name as key. Generally, shouldn't be used.
+4. **Runtime overrides** - Passed to `get_interval_data(**kwargs)` or `plot(loaders_kwargs=...)`. Recommended for passing variable args that should change with the data.interval (e.g. variant_interval, annotation_regions, e.t.c.)
+5. **Loader-specific component overrides** - Using loader name as key in component `__init__`. Generally, shouldn't be used.
+6. **Runtime loader-specific overrides** - Using loader name as key at runtime. Generally, shouldn't be used.
 
-FIX the code
 ```python
-# Global override (applies to all components)
+from genome_tools import GenomicInterval
+from genome_tools.plotting.modular_plot import IntervalPlotter
+from genome_tools.plotting.modular_plot.plot_components.basic import TrackComponent
+
+bw = 'https://regulome.altius.org/data/per_sample/{s}/{s}.normalized_density.bw'
+interval = GenomicInterval('chr1', 1_350_000, 1_400_000)
+
 plotter = IntervalPlotter(
-    [comp1, comp2],
-    signal_file='default.bw',  # Used by both components
+    [
+        TrackComponent(name='Global'),  # uses signal_file from IntervalPlotter
+        TrackComponent(name='Component', signal_file=bw.format(s='AG95384')),  # overrides IntervalPlotter
+        # Only for SignalLoader, useful when there is a conflict of param names, which generally should be avoided
+        TrackComponent(name='LoaderSpecific', SignalLoader=dict(signal_file=bw.format(s='AG95451'))),
+    ],
+    signal_file=bw.format(s='AG80080'),  # Global override, used by all components
 )
 
-# Component-level override
-comp = TrackComponent(
-    signal_file='specific.bw',  # Overrides global default
-)
-
-comp = TrackComponent(
-    SignalLoader=dict(signal_file='specific.bw'),  # Only for SignalLoader, useful when there is a conflict of param names, which generally should be avoided
-)
-
-# Runtime override
+# Runtime override: replaces IntervalPlotter and component kwargs ('Global' and 'Component'),
+# but not loader-specific overrides ('LoaderSpecific')
 data, axes = plotter.plot(
     interval,
     loaders_kwargs=dict(
-        signal_file='runtime.bw',
+        signal_file=bw.format(s='AG80853'),
     )
 )
 
+# Runtime loader-specific override for one component: the highest priority
 data, axes = plotter.plot(
     interval,
     loaders_kwargs=dict(
-        TrackComponent=dict(
+        LoaderSpecific=dict(
             SignalLoader=dict(
-                signal_file='runtime.bw',  # The highest priority
+                signal_file=bw.format(s='AG80853'),
             )
         )
     )
@@ -687,10 +677,11 @@ axes.AG80853
 The `DataBundle` tracks which loaders have processed it:
 
 ```python
-data = plotter.get_interval_data(interval, **loader_kwargs)
+# plotter from the Quick start
+data = plotter.get_interval_data(interval)
 
-# Check loaded data for first component
-component_data = data.IdeogramComponent
+# Check loaded data for a component
+component_data = data.TrackComponent
 print(component_data)  # Shows all attached attributes
 print(component_data.processed_loaders)  # Shows loader execution order
 

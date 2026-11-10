@@ -4,10 +4,7 @@
 from genome_tools.data.footprints.loaders import Dataloader
 from genome_tools.data.utils import (
     iterable_cycle,
-    numpy_collate,
     numpy_collate_concat,
-    get_dataset_lens,
-    get_dataset_item,
 )
 
 from tqdm import tqdm
@@ -79,51 +76,52 @@ class Dataset(BaseDataset):
         )
 
 
-class PreloadedDataset(BaseDataset):
-    data_fn = None
-
-    @classmethod
-    def from_fn(cls, data_fn):
-        cls.data_fn = staticmethod(data_fn)
-        return cls
-
-    @classmethod
-    def from_data(cls, data):
-        return cls.from_data_fn(lambda: data)()
-
-    @classmethod
-    def _get_data_fn(cls):
-        assert cls.data_fn is not None
-        return cls.data_fn
-
-    def __init__(self, *args, **kwargs):
-        self.data = self._get_data_fn()(*args, **kwargs)
-        lens = get_dataset_lens(self.data, require_numpy=True)
-        assert len(set(lens)) == 1
-        self.n = lens[0]
-
-    def __len__(self):
-        return self.n
-
-    def __getitem__(self, index):
-        return get_dataset_item(self.data, index)
-
-    def _batch_iterable(self, batch_size=32, shuffle=False, drop_last=False, **kwargs):
-        dl = Dataloader(
-            self,
-            batch_size=batch_size,
-            collate_fn=numpy_collate,
-            shuffle=shuffle,
-            num_workers=0,
-            drop_last=drop_last,
-        )
-        return dl
-
-    def batch_iter(self, batch_size=32, shuffle=False, drop_last=False, **kwargs):
-        dl = self._batch_iterable(
-            batch_size=batch_size, shuffle=shuffle, drop_last=drop_last, **kwargs
-        )
-        return iter(dl)
-
-    def load_all(self, **kwargs):
-        return self.data
+# defunc
+# class PreloadedDataset(BaseDataset):
+#     data_fn = None
+#
+#     @classmethod
+#     def from_fn(cls, data_fn):
+#         cls.data_fn = staticmethod(data_fn)
+#         return cls
+#
+#     @classmethod
+#     def from_data(cls, data):
+#         return cls.from_data_fn(lambda: data)()
+#
+#     @classmethod
+#     def _get_data_fn(cls):
+#         assert cls.data_fn is not None
+#         return cls.data_fn
+#
+#     def __init__(self, *args, **kwargs):
+#         self.data = self._get_data_fn()(*args, **kwargs)
+#         lens = get_dataset_lens(self.data, require_numpy=True)
+#         assert len(set(lens)) == 1
+#         self.n = lens[0]
+#
+#     def __len__(self):
+#         return self.n
+#
+#     def __getitem__(self, index):
+#         return get_dataset_item(self.data, index)
+#
+#     def _batch_iterable(self, batch_size=32, shuffle=False, drop_last=False, **kwargs):
+#         dl = Dataloader(
+#             self,
+#             batch_size=batch_size,
+#             collate_fn=numpy_collate,
+#             shuffle=shuffle,
+#             num_workers=0,
+#             drop_last=drop_last,
+#         )
+#         return dl
+#
+#     def batch_iter(self, batch_size=32, shuffle=False, drop_last=False, **kwargs):
+#         dl = self._batch_iterable(
+#             batch_size=batch_size, shuffle=shuffle, drop_last=drop_last, **kwargs
+#         )
+#         return iter(dl)
+#
+#     def load_all(self, **kwargs):
+#         return self.data

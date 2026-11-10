@@ -55,6 +55,7 @@ Optional extras:
 ```bash
 pip install "genome-tools[figwig]"   # FigwigExtractor / FigwigTrackComponent, python >= 3.10
 pip install "genome-tools[anndata]"  # read_zarr_backed (anndata, zarr 2, dask)
+pip install "genome-tools[sampling]" # genome_tools.utils.sampling (numba)
 ```
 Some plot components need the package they visualize (`vinson` for prediction/attribution components, `hotspot3`, `footprint-tools`, `bx-python` for between-species alignment). They are imported only when you import those component modules.
 
@@ -126,10 +127,10 @@ plotter = IntervalPlotter(
     [
         IdeogramComponent(height=0.1, margins=0),
         GencodeComponent(height=0.3),
-        TrackComponent(signal_file="sample.normalized_density.bw", height=0.5, color="tab:blue"),
+        TrackComponent(signal_file="https://regulome.altius.org/data/per_sample/AG95384/AG95384.normalized_density.bw", height=0.5, color="tab:blue"),
     ],
     ideogram_data=read_ideogram("http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/cytoBandIdeo.txt.gz"),   # loader args shared by components
-    gencode_annotation_file="gencode.basic.annotation.gtf.gz",
+    gencode_annotation_file="https://resources.altius.org/~sabramov/collaborations/vinson/examples/gencode.v49.basic.annotation.sorted.gff3.gz",
 )
 data, axes = plotter.plot(GenomicInterval.from_ucsc("chr14:72,600,000-72,800,000"))
 ```
