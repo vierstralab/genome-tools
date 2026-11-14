@@ -15,22 +15,23 @@ def to_pyranges(df: pd.DataFrame):
 
 
 def _overlap_indicator(ref_pr: pr.PyRanges, map_df: pd.DataFrame, n: int) -> np.ndarray:
-    hit = ref_pr.overlap(pr.PyRanges(to_pyranges(map_df))).df['_ref_idx'].to_numpy()
+    hits = ref_pr.overlap(pr.PyRanges(to_pyranges(map_df))).df
     out = np.zeros(n, dtype=bool)
-    out[hit] = True
+    if '_ref_idx' in hits.columns:  # no overlaps gives a DataFrame without columns
+        out[hits['_ref_idx'].to_numpy()] = True
     return out
 
 
 def overlaps_any(ref_df: pd.DataFrame, map_df: pd.DataFrame = None, **map_dfs: pd.DataFrame):
     """
     For each row of ref_df, True if it overlaps at least one interval in map_df(s), else False.
-    Uses bed corrdinates (half-open).
+    Uses bed coordinates (half-open).
 
     Usage:
         overlaps_any(peaks, tss_df)                  -> pd.Series (bool, name='overlap')
         overlaps_any(peaks, tss=tss_df, enh=enh_df)  -> pd.DataFrame, one bool column per kwarg
 
-    If keyword maps are given, they take priority and positional map_df is ignored.
+    Pass either map_df or keyword maps, not both.
     Raises ValueError if no map is provided.
 
     Requires pyranges (pip install "genome-tools[pyranges]").
@@ -74,8 +75,11 @@ def distance_to_closest(ref_df: pd.DataFrame, map_df: pd.DataFrame):
     ref['_ref_idx'] = ref.index
 
     nearest = pr.PyRanges(ref).nearest(pr.PyRanges(to_pyranges(map_df))).df
-    # ties give several rows per ref interval with the same distance
-    dist = nearest.groupby('_ref_idx')['Distance'].min()
+    if '_ref_idx' not in nearest.columns:  # map has no intervals on any ref chromosome
+        dist = pd.Series(dtype=float)
+    else:
+        # ties give several rows per ref interval with the same distance
+        dist = nearest.groupby('_ref_idx')['Distance'].min()
     return pd.Series(
         dist.reindex(ref.index).to_numpy(),
         index=ref_df.index,
