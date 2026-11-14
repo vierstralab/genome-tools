@@ -6,7 +6,7 @@ authors = [
     { name = "Jeff Vierstra", email = "jvierstra@altius.org" }
 ]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { file = "LICENSE" }
 keywords = ["genome", "bioinformatics", "analysis", "toolkit"]
 
@@ -18,7 +18,7 @@ dependencies = [
     "pyBigWig",
     "matplotlib",
     "descartes",
-    "fonttools==4.49.0",
+    "fonttools>=4.60.2",
     "openpyxl",
     "shapely>=2.0.5",
     "makefun",

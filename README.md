@@ -36,7 +36,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) first.
 ## Installation
 
 ### Prerequisites
-`python >= 3.8`
+`python >= 3.9`
 
 ### Install genome-tools
 ```bash

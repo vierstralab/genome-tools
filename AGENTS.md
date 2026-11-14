@@ -120,7 +120,7 @@ only when that component/loader runs:
 
 ## Working in this repo
 
-- Python >= 3.8 for the core; match the style of the surrounding code (numpy-style or short
+- Python >= 3.9 for the core; match the style of the surrounding code (numpy-style or short
   docstrings, no type-annotation overhaul).
 - Component docstrings follow the pattern in `plot_components/basic.py` and
   `plot_components/prediction.py`: what it plots, `Loaders:`, required/optional loader args,
