@@ -15,6 +15,7 @@ public names and signatures stable, and keep the core light (see "Dependencies")
 | Interval class, DataFrame <-> intervals | `genome_tools/genomic_interval.py` |
 | Read FASTA / BigWig / figwig / tabix / parquet / VCF for an interval | `genome_tools/data/extractors.py` |
 | Open local/remote/gz files, write tabix | `genome_tools/helpers.py` |
+| Overlap flags / distance to closest between BED-like DataFrames (`overlaps_any`, `distance_to_closest`, `to_pyranges`) | `genome_tools/bed_overlaps.py` |
 | Backed AnnData from zarr | `genome_tools/data/anndata.py` |
 | Single plot functions (`signal_plot`, `gene_annotation_plot`, `ideogram_plot`, `seq_plot`, `plot_motif_logo`) | `genome_tools/plotting/` |
 | Axis helpers (`format_axes_to_interval`, `clear_spines`, `cm2inch`) | `genome_tools/plotting/utils.py` |
@@ -35,6 +36,13 @@ public names and signatures stable, and keep the core light (see "Dependencies")
 - `GenomicInterval.from_ucsc('chr1:1,000-2,000')` accepts commas.
 - `VariantInterval(chrom, pos, pos + 1, ref, alt)` is a 1 bp interval; `widen`/`shift`/`zoom` on it raise, convert with `.gi()` first.
 - `df_to_genomic_intervals(df, interval=None, extra_columns=())` expects `#chr`/`chrom`, `start`, `end` columns; passing `interval` keeps only rows overlapping it.
+
+## Interval tables (bed_overlaps)
+
+- Input DataFrames need `#chr` or `chrom`, plus `start` and `end` (0-based, half-open); other columns are ignored.
+- Both functions return one value per row of `ref_df`, with the same index as `ref_df`.
+- `distance_to_closest` follows the pyranges/bedtools convention: intervals that touch end-to-start are 1 bp apart; the result is NaN if the map has no intervals on that chromosome.
+- Use these on DataFrames; use `GenomicInterval.overlaps` on single intervals.
 
 ## Extractors
 

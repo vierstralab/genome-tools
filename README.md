@@ -17,6 +17,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) first.
 - [Installation](#installation)
 - [Core components](#core-components)
   - [Genomic intervals](#genomic-intervals)
+  - [Overlaps between interval tables](#overlaps-between-interval-tables)
   - [Data extraction](#data-extraction)
   - [Plotting](#plotting)
   - [Modular plotting framework](#modular-plotting-framework)
@@ -25,6 +26,7 @@ Coding agents: read [AGENTS.md](AGENTS.md) first.
 ## Repository layout
 
 - [`genome_tools/genomic_interval.py`](genome_tools/genomic_interval.py) — `GenomicInterval` / `VariantInterval` classes and DataFrame <-> interval conversion helpers.
+- [`genome_tools/bed_overlaps.py`](genome_tools/bed_overlaps.py) — overlap flags and distance to the closest interval between BED-like DataFrames (`pyranges` extra).
 - [`genome_tools/data/`](genome_tools/data/) — file extractors (FASTA, BigWig, FigWig, tabix, parquet, D4, VCF genotypes/reads) and `AnnData` helpers.
 - [`genome_tools/plotting/`](genome_tools/plotting/) — standalone plot functions (`signal_plot`, `gene_annotation_plot`, `ideogram_plot`, sequence/motif-logo plotting, color palettes/colormaps) and the [modular plotting framework](genome_tools/plotting/modular_plot/) for building composable, multi-track interval plots.
 - [`genome_tools/utils/`](genome_tools/utils/) — signal smoothing/aggregation and sequence helpers.
@@ -56,6 +58,7 @@ Optional extras:
 pip install "genome-tools[figwig]"   # FigwigExtractor / FigwigTrackComponent, python >= 3.10
 pip install "genome-tools[anndata]"  # read_zarr_backed (anndata, zarr 2, dask)
 pip install "genome-tools[sampling]" # genome_tools.utils.sampling (numba)
+pip install "genome-tools[pyranges]" # genome_tools.bed_overlaps
 ```
 Some plot components need the package they visualize (`vinson` for prediction/attribution components, `hotspot3`, `footprint-tools`, `bx-python` for between-species alignment). They are imported only when you import those component modules.
 
@@ -79,6 +82,18 @@ iv.overlaps(other_iv)  # bool
 ```
 
 `VariantInterval` is a 1bp specialization carrying `ref`/`alt`/`pos`; Helpers `df_to_genomic_intervals`, `df_to_variant_intervals`, `intervals_to_df`, and `filter_df_to_interval` convert between pandas DataFrames and lists of intervals.
+
+### Overlaps between interval tables
+
+[`genome_tools/bed_overlaps.py`](genome_tools/bed_overlaps.py) annotates a BED-like DataFrame (`#chr`/`chrom`, `start`, `end`) against other ones. Results are aligned to the index of the first DataFrame. Needs the `pyranges` extra.
+
+```python
+from genome_tools.bed_overlaps import overlaps_any, distance_to_closest
+
+overlaps_any(peaks, tss)                   # bool Series: overlaps any TSS
+overlaps_any(peaks, tss=tss, enh=enh)      # DataFrame, one bool column per map
+distance_to_closest(peaks, tss)            # bp to the closest TSS; 0 if overlapping, NaN if none on the chromosome
+```
 
 ### Data extraction
 
