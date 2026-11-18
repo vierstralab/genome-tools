@@ -19,7 +19,7 @@ public names and signatures stable, and keep the core light (see "Dependencies")
 | Backed AnnData from zarr | `genome_tools/data/anndata.py` |
 | Single plot functions (`signal_plot`, `gene_annotation_plot`, `ideogram_plot`, `seq_plot`, `plot_motif_logo`) | `genome_tools/plotting/` |
 | Axis helpers (`format_axes_to_interval`, `clear_spines`, `cm2inch`) | `genome_tools/plotting/utils.py` |
-| Multi-track figures | `genome_tools/plotting/modular_plot/` (user guide: `README.md`, writing components: `README_develop.md`) |
+| Multi-track figures | `genome_tools/plotting/modular_plot/` (user guide: `README.md`, writing components: `README_develop.md`, notebooks: `examples/`) |
 | Signal smoothing, one-hot encoding | `genome_tools/utils/` |
 | Runnable examples on public data | `examples/UsageExamples.ipynb` (data extraction, basic plots); `examples/README.md` indexes it and links component usage in vinson and regulome |
 
@@ -85,9 +85,19 @@ with TabixExtractor(bed_gz, columns=[...]) as tbx: # if columns not provided - i
 - `plot_interval(data, subplot_spec=outer_gs[0, 1])` draws into a cell of an existing figure's
   gridspec instead of a new figure (`fig_width`/`fig_height`/`height_scale` are then ignored).
   `plot()` always makes a new figure.
-- Loader argument priority (low -> high): loader defaults, `IntervalPlotter(**kwargs)`,
-  component kwargs, `get_interval_data(**kwargs)`, loader-specific overrides on the component
-  (`Component(SomeLoader={'arg': value})`), loader-specific overrides in `get_interval_data`.
+- `plotter.get_loading_workflow(interval, **loader_kwargs)` shows the loader calls
+  `get_interval_data` would run (shared calls once) without loading anything; `.plot()` draws it
+  as a tree, `.tree` is the `nx.DiGraph`.
+- Loader argument priority (low -> high), init before runtime and the more specific winning within each:
+  loader defaults, `IntervalPlotter(**kwargs)`, component kwargs, loader-specific overrides on the
+  component (`Component(SomeLoader={'arg': value})`), `get_interval_data(**kwargs)`,
+  `get_interval_data(ComponentName={...})`, loader-specific overrides in `get_interval_data`
+  (`SomeLoader={...}`, or `ComponentName={'SomeLoader': {...}}`).
+- In a notebook, a plotter, component, loaded data (namedtuple of `DataBundle`) or loading workflow
+  shown as the last line of a cell (or `display(...)`) renders as markdown (`_repr_markdown_`):
+  resolved loader args and where they were set, bundle fields, shared loader calls.
+  `help()` / `?` show the signature and docstring, not this summary. Use it to debug a plot
+  (what is set, what is missing, what was loaded); `modular_plot/examples/Debugging.ipynb` shows it all.
 - Discover a component's arguments: `help(Component)` or `inspect.signature(Component)`;
   required loader args show as `Required loader arg`. A missing one raises at load time naming
   the component and loader.
@@ -151,6 +161,8 @@ only when that component/loader runs:
     - ideogram: `read_ideogram('http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/cytoBandIdeo.txt.gz')`
     - region with signal for all of the above: `chr2:60450000-60540000` (BCL11A)
   - `examples/UsageExamples.ipynb` covers data extraction and basic plot functions only;
+    modular plot examples are in `genome_tools/plotting/modular_plot/examples/`: `Debugging.ipynb`
+    (notebook displays), `SetLoaderAndPlotKwargs.ipynb` (an example for each priority level of loader args and plot kwargs).
     Don't repeat the same example in several places; link instead.
 
 - A stale `build/` directory can shadow the source when building wheels; build from a clean

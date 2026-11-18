@@ -164,6 +164,8 @@ Commonly used components:
 
 Every component lists its loader arguments (required and with defaults) in its signature, and describes them in its docstring: `help(TrackComponent)` or `?TrackComponent` in jupyter.
 
+In a notebook, put a plotter, a component, the loaded data or `plotter.get_loading_workflow(interval)` as the last line of a cell (or call `display(...)`) to get a readable summary: loader arguments and where each value was set, the fields of each `DataBundle`, and which loader calls are shared between components.
+
 See [`genome_tools/plotting/modular_plot/README.md`](https://github.com/vierstralab/genome-tools/blob/master/genome_tools/plotting/modular_plot/README.md) for the full guide — quick start, available plot components, overriding loader parameters, and debugging data loading — and [`README_develop.md`](https://github.com/vierstralab/genome-tools/blob/master/genome_tools/plotting/modular_plot/README_develop.md) for writing your own components.
 
 

@@ -17,6 +17,7 @@
   - [Loader Design](#loader-design)
   - [Component Design](#component-design)
   - [Logging](#logging)
+  - [Debugging in a notebook](#debugging-in-a-notebook)
 
 ## Creating Custom Components
 
@@ -334,5 +335,20 @@ comp = TrackComponent(
 plotter = IntervalPlotter([comp])
 plotter.logger.setLevel(logging.INFO)
 ```
+
+### Debugging in a notebook
+
+In a notebook, show an object as the last line of a cell (or `display(...)`) to check what is set and what was loaded:
+
+```python
+plotter                                  # components, attached loaders, resolved loader args and where each was set
+plotter.plot_components.TrackComponent   # one component; a missing required arg shows as "required, not set"
+plotter.get_loading_workflow(interval)   # loader calls get_interval_data will run (nothing is loaded), shared calls once
+plotter.get_loading_workflow(interval).plot()
+data = plotter.get_interval_data(interval)
+data                                     # fields of each component's DataBundle
+```
+
+[`examples/Debugging.ipynb`](examples/Debugging.ipynb) shows all of them on regulome files; [`examples/SetLoaderAndPlotKwargs.ipynb`](examples/SetLoaderAndPlotKwargs.ipynb) has an example for each level where loader args and plot kwargs can be set.
 
 Per component returned axes match with whatever is returned by `_plot`. When returning multiple axes, first axis should be the input ax to ensure compatibility with connectors.

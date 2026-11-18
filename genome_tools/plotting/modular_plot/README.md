@@ -1,6 +1,8 @@
 # Modular Plot Framework
 The modular plot framework provides a flexible, composable system for creating complex genomic interval visualizations. It separates data loading from plotting logic, enabling reusable components that can be easily combined and configured. Details on individual components along with examples are in [Available Plot Components](#available-plot-components).
 
+Example notebooks (public regulome data): [`examples/Debugging.ipynb`](examples/Debugging.ipynb) (what is set, what will be loaded, what was loaded) and [`examples/SetLoaderAndPlotKwargs.ipynb`](examples/SetLoaderAndPlotKwargs.ipynb) (an example for each level where loader args and plot kwargs can be set).
+
 Using plot components to plot model predictions and peak calls: the [vinson tutorials](https://github.com/vierstralab/vinson/tree/main/tutorials) ([predicted vs true signal](https://github.com/vierstralab/vinson/blob/main/tutorials/2.Predict_density.ipynb), [attributions and motif hits](https://github.com/vierstralab/vinson/blob/main/tutorials/3.Interpretation.ipynb)) and regulome figure notebooks: [hotspot3](https://github.com/vierstralab/regulome/blob/master/Figure1.index/hotspot3.ipynb), [per-sample](https://github.com/vierstralab/regulome/blob/master/Figure7.SequenceModel/SeqModel.PerSampleDHSValidation.ipynb) and [cell-selective](https://github.com/vierstralab/regulome/blob/master/Figure7.SequenceModel/SeqModel.CellSelectiveValidation.ipynb) DHS validation, [between-species predictions](https://github.com/vierstralab/regulome/blob/master/Figure8.SpeciesPrediction/SeqModel.BetweenSpeciesPredictions.ipynb), [mouse tracks](https://github.com/vierstralab/regulome/blob/master/Figure8.SpeciesPrediction/SeqModel.CellSelective.tracks_mouse.ipynb).
 
 ## Table of contents
@@ -618,14 +620,15 @@ NMFTracksComponent(
 
 # Overriding loader parameters
 
-Loader parameters can be overridden at multiple levels (from lowest to highest priority). Examples below:
+Loader parameters can be overridden at multiple levels (from lowest to highest priority): everything set when creating the plotter and components is overridden by what is passed at runtime, and within each, the more specific wins. Examples below; [`examples/SetLoaderAndPlotKwargs.ipynb`](examples/SetLoaderAndPlotKwargs.ipynb) has an example for each level on regulome files, together with plot kwargs and `axes_kwargs`:
 
 1. **Loader defaults** - Defined in the loader's `_load` method signature
 2. **Global overrides** - Passed to `IntervalPlotter.__init__`. Recommended for metadata files, and something that can be safely be used by any component
 3. **Component-level overrides** - Passed to component `__init__`. Recommended when these overrides define the component.
-4. **Runtime overrides** - Passed to `get_interval_data(**kwargs)` or `plot(loaders_kwargs=...)`. Recommended for passing variable args that should change with the data.interval (e.g. variant_interval, annotation_regions, e.t.c.)
-5. **Loader-specific component overrides** - Using loader name as key in component `__init__`. Generally, shouldn't be used.
-6. **Runtime loader-specific overrides** - Using loader name as key at runtime. Generally, shouldn't be used.
+4. **Loader-specific component overrides** - Using loader name as key in component `__init__`. Generally, shouldn't be used.
+5. **Runtime overrides** - Passed to `get_interval_data(**kwargs)` or `plot(loaders_kwargs=...)`. Recommended for passing variable args that should change with the data.interval (e.g. variant_interval, annotation_regions, e.t.c.)
+6. **Runtime component overrides** - Using component name as key at runtime: `get_interval_data(ComponentName={...})`.
+7. **Runtime loader-specific overrides** - Using loader name as key at runtime, for all components (`get_interval_data(SignalLoader={...})`) or for one (`get_interval_data(ComponentName={'SignalLoader': {...}})`). Generally, shouldn't be used.
 
 ```python
 from genome_tools import GenomicInterval
@@ -645,8 +648,8 @@ plotter = IntervalPlotter(
     signal_file=bw.format(s='AG80080'),  # Global override, used by all components
 )
 
-# Runtime override: replaces IntervalPlotter and component kwargs ('Global' and 'Component'),
-# but not loader-specific overrides ('LoaderSpecific')
+# Runtime override: replaces everything set at init, including the loader-specific
+# override of 'LoaderSpecific'
 data, axes = plotter.plot(
     interval,
     loaders_kwargs=dict(
@@ -703,6 +706,8 @@ print(component_data.processed_loaders)  # Shows loader execution order
 print(component_data.interval)
 print(component_data.signal)
 ```
+
+In a notebook, show `plotter`, a component, `data` or `plotter.get_loading_workflow(interval)` as the last line of a cell for a readable summary: resolved loader args and where each was set, missing args, the loader calls that will run (and which components share them), and the fields that were loaded. See [`examples/Debugging.ipynb`](examples/Debugging.ipynb).
 
 # Accessing Component Axes
 

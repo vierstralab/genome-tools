@@ -11,7 +11,8 @@ import warnings
 from genome_tools.plotting.utils import format_axes_to_interval, add_axes_at_intervals
 from genome_tools import GenomicInterval
 
-from genome_tools.plotting.modular_plot.utils import LoggerMixin, DataBundle, RequiredArgument, markdown_value, markdown_table
+from genome_tools.plotting.modular_plot.utils import LoggerMixin, DataBundle, RequiredArgument
+from genome_tools.plotting.modular_plot.display import markdown_value, markdown_table
 
 
 class PlotDataLoader(LoggerMixin):
@@ -262,13 +263,14 @@ class PlotComponent(LoggerMixin):
         """
         Resolve the kwargs each required loader is called with. Nothing is loaded.
 
-        Merge priority:
+        Merge priority: everything set at init is overridden by runtime kwargs.
             1. loader defaults     (lowest)
             2. interval plotter kwargs (interval_plotter_kwargs)
             3. component overrides (self.loader_kwargs)
-            4. runtime overrides   (**runtime_loader_kwargs)
-            5. component loader-specific overrides (self.loader_overrides)
-            6. runtime loader-specific overrides (_extract_loader_specific_overrides(runtime_overrides)) (highest)
+            4. component loader-specific overrides (self.loader_overrides)
+            5. runtime overrides   (**runtime_overrides; for one component, IntervalPlotter merges
+               get_interval_data(ComponentName={...}) over get_interval_data(**kwargs))
+            6. runtime loader-specific overrides ({'SomeLoader': {...}} in runtime_overrides) (highest)
 
         Returns
         -------
@@ -293,8 +295,8 @@ class PlotComponent(LoggerMixin):
                 **loader_defaults,
                 **interval_plotter_kwargs, # specified during IntervalPlotter.__init__
                 **component_overrides, # specified during component.__init__
-                **runtime_overrides, # specified during IntervalPlotter.get_interval_data
                 **self.loader_overrides.get(LoaderClass.__name__, {}), # specified during component.__init__
+                **runtime_overrides, # specified during IntervalPlotter.get_interval_data
                 **runtime_loader_specific_overrides.get(LoaderClass.__name__, {}), # specified during IntervalPlotter.get_interval_data
             }
 

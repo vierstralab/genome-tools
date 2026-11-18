@@ -1,17 +1,15 @@
 from typing import Sequence, List, Any
 from matplotlib import gridspec
 from matplotlib import pyplot as plt
-from concurrent.futures import ProcessPoolExecutor, as_completed
-import networkx as nx
 import pandas as pd
-
-from tqdm import tqdm
 
 from genome_tools import GenomicInterval
 
 from genome_tools.plotting.modular_plot.api import PlotComponent, IntervalPlotComponent
 from genome_tools.plotting.modular_plot.api import extract_class_specific_overrides
-from genome_tools.plotting.modular_plot.utils import LoggerMixin, DataBundle, components_namedtuple, markdown_table
+from genome_tools.plotting.modular_plot.utils import LoggerMixin, DataBundle, components_namedtuple
+from genome_tools.plotting.modular_plot.display import markdown_table
+from genome_tools.plotting.modular_plot.loading_workflow import LoadingWorkflow
 from genome_tools.plotting.connectors import connect_axes_lines, connect_axes_area
 from genome_tools.plotting.utils import format_axes_to_interval
 
@@ -340,7 +338,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             + markdown_table(['#', 'Component', 'Class', 'Height', 'interval_key', 'Attached loaders'], rows) + '\n\n'
             + '\n\n'.join(details)
         )
-    
+
     def setup_default_gridspec(self, subplot_spec=None): # get rid of gridspec
         """
         Setup the GridSpec for the vertical components in the figure.
@@ -441,9 +439,22 @@ class IntervalPlotter(VerticalConnectorMixin):
         data : CompTuple[DataBundle]
             A named tuple of DataBundle objects containing the data for each plot component. Field names match self.component_names.
         """
+        workflow = self.get_loading_workflow(interval, use_loaders_cache=use_loaders_cache, **loaders_kwargs)
+        return self.CompTuple(*workflow.load(n_cpus))
+
+    def get_loading_workflow(self, interval, use_loaders_cache=True, **loaders_kwargs):
+        """
+        Loader calls that `get_interval_data` runs with these arguments, without loading anything.
+        Displayed in notebooks as a tree of intervals and loader calls.
+
+        Usage
+        -----
+        workflow = interval_plotter.get_loading_workflow(interval)
+        workflow  # in a notebook
+        workflow.tree  # nx.DiGraph
+        """
         tasks = self.resolve_loader_kwargs(interval, **loaders_kwargs)
-        tree, calls, paths = self.resolve_loaders_caching(tasks, use_loaders_cache)
-        return self.CompTuple(*self._load_data(tree, calls, paths, n_cpus))
+        return LoadingWorkflow.from_tasks(tasks, use_loaders_cache)
 
     def resolve_loader_kwargs(self, interval, **loaders_kwargs):
         """
@@ -492,97 +503,6 @@ class IntervalPlotter(VerticalConnectorMixin):
                 (component, component_interval, component.resolve_loader_kwargs(**component_loader_kwargs))
             )
         return tasks
-
-    @staticmethod
-    def resolve_loaders_caching(tasks, use_loaders_cache=True):
-        """
-        Find the loader calls shared between components. Nothing is loaded.
-        Each component is a path: its interval, then its loader calls. Paths with a common
-        beginning share it in the prefix tree, so each shared loader call runs once.
-        Intervals and loader kwargs are compared as objects (by id); `calls` holds them,
-        so the compared ids stay unique while it exists.
-        If use_loaders_cache is False, every component gets its own path.
-
-        Returns
-        -------
-        tree : nx.DiGraph
-            `nx.prefix_tree` of the paths: root 0, intervals are its children,
-            node attribute 'source' is the path element.
-        calls : dict
-            path element -> interval, or (component, LoaderClass, loader_kwargs).
-        paths : list
-            Path of each component.
-        """
-        calls = {}
-        paths = []
-        for i, (component, component_interval, resolved) in enumerate(tasks):
-            start = ('interval', id(component_interval) if use_loaders_cache else i)
-            calls[start] = component_interval
-            path = [start]
-            for LoaderClass, loader_kwargs in resolved:
-                call = (LoaderClass, tuple((k, id(v)) for k, v in sorted(loader_kwargs.items())))
-                calls.setdefault(call, (component, LoaderClass, loader_kwargs))
-                path.append(call)
-            paths.append(path)
-        return nx.prefix_tree(paths), calls, paths
-
-    def _load_data(self, tree, calls, paths, n_cpus=1):
-        """
-        Run the loader calls from `resolve_loaders_caching`.
-        Returns the data of each component, in the order of paths.
-        """
-        data = {}
-        jobs = []
-        for interval_node in tree.successors(0):
-            data[interval_node] = DataBundle(interval=calls[tree.nodes[interval_node]['source']])
-            # each first loader call is loaded together with the calls that follow it;
-            # a job gets only its part of the tree and its calls (sent to another process with n_cpus > 1)
-            for first in tree.successors(interval_node):
-                if first == -1:  # end of a path
-                    continue
-                subtree = tree.subgraph({first, *nx.descendants(tree, first)}).copy()
-                subtree_calls = {
-                    subtree.nodes[node]['source']: calls[subtree.nodes[node]['source']]
-                    for node in subtree if node != -1
-                }
-                jobs.append((subtree, subtree_calls, first, data[interval_node]))
-
-        n_cpus = min(n_cpus, len(jobs))
-        if n_cpus <= 1:
-            for job in tqdm(jobs, desc="Loading data"):
-                data.update(self._load_data_from_tree(*job))
-        else:
-            with ProcessPoolExecutor(max_workers=n_cpus) as executor:
-                futures = [executor.submit(self._load_data_from_tree, *job) for job in jobs]
-                for future in tqdm(as_completed(futures), total=len(futures), desc="Loading data"):
-                    data.update(future.result())
-
-        results = []
-        handed_out = set()
-        for path in paths:
-            node = 0
-            for element in path:
-                node = next(child for child in tree.successors(node) if tree.nodes[child]['source'] == element)
-            # components with the same path get their own copy
-            results.append(data[node].copy() if node in handed_out else data[node])
-            handed_out.add(node)
-        return results
-
-    @staticmethod
-    def _load_data_from_tree(tree, calls, first, interval_data):
-        """
-        Run the loader call `first` on interval_data, then the calls that follow it.
-        Returns {tree node: DataBundle}.
-        """
-        data = {}
-        for node in nx.dfs_preorder_nodes(tree, first):
-            if node == -1:  # end of a path
-                continue
-            component, LoaderClass, loader_kwargs = calls[tree.nodes[node]['source']]
-            previous = interval_data if node == first else data[next(tree.predecessors(node))]
-            # copy, so the result of the previous loader call is not modified
-            data[node] = component.run_loader(previous.copy(), LoaderClass, loader_kwargs)
-        return data
 
     def _validate_loaders_kwargs(self, **loaders_kwargs):
         common_kwargs = set(loaders_kwargs) & set(self.loaders_kwargs)

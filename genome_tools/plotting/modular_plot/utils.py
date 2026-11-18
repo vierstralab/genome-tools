@@ -2,34 +2,7 @@ import html
 import logging
 from collections import namedtuple
 
-
-def markdown_value(value, max_len=50):
-    """
-    Short markdown summary of a value for notebook tables.
-    Shapes instead of contents for arrays/DataFrames, lengths for long containers.
-    """
-    if isinstance(value, RequiredArgument):
-        return '**required, not set**'
-    shape = getattr(value, 'shape', None)
-    if isinstance(shape, tuple):
-        dtype = getattr(value, 'dtype', None)
-        return f"{type(value).__name__} {' × '.join(map(str, shape))}" + (f" {dtype}" if dtype is not None else "")
-    if isinstance(value, (list, tuple, dict, set)) and len(value) > 3:
-        return f"{type(value).__name__} ({len(value)} items)"
-    text = repr(value)
-    if len(text) > max_len:
-        half = (max_len - 1) // 2
-        text = text[:half] + '…' + text[-half:]
-    return '`' + text.replace('`', "'").replace('|', '\\|') + '`'
-
-
-def markdown_table(header, rows):
-    """
-    Markdown table from a header and rows of already formatted cells.
-    """
-    lines = ['| ' + ' | '.join(header) + ' |', '|' + '---|' * len(header)]
-    lines += ['| ' + ' | '.join(map(str, row)) + ' |' for row in rows]
-    return '\n'.join(lines)
+from genome_tools.plotting.modular_plot.display import markdown_value, components_tuple_markdown
 
 
 def components_namedtuple(field_names):
@@ -39,40 +12,18 @@ def components_namedtuple(field_names):
     if it has more to show (expanded if the tuple has a single value).
     """
     base = namedtuple('ComponentNamesTuple', field_names)
-
-    def get(self, name, default=None):
-        """
-        Value by component name, like dict.get.
-        """
-        return getattr(self, name) if name in self._fields else default
-
-    def _repr_markdown_(self):
-        example = self._fields[0] if self._fields else 'name'
-        parts = [
-            f"**{type(self).__name__}** · namedtuple with {len(self)} fields, "
-            f"access as `.{example}`, `[0]` or `.get('{example}')`"
-        ]
-        for name, value in zip(self._fields, self):
-            summary, body = _markdown_parts(value)
-            title = f"<b>{html.escape(name)}</b>: {summary}"
-            if body is None:
-                parts.append(title)
-            elif len(self) == 1:
-                parts.append(f"{title}\n\n{body}")
-            else:
-                parts.append(f"<details><summary>{title}</summary>\n\n{body}\n\n</details>")
-        return '\n\n'.join(parts)
-
-    return type('ComponentNamesTuple', (base,), {'__slots__': (), 'get': get, '_repr_markdown_': _repr_markdown_})
+    return type('ComponentNamesTuple', (base,), {
+        '__slots__': (),
+        'get': _components_tuple_get,
+        '_repr_markdown_': components_tuple_markdown,
+    })
 
 
-def _markdown_parts(value):
+def _components_tuple_get(self, name, default=None):
     """
-    One-line summary (inline HTML) and markdown body (None if nothing to expand) of a value.
+    Value by component name, like dict.get.
     """
-    if hasattr(value, '_markdown_parts'):
-        return value._markdown_parts()
-    return f"<code>{html.escape(repr(value))}</code>", None
+    return getattr(self, name) if name in self._fields else default
 
 
 class LoggerMixin:
@@ -179,3 +130,6 @@ class DataBundle(LoggerMixin):
 class RequiredArgument:
     def __repr__(self):
         return 'Required loader arg'
+
+    def _markdown_value_(self):
+        return '**required, not set**'
