@@ -5,6 +5,12 @@ read data for an interval (`genome_tools.data.extractors`), manipulate intervals
 interval DataFrames (`genome_tools.genomic_interval`), plot an interval
 (`genome_tools.plotting`, `genome_tools.plotting.modular_plot`).
 
+When to use: code that imports `genome_tools`, or works with genomic intervals: building or
+shifting/zooming intervals, reading FASTA / bigWig / figwig / tabix data for a region,
+overlapping BED-like DataFrames, plotting a region (signal tracks, genes, ideogram, motif logos),
+or making multi-track figures with `IntervalPlotter` and plot components (also from
+vinson, hotspot3 or regulome notebooks).
+
 Downstream packages (hotspot3, vinson, nmf-tools, footprint-tools) import it, so keep
 public names and signatures stable, and keep the core light (see "Dependencies").
 
@@ -27,7 +33,7 @@ public names and signatures stable, and keep the core light (see "Dependencies")
 
 ## GenomicInterval
 
-- 0-based, half-open (BED). `to_ucsc()` prints the same numbers (`chr1:100-200`), no +1.
+- 0-based, half-open (BED). `to_ucsc()` prints UCSC formatted string (`chr1:100-200`)
   `to_ucsc(commas=True)` adds thousands separators (`chr1:1,000-2,000`).
 - Extra fields are kwargs: `GenomicInterval('chr1', 100, 200, name='peak1', score=5)`; they are carried by `copy`, `widen`, `shift`, `zoom`.
 - Methods return a new interval unless `inplace=True`.
@@ -37,6 +43,13 @@ public names and signatures stable, and keep the core light (see "Dependencies")
 - `GenomicInterval.from_ucsc('chr1:1,000-2,000')` accepts commas.
 - `VariantInterval(chrom, pos, pos + 1, ref, alt)` is a 1 bp interval; `widen`/`shift`/`zoom` on it raise, convert with `.gi()` first.
 - `df_to_genomic_intervals(df, interval=None, extra_columns=())` expects `#chr`/`chrom`, `start`, `end` columns; passing `interval` keeps only rows overlapping it.
+  Only these columns and `extra_columns` are carried over.
+- `df_to_variant_intervals(df, interval=None, extra_columns=())` also needs `ref` and `alt`; with a
+  `VariantInterval` as `interval`, rows must match its `ref`/`alt` too (pass `.gi()` to filter by position only).
+- `intervals_to_df(intervals)`, the inverse of `df_to_*_intervals`: DataFrame with `chrom`, `start`,
+  `end` (+ `ref`, `alt`), then a column per extra field (always includes `name`). All intervals must
+  be of the same class and have the same extra field names (in any order, values differ), as
+  intervals made by `df_to_*_intervals` do.
 
 ## Interval tables (bed_overlaps)
 

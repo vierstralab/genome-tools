@@ -346,7 +346,7 @@ def intervals_to_df(intervals: List[GenomicInterval]):
     for interval in intervals:
         assert isinstance(interval, interval_type_cls), "Not all intervals are of the same type!"
 
-        assert interval.extra_fields == extra_fields, "Not all intervals have the same extra fields!"
+        assert set(interval.extra_fields) == set(extra_fields), "Not all intervals have the same extra fields!"
 
         result.append(
             [getattr(interval, field) for field in fields]

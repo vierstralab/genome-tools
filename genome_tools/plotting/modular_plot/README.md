@@ -22,9 +22,9 @@ Using plot components to plot model predictions and peak calls: the [vinson tuto
   - [hotspot3 components](#hotspot3-components)
   - [DHS components](#dhs-components)
 - [Overriding loader parameters](#overriding-loader-parameters)
-- [Using the same component multiple times](#using-the-same-component-multiple-times)
 - [Debugging Data Loading](#debugging-data-loading)
 - [Accessing Component Axes](#accessing-component-axes)
+  - [Using the same component multiple times](#using-the-same-component-multiple-times)
 - [Developing your own components](#developing-your-own-components)
 
 # Key concepts
@@ -324,7 +324,7 @@ SequencePlotComponent(
 ```
 
 ### Motif hits components
-These section describes the `MotifHitsComponent` and it's derivatives with various motif selection criteria
+This section describes `MotifHitsComponent` and its derivatives with various motif selection criteria.
 
 #### MotifHitsComponent
 Base component that displays transcription factor motif hits as sequence logos.
@@ -392,7 +392,7 @@ TODO: Add example
 #### FPWeightedMotifHitsComponent
 
 Extension of MotifHitsComponent. Has an alternative method for choosing best motif hits -
-`choose_by='weighted_dg'`. In this case heights of the TF protected nucleotides treated as per-position weights (see [TFProtectedNucleotidesComponent](#TFProtectedNucleotidesComponent) for more details)
+`choose_by='weighted_dg'`. In this case heights of the TF protected nucleotides treated as per-position weights (see [TFProtectedNucleotidesComponent](#tfprotectednucleotidescomponent) for more details)
 
 ! Note: weighted_dg works only if motif hits *fully* overlap `data.interval`. The motif hits on the edges of the `data.interval` are filtered out.
 
@@ -400,11 +400,11 @@ Extension of MotifHitsComponent. Has an alternative method for choosing best mot
 
 **Required loader arguments**
 
-In addition to [MotifHitsComponent](#MotifHitsComponent) required arguments: `groups_data`, `posterior_file`, `fasta_file`.
+In addition to [MotifHitsComponent](#motifhitscomponent) required arguments: `groups_data`, `posterior_file`, `fasta_file`.
 
 **Optional loader arguments**
 
-In addition to [MotifHitsComponent](#MotifHitsComponent) loader arguments the following options are available:
+In addition to [MotifHitsComponent](#motifhitscomponent) loader arguments the following options are available:
 `protected_nuc_sample_ids`: subset of sample_ids to take into account when calculating protected nucleotides (useful when want to get protected nucleotides only for a subset of samples, e.g. a certain cell type). (default: None)
 
 
@@ -439,7 +439,7 @@ TODO: Add example
 ...
 
 ### FPWeightedMotifHitsComponent (duplicate)
-See [FPWeightedMotifHitsComponent](#FPWeightedMotifHitsComponent) for more details
+See [FPWeightedMotifHitsComponent](#fpweightedmotifhitscomponent) for more details
 
 
 ## Variant components
@@ -623,10 +623,10 @@ NMFTracksComponent(
 Loader parameters can be overridden at multiple levels (from lowest to highest priority): everything set when creating the plotter and components is overridden by what is passed at runtime, and within each, the more specific wins. Examples below; [`examples/SetLoaderAndPlotKwargs.ipynb`](examples/SetLoaderAndPlotKwargs.ipynb) has an example for each level on regulome files, together with plot kwargs and `axes_kwargs`:
 
 1. **Loader defaults** - Defined in the loader's `_load` method signature
-2. **Global overrides** - Passed to `IntervalPlotter.__init__`. Recommended for metadata files, and something that can be safely be used by any component
+2. **Global overrides** - Passed to `IntervalPlotter.__init__`. Recommended for metadata files and anything that any component can safely use
 3. **Component-level overrides** - Passed to component `__init__`. Recommended when these overrides define the component.
 4. **Loader-specific component overrides** - Using loader name as key in component `__init__`. Generally, shouldn't be used.
-5. **Runtime overrides** - Passed to `get_interval_data(**kwargs)` or `plot(loaders_kwargs=...)`. Recommended for passing variable args that should change with the data.interval (e.g. variant_interval, annotation_regions, e.t.c.)
+5. **Runtime overrides** - Passed to `get_interval_data(**kwargs)` or `plot(loaders_kwargs=...)`. Recommended for passing variable args that should change with the data.interval (e.g. variant_interval, annotation_regions, etc.)
 6. **Runtime component overrides** - Using component name as key at runtime: `get_interval_data(ComponentName={...})`.
 7. **Runtime loader-specific overrides** - Using loader name as key at runtime, for all components (`get_interval_data(SignalLoader={...})`) or for one (`get_interval_data(ComponentName={'SignalLoader': {...}})`). Generally, shouldn't be used.
 
@@ -670,25 +670,6 @@ data, axes = plotter.plot(
 )
 ```
 
-# Using the same component multiple times
-
-By default, components are named after their class. Multiple components within one plot can't have the same name. Customize names to use multiple instances:
-
-```python
-plotter = IntervalPlotter([
-    TrackComponent(name='AG95384', signal_file='https://regulome.altius.org/data/per_sample/AG95384/AG95384.normalized_density.bw', height=1.0),
-    TrackComponent(name='AG95451', signal_file='https://regulome.altius.org/data/per_sample/AG95451/AG95451.normalized_density.bw', height=1.0),
-    TrackComponent(name='AG80853', signal_file='https://regulome.altius.org/data/per_sample/AG80853/AG80853.normalized_density.bw', height=1.0),
-])
-
-data, axes = plotter.plot(interval)
-
-# Access by custom name
-axes.AG95384
-axes.AG95451
-axes.AG80853
-```
-
 # Debugging Data Loading
 
 The `DataBundle` tracks which loaders have processed it:
@@ -711,12 +692,12 @@ In a notebook, show `plotter`, a component, `data` or `plotter.get_loading_workf
 
 # Accessing Component Axes
 
-The `plot()` and `plot_interval()` methods return a named tuple of axes:
+The `plot()` and `plot_interval()` methods return a named tuple of axes (and `data` is a named tuple of `DataBundle`s with the same names):
 
 ```python
 data, axes = plotter.plot(interval)
 
-# Access by component name
+# Access by component name (the class name, or `name=` if set)
 ideogram_ax = axes.IdeogramComponent
 gencode_ax = axes.GencodeComponent
 
@@ -728,8 +709,22 @@ track_ax = getattr(axes, name)  # or axes._asdict()[name]
 first_ax = axes[0]
 second_ax = axes[1]
 
-
 axes[-1].set_xlabel('Genomic Position')
+```
+
+## Using the same component multiple times
+
+By default, components are named after their class. Multiple components within one plot can't have the same name. Customize names to use multiple instances:
+
+```python
+plotter = IntervalPlotter([
+    TrackComponent(name='AG95384', signal_file='https://regulome.altius.org/data/per_sample/AG95384/AG95384.normalized_density.bw', height=1.0),
+    TrackComponent(name='AG95451', signal_file='https://regulome.altius.org/data/per_sample/AG95451/AG95451.normalized_density.bw', height=1.0),
+    TrackComponent(name='AG80853', signal_file='https://regulome.altius.org/data/per_sample/AG80853/AG80853.normalized_density.bw', height=1.0),
+])
+
+data, axes = plotter.plot(interval)
+axes.AG95451
 ```
 
 # Developing your own components
