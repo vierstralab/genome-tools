@@ -311,35 +311,50 @@ class IntervalPlotter(VerticalConnectorMixin):
     def __repr__(self):
         return f"IntervalPlotter(Plotcomponents=[{', '.join(self.component_names)}])"
     
-    def setup_default_gridspec(self): # get rid of gridspec
+    def setup_default_gridspec(self, subplot_spec=None): # get rid of gridspec
         """
         Setup the GridSpec for the vertical components in the figure.
         Components are plotted in a vertical stack with specified heights and margins.
+        If subplot_spec is provided, the GridSpec is nested inside it.
         """
         height_ratios = [
             x
             for c in self.plot_components
             for x in [c.margin_top, c.height, c.margin_bottom]
         ]
+        if subplot_spec is not None:
+            return gridspec.GridSpecFromSubplotSpec(
+                len(height_ratios), 1,
+                subplot_spec=subplot_spec,
+                height_ratios=height_ratios,
+                hspace=0
+            )
         return gridspec.GridSpec(len(height_ratios), 1, height_ratios=height_ratios, hspace=0)
 
-    def get_all_component_gridspecs(self):  # get rid of gridspec
+    @staticmethod
+    def _plot_row(component_idx):
+        """
+        Row of the component's axes in the GridSpec from `setup_default_gridspec`.
+        Each component occupies 3 rows: margin_top, height, margin_bottom.
+        """
+        return 3 * component_idx + 1
+
+    def get_all_component_gridspecs(self, gs=None):  # get rid of gridspec
         """
         Get the GridSpecs for each vertical plot component.
         """
+        if gs is None:
+            gs = self.gridspec
         return self.CompTuple(*[
-            self.gridspec[3 * i + 1, :] for i in range(len(self.plot_components))
+            gs[self._plot_row(i), :] for i in range(len(self.plot_components))
         ])
     
-    def get_gridspec_for_component(self, component, include_top_margin=False,
-                                   include_bottom_margin=False):  # get rid of gridspec
+    def get_gridspec_for_component(self, component, gs=None):  # get rid of gridspec
         """
         Get the GridSpec slice for a specific vertical plot component.
         """
-        index = self.component_names.index(self._convert_component_to_name(component))
-        start = 3 * index if include_top_margin else 3 * index + 1
-        end = 3 * index + 3 if include_bottom_margin else 3 * index + 2
-        return self.gridspec[start: end, :]
+        name = self._convert_component_to_name(component)
+        return getattr(self.get_all_component_gridspecs(gs), name)
     
     def _setup_figure(self, fig_width, fig_height, height_scale):
         """
@@ -462,7 +477,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             )
             self.logger.warning("Using values passed to get_interval_data function.")
 
-    def plot_interval(self, data: Any, fig_width=None, fig_height=None, height_scale=None, **plotting_kwargs):
+    def plot_interval(self, data: Any, fig_width=None, fig_height=None, height_scale=None, subplot_spec=None, **plotting_kwargs):
         """
         Plot the genomic interval from the provided data for self.component_names. Data is expected to be a named tuple with fields matching self.component_names.
 
@@ -482,7 +497,11 @@ class IntervalPlotter(VerticalConnectorMixin):
         height_scale : float, optional
             Scale factor to apply to the figure height. If None, defaults to 1.0.
             Ignored if fig_height is provided.
-        
+
+        subplot_spec : matplotlib.gridspec.SubplotSpec, optional
+            Region of an existing figure to plot the components into (e.g. outer_gs[0, 1]).
+            If None (default), creates a new figure. fig_width, fig_height and height_scale are ignored when provided.
+
         plotting_kwargs : dict
             Additional keyword arguments to pass to each component's plot method.
 
@@ -492,12 +511,22 @@ class IntervalPlotter(VerticalConnectorMixin):
         data = interval_plotter.get_interval_data(interval, plot_components)
         # Plot the interval
         component_axes = interval_plotter.plot_interval(data)
+
+        # Plot into a region of an existing figure
+        fig = plt.figure(figsize=(8, 4))
+        outer_gs = fig.add_gridspec(1, 2)
+        component_axes = interval_plotter.plot_interval(data, subplot_spec=outer_gs[0, 1])
         """
-        fig: plt.Figure = self._setup_figure(fig_width, fig_height, height_scale)
-        
+        if subplot_spec is None:
+            fig: plt.Figure = self._setup_figure(fig_width, fig_height, height_scale)
+            gs = self.gridspec
+        else:
+            fig: plt.Figure = subplot_spec.get_gridspec().figure
+            gs = self.setup_default_gridspec(subplot_spec)
+
         component_axes = []
 
-        gridspecs = self.get_all_component_gridspecs()
+        gridspecs = self.get_all_component_gridspecs(gs)
 
         assert len(gridspecs) == len(self.plot_components)
 

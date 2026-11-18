@@ -71,6 +71,9 @@ with TabixExtractor(bed_gz, columns=[...]) as tbx: # if columns not provided - i
 - `IntervalPlotter(components, **loader_kwargs)` stacks components vertically.
   `plotter.plot(interval)` returns `(data, axes)`; or call `get_interval_data` then `plot_interval`.
   `interval` can be a dict `{interval_key: GenomicInterval}` to give rows different intervals.
+- `plot_interval(data, subplot_spec=outer_gs[0, 1])` draws into a cell of an existing figure's
+  gridspec instead of a new figure (`fig_width`/`fig_height`/`height_scale` are then ignored).
+  `plot()` always makes a new figure.
 - Loader argument priority (low -> high): loader defaults, `IntervalPlotter(**kwargs)`,
   component kwargs, `get_interval_data(**kwargs)`, loader-specific overrides on the component
   (`Component(SomeLoader={'arg': value})`), loader-specific overrides in `get_interval_data`.
@@ -128,6 +131,15 @@ only when that component/loader runs:
   `modular_plot/README.md` in sync when adding components.
 - Docs and examples:
   - Examples use public files (regulome.altius.org, resources.altius.org), so they run anywhere;
+  - To check a change on real data (instead of mock arrays), read these files remotely; extractors
+    and loaders accept the URLs directly, no download needed:
+    - regulome per sample (`{s}` e.g. `AG95384`, `AG95451`), base `https://regulome.altius.org/data/per_sample/{s}/`:
+      `{s}.normalized_density.bw`, `peaks/{s}.background.bw`,
+      `peaks/fdr0.05/{s}.hotspots.fdr0.05.bed.gz`, `peaks/fdr0.05/{s}.peaks.fdr0.05.bed.gz`
+    - GENCODE: `https://resources.altius.org/~sabramov/collaborations/vinson/examples/gencode.v49.basic.annotation.sorted.gff3.gz`
+    - FASTA: `https://resources.altius.org/~sabramov/collaborations/vinson/examples/GRCh38_no_alts.fa`
+    - ideogram: `read_ideogram('http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/cytoBandIdeo.txt.gz')`
+    - region with signal for all of the above: `chr2:60450000-60540000` (BCL11A)
   - `examples/UsageExamples.ipynb` covers data extraction and basic plot functions only;
     Don't repeat the same example in several places; link instead.
 

@@ -7,9 +7,9 @@ genome-tools is a shared Python toolkit built around a single core object, the `
 
 It underlies several downstream Vierstra lab packages as well (e.g. hotspot3, vinson, nmf-tools).
 
-Examples: [UsageExamples.ipynb](examples/UsageExamples.ipynb) (reading data and basic plots, runs on public data); more, including multi-track plots and their use in vinson and regulome, in [examples/README.md](examples/README.md).
+Examples: [UsageExamples.ipynb](https://github.com/vierstralab/genome-tools/blob/master/examples/UsageExamples.ipynb) (reading data and basic plots, runs on public data); more, including multi-track plots and their use in vinson and regulome, in [examples/README.md](https://github.com/vierstralab/genome-tools/blob/master/examples/README.md).
 
-Coding agents: read [AGENTS.md](AGENTS.md) first.
+Coding agents: read [AGENTS.md](https://github.com/vierstralab/genome-tools/blob/master/AGENTS.md) first.
 
 ## Table of contents
 
@@ -25,12 +25,12 @@ Coding agents: read [AGENTS.md](AGENTS.md) first.
 
 ## Repository layout
 
-- [`genome_tools/genomic_interval.py`](genome_tools/genomic_interval.py) — `GenomicInterval` / `VariantInterval` classes and DataFrame <-> interval conversion helpers.
-- [`genome_tools/bed_overlaps.py`](genome_tools/bed_overlaps.py) — overlap flags and distance to the closest interval between BED-like DataFrames (`pyranges` extra).
-- [`genome_tools/data/`](genome_tools/data/) — file extractors (FASTA, BigWig, FigWig, tabix, parquet, D4, VCF genotypes/reads) and `AnnData` helpers.
-- [`genome_tools/plotting/`](genome_tools/plotting/) — standalone plot functions (`signal_plot`, `gene_annotation_plot`, `ideogram_plot`, sequence/motif-logo plotting, color palettes/colormaps) and the [modular plotting framework](genome_tools/plotting/modular_plot/) for building composable, multi-track interval plots.
-- [`genome_tools/utils/`](genome_tools/utils/) — signal smoothing/aggregation and sequence helpers.
-- [`examples/`](examples/) — [UsageExamples.ipynb](examples/UsageExamples.ipynb) and an [index of examples](examples/README.md), including plot components used in vinson and regulome.
+- [`genome_tools/genomic_interval.py`](https://github.com/vierstralab/genome-tools/blob/master/genome_tools/genomic_interval.py) — `GenomicInterval` / `VariantInterval` classes and DataFrame <-> interval conversion helpers.
+- [`genome_tools/bed_overlaps.py`](https://github.com/vierstralab/genome-tools/blob/master/genome_tools/bed_overlaps.py) — overlap flags and distance to the closest interval between BED-like DataFrames (`pyranges` extra).
+- [`genome_tools/data/`](https://github.com/vierstralab/genome-tools/tree/master/genome_tools/data/) — file extractors (FASTA, BigWig, FigWig, tabix, parquet, D4, VCF genotypes/reads) and `AnnData` helpers.
+- [`genome_tools/plotting/`](https://github.com/vierstralab/genome-tools/tree/master/genome_tools/plotting/) — standalone plot functions (`signal_plot`, `gene_annotation_plot`, `ideogram_plot`, sequence/motif-logo plotting, color palettes/colormaps) and the [modular plotting framework](https://github.com/vierstralab/genome-tools/tree/master/genome_tools/plotting/modular_plot/) for building composable, multi-track interval plots.
+- [`genome_tools/utils/`](https://github.com/vierstralab/genome-tools/tree/master/genome_tools/utils/) — signal smoothing/aggregation and sequence helpers.
+- [`examples/`](https://github.com/vierstralab/genome-tools/tree/master/examples/) — [UsageExamples.ipynb](https://github.com/vierstralab/genome-tools/blob/master/examples/UsageExamples.ipynb) and an [index of examples](https://github.com/vierstralab/genome-tools/blob/master/examples/README.md), including plot components used in vinson and regulome.
 
 
 ## Installation
@@ -66,7 +66,7 @@ Some plot components need the package they visualize (`vinson` for prediction/at
 
 ### Genomic intervals
 
-`GenomicInterval` ([`genomic_interval.py`](genome_tools/genomic_interval.py)) is a BED-style coordinate object that supports arbitrary extra fields (e.g. `score`, `name`, custom metadata columns) attached as kwargs:
+`GenomicInterval` ([`genomic_interval.py`](https://github.com/vierstralab/genome-tools/blob/master/genome_tools/genomic_interval.py)) is a BED-style coordinate object that supports arbitrary extra fields (e.g. `score`, `name`, custom metadata columns) attached as kwargs:
 
 ```python
 from genome_tools import GenomicInterval
@@ -85,7 +85,7 @@ iv.overlaps(other_iv)  # bool
 
 ### Overlaps between interval tables
 
-[`genome_tools/bed_overlaps.py`](genome_tools/bed_overlaps.py) annotates a BED-like DataFrame (`#chr`/`chrom`, `start`, `end`) against other ones. Results are aligned to the index of the first DataFrame. Needs the `pyranges` extra.
+[`genome_tools/bed_overlaps.py`](https://github.com/vierstralab/genome-tools/blob/master/genome_tools/bed_overlaps.py) annotates a BED-like DataFrame (`#chr`/`chrom`, `start`, `end`) against other ones. Results are aligned to the index of the first DataFrame. Needs the `pyranges` extra.
 
 ```python
 from genome_tools.bed_overlaps import overlaps_any, distance_to_closest
@@ -97,7 +97,7 @@ distance_to_closest(peaks, tss)            # bp to the closest TSS; 0 if overlap
 
 ### Data extraction
 
-[`genome_tools/data/extractors.py`](genome_tools/data/extractors.py) provides context-manager extractors keyed by `GenomicInterval`, each wrapping the relevant file format:
+[`genome_tools/data/extractors.py`](https://github.com/vierstralab/genome-tools/blob/master/genome_tools/data/extractors.py) provides context-manager extractors keyed by `GenomicInterval`, each wrapping the relevant file format:
 - `FastaExtractor` / `InMemoryFastaExtractor` — pysam-backed and fully-in-RAM FASTA sequence access
 - `BigwigExtractor` — per-base signal from BigWig
 - `FigwigExtractor` — per-base signal from one or many tracks of a [figwig](https://github.com/jmschrei/figwig) (`.fw`) file, returns `(n_tracks, len(interval))` (or 1D for a single track name)
@@ -108,7 +108,7 @@ distance_to_closest(peaks, tss)            # bp to the closest TSS; 0 if overlap
 
 ⚠️ Most extractors wrap non-thread-safe file handles (`pysam`, `pyBigWig`) — open separate instances per worker when using multiprocessing.
 
-[`genome_tools/data/anndata.py`](genome_tools/data/anndata.py) provides `read_zarr_backed()` for opening large sample-by-peak AnnData saved with `AnnData.write_zarr` without reading every matrix into RAM (older anndata versions can't do this). Needs the `anndata` extra (`pip install "genome-tools[anndata]"`). Latest versions of anndata already implement analogous `read_lazy` function
+[`genome_tools/data/anndata.py`](https://github.com/vierstralab/genome-tools/blob/master/genome_tools/data/anndata.py) provides `read_zarr_backed()` for opening large sample-by-peak AnnData saved with `AnnData.write_zarr` without reading every matrix into RAM (older anndata versions can't do this). Needs the `anndata` extra (`pip install "genome-tools[anndata]"`). Latest versions of anndata already implement analogous `read_lazy` function
 
 ```python
 from genome_tools.data.anndata import read_zarr_backed
@@ -124,11 +124,11 @@ adata[:, mask].layers['counts'].compute()                    # read only the sel
 
 ### Plotting
 
-[`genome_tools/plotting/`](genome_tools/plotting/__init__.py) exposes standalone plotting functions: `signal_plot` (continuous tracks), `gene_annotation_plot` (Gencode-style gene models), `ideogram_plot` (chromosome ideograms), sequence/motif-logo plotting, plus axis helpers (`format_axes_to_interval`, `pack_rows`, `clear_spines`) and color palettes/colormaps.
+[`genome_tools/plotting/`](https://github.com/vierstralab/genome-tools/blob/master/genome_tools/plotting/__init__.py) exposes standalone plotting functions: `signal_plot` (continuous tracks), `gene_annotation_plot` (Gencode-style gene models), `ideogram_plot` (chromosome ideograms), sequence/motif-logo plotting, plus axis helpers (`format_axes_to_interval`, `pack_rows`, `clear_spines`) and color palettes/colormaps.
 
 ### Modular plotting framework
 
-[`genome_tools/plotting/modular_plot/`](genome_tools/plotting/modular_plot/) decouples **loading** data for a genomic interval from **rendering** it (`DataBundle`, `PlotDataLoader`, `IntervalPlotComponent`, `IntervalPlotter`), so multi-track figures (ideogram + gene model + signal + motifs + predictions, etc.) can be assembled from reusable, mix-and-match components instead of per-figure plotting code.
+[`genome_tools/plotting/modular_plot/`](https://github.com/vierstralab/genome-tools/tree/master/genome_tools/plotting/modular_plot/) decouples **loading** data for a genomic interval from **rendering** it (`DataBundle`, `PlotDataLoader`, `IntervalPlotComponent`, `IntervalPlotter`), so multi-track figures (ideogram + gene model + signal + motifs + predictions, etc.) can be assembled from reusable, mix-and-match components instead of per-figure plotting code.
 
 ```python
 from genome_tools import GenomicInterval
@@ -164,7 +164,7 @@ Commonly used components:
 
 Every component lists its loader arguments (required and with defaults) in its signature, and describes them in its docstring: `help(TrackComponent)` or `?TrackComponent` in jupyter.
 
-See [`genome_tools/plotting/modular_plot/README.md`](genome_tools/plotting/modular_plot/README.md) for the full guide — quick start, available plot components, overriding loader parameters, and debugging data loading — and [`README_develop.md`](genome_tools/plotting/modular_plot/README_develop.md) for writing your own components.
+See [`genome_tools/plotting/modular_plot/README.md`](https://github.com/vierstralab/genome-tools/blob/master/genome_tools/plotting/modular_plot/README.md) for the full guide — quick start, available plot components, overriding loader parameters, and debugging data loading — and [`README_develop.md`](https://github.com/vierstralab/genome-tools/blob/master/genome_tools/plotting/modular_plot/README_develop.md) for writing your own components.
 
 
 ## Authors

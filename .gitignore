@@ -10,3 +10,8 @@ build/
 **__pycache__/**
 docs/build/
 .ipynb_checkpoints/
+# index files downloaded by pysam when reading remote tabix/fasta
+*.tbi
+*.csi
+*.fai
+*.gzi

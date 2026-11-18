@@ -95,6 +95,20 @@ axes = plotter.plot_interval(data, fig_width=3)
 This is useful when you want to either cache data for interactive exploration
 or debug data loading separately from plotting
 
+## Plotting into an existing figure
+
+By default `plot_interval()` creates a new figure. Pass `subplot_spec` (e.g. a cell of
+your gridspec) to place the components into that region of an existing figure instead.
+`fig_width`, `fig_height` and `height_scale` are ignored in this case.
+
+```python
+fig = plt.figure(figsize=(8, 4))
+outer_gs = fig.add_gridspec(1, 2)
+other_ax = fig.add_subplot(outer_gs[0, 0])
+
+axes = plotter.plot_interval(data, subplot_spec=outer_gs[0, 1])
+```
+
 ## Different intervals for components
 
 Components can visualize different genomic intervals using `interval_key`:
