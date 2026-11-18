@@ -56,9 +56,8 @@ class GenomicInterval:
         return f'{self.__class__.__name__}({self.to_ucsc()}{extra_fields})'
 
     def to_ucsc(self, commas=False):
-        """Prints out a UCSC version of interval. Note
-        that the start coordinate is shifted by 1 to
-        reflect 1-based
+        """UCSC-style string `chrom:start-end` with the same (0-based, half-open) numbers
+        as the interval.
         commas=True adds thousands separators (chr1:1,000-2,000), readable by `from_ucsc`."""
         if commas:
             return f"{self.chrom}:{self.start:,}-{self.end:,}"
