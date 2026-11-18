@@ -2,7 +2,7 @@
 
 - [UsageExamples.ipynb](UsageExamples.ipynb): genomic and variant intervals, reading FASTA / BigWig / tabix data for an interval, DataFrame <-> intervals, and the basic plot functions (ideogram, motif logo, signal, gene annotation, segments, DNA sequence, color palettes and colormaps). Uses public data only.
 
-To plot several tracks together (`IntervalPlotter` and plot components, including vinson predictions and hotspot3 results), see the [modular plotting guide](../genome_tools/plotting/modular_plot/README.md).
+To plot several tracks together (`IntervalPlotter` and plot components, including vinson predictions and hotspot3 results), see the [modular plotting guide](../genome_tools/plotting/modular_plot/README.md). Its example notebooks are in [`genome_tools/plotting/modular_plot/examples/`](../genome_tools/plotting/modular_plot/examples/): [Debugging.ipynb](../genome_tools/plotting/modular_plot/examples/Debugging.ipynb) (what is set, what will be loaded, what was loaded) and [SetLoaderAndPlotKwargs.ipynb](../genome_tools/plotting/modular_plot/examples/SetLoaderAndPlotKwargs.ipynb) (an example for each level where loader args and plot kwargs can be set).
 
 Additional examples that use modular plot framework:
 - [hotspot3 figures](https://github.com/vierstralab/regulome/blob/master/Figure1.index/hotspot3.ipynb) in regulome: cut counts with the fitted background, peak delineation
