@@ -28,6 +28,7 @@ public names and signatures stable, and keep the core light (see "Dependencies")
 ## GenomicInterval
 
 - 0-based, half-open (BED). `to_ucsc()` prints the same numbers (`chr1:100-200`), no +1.
+  `to_ucsc(commas=True)` adds thousands separators (`chr1:1,000-2,000`).
 - Extra fields are kwargs: `GenomicInterval('chr1', 100, 200, name='peak1', score=5)`; they are carried by `copy`, `widen`, `shift`, `zoom`.
 - Methods return a new interval unless `inplace=True`.
 - `zoom(k)`: k > 0 zooms **in** (interval k times shorter), k < 0 zooms **out** (`zoom(-5)` is 5x longer).
@@ -68,6 +69,16 @@ with TabixExtractor(bed_gz, columns=[...]) as tbx: # if columns not provided - i
   (`@uses_loaders(...)` or `Component.with_loaders(..., new_class_name=..., doc=...)`).
 - `PlotDataLoader._load(self, data, <args>)` reads files for `data.interval` and sets fields on
   `data` (a `DataBundle`). Its argument names become keyword arguments of the component.
+- Loaders must never edit an object in place (`data.signal[:] = 0`, `df['x'] = ...`,
+  `inplace=True`), neither existing `data` fields nor loader args: assign a new object
+  (`data.signal = data.signal * 0`). Even that should be rare: prefer setting a new field
+  (`data.masked_signal = ...`) over replacing one another loader set. Then every field keeps the
+  meaning given by the loader that set it, and loaders can be combined in any component
+  (`with_loaders`) without depending on their order; `DataBundle` warns when a field is
+  overridden. Components share these objects: `get_interval_data`
+  (`use_loaders_cache=True`, default) runs a loader once for components with the same interval,
+  previous loaders and loader args (same objects, compared by `id`), and loader args are passed
+  as is. In-place edits can't be detected and silently change other components' data.
 - `IntervalPlotter(components, **loader_kwargs)` stacks components vertically.
   `plotter.plot(interval)` returns `(data, axes)`; or call `get_interval_data` then `plot_interval`.
   `interval` can be a dict `{interval_key: GenomicInterval}` to give rows different intervals.
@@ -98,9 +109,8 @@ with TabixExtractor(bed_gz, columns=[...]) as tbx: # if columns not provided - i
 ## Dependencies
 
 Core (`genome_tools`, `genomic_interval`, `helpers`, `data.extractors`, `plotting`,
-`modular_plot.plot_components.basic`) must only need what is in `pyproject.toml`
-dependencies. hotspot3 imports the core, so never import vinson, torch or other heavy
-packages there, not even indirectly.
+`modular_plot.plot_components.basic`): hotspot3 imports the core, so never import vinson,
+torch or other heavy packages there, not even indirectly.
 
 pip extras (`pyproject.toml`): `figwig` (`FigwigExtractor`), `anndata` (anndata, zarr 2, dask; only for
 `genome_tools.data.anndata.read_zarr_backed`), `pyranges` (imported inside

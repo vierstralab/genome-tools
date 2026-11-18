@@ -61,6 +61,8 @@ class MyCustomLoader(PlotDataLoader):
 - Optional parameters have default values
 - The method must accept `data: DataBundle` as the first argument
 - Return the modified `data` object
+- Don't edit an object in place (`data.signal[:] = 0`, `df['x'] = ...`, `inplace=True`), neither existing `data` fields nor loader arguments; assign a new object instead (`data.signal = data.signal * 0`) to prevent incorrect caching (or use `use_loaders_cache=False` in `IntervalLoader`). Components share these objects: by default (`use_loaders_cache=True` in `IntervalPlotter.get_interval_data`) a loader runs once for all components sharing loaders and kwargs. An in-place edit can't be detected and silently changes the data of other components.
+- `DataBundle` warns when a field is overridden. 
 
 ### Step 2: Create a Simple Loader (No Custom Logic)
 

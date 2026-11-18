@@ -1,8 +1,8 @@
 from typing import Sequence, List, Any
-from collections import namedtuple
 from matplotlib import gridspec
 from matplotlib import pyplot as plt
 from concurrent.futures import ProcessPoolExecutor, as_completed
+import networkx as nx
 import pandas as pd
 
 from tqdm import tqdm
@@ -11,7 +11,7 @@ from genome_tools import GenomicInterval
 
 from genome_tools.plotting.modular_plot.api import PlotComponent, IntervalPlotComponent
 from genome_tools.plotting.modular_plot.api import extract_class_specific_overrides
-from genome_tools.plotting.modular_plot.utils import LoggerMixin, DataBundle
+from genome_tools.plotting.modular_plot.utils import LoggerMixin, DataBundle, components_namedtuple, markdown_table
 from genome_tools.plotting.connectors import connect_axes_lines, connect_axes_area
 from genome_tools.plotting.utils import format_axes_to_interval
 
@@ -32,7 +32,7 @@ class PlotComponentManager(LoggerMixin):
             self.logger.error(message)
             raise ValueError(message)
 
-        self.CompTuple = namedtuple('ComponentNamesTuple', self.component_names)
+        self.CompTuple = components_namedtuple(self.component_names)
 
         self.plot_components = self.CompTuple(*plot_components)
 
@@ -310,6 +310,36 @@ class IntervalPlotter(VerticalConnectorMixin):
     
     def __repr__(self):
         return f"IntervalPlotter(Plotcomponents=[{', '.join(self.component_names)}])"
+
+    def _repr_markdown_(self):
+        """
+        Notebook display: summary table of the components, then each component
+        (with loader args resolved against the IntervalPlotter kwargs) in a collapsible block.
+        """
+        header = ['**IntervalPlotter**', f"width {self.width:.3g}", f"height {self.full_height:.3g}"]
+        if self.loaders_kwargs:
+            header.append('loader args: ' + ', '.join(f"`{k}`" for k in self.loaders_kwargs))
+        rows = [
+            [
+                i + 1,
+                component.name,
+                f"`{component.__class__.__name__}`",
+                f"{component.height:.3g}",
+                f"`{component.interval_key}`" if component.interval_key is not None else '—',
+                ' → '.join(loader.__name__ for loader in component.__required_loaders__) or '—',
+            ]
+            for i, component in enumerate(self.plot_components)
+        ]
+        details = []
+        for component in self.plot_components:
+            summary, body = component._markdown_parts(interval_plotter_kwargs=self.loaders_kwargs)
+            title = f"<b>{component.name}</b>: {summary}"
+            details.append(title if body is None else f"<details><summary>{title}</summary>\n\n{body}\n\n</details>")
+        return (
+            ' · '.join(header) + '\n\n'
+            + markdown_table(['#', 'Component', 'Class', 'Height', 'interval_key', 'Attached loaders'], rows) + '\n\n'
+            + '\n\n'.join(details)
+        )
     
     def setup_default_gridspec(self, subplot_spec=None): # get rid of gridspec
         """
@@ -382,6 +412,7 @@ class IntervalPlotter(VerticalConnectorMixin):
             self,
             interval: GenomicInterval,
             n_cpus: int=1,
+            use_loaders_cache: bool=True,
             **loaders_kwargs
         ):
         """
@@ -394,8 +425,13 @@ class IntervalPlotter(VerticalConnectorMixin):
             If a dict is provided, the component-specific interval key is used to extract the interval.
 
         n_cpus : int, optional
-            Number of CPUs to use for data loading. Default is 1 (no multiprocessing). More than 1 will use multiprocessing. Max is number of components.
+            Number of CPUs to use for data loading. Default is 1 (no multiprocessing). More than 1 will use multiprocessing.
+            Max is the number of distinct first loader calls.
             Can be slower for fast loaders due to multiprocessing overhead.
+
+        use_loaders_cache : bool, optional
+            If True (default), a loader runs once for components that share the interval,
+            the previous loaders and the loader kwargs (same objects, e.g. the same DataFrame).
 
         **loaders_kwargs : dict
             Keyword arguments to pass to the loaders function.
@@ -404,6 +440,18 @@ class IntervalPlotter(VerticalConnectorMixin):
         -------
         data : CompTuple[DataBundle]
             A named tuple of DataBundle objects containing the data for each plot component. Field names match self.component_names.
+        """
+        tasks = self.resolve_loader_kwargs(interval, **loaders_kwargs)
+        tree, calls, paths = self.resolve_loaders_caching(tasks, use_loaders_cache)
+        return self.CompTuple(*self._load_data(tree, calls, paths, n_cpus))
+
+    def resolve_loader_kwargs(self, interval, **loaders_kwargs):
+        """
+        Resolve the interval and loader kwargs of each component. Nothing is loaded.
+
+        Returns
+        -------
+        tasks : list of (component, interval, [(LoaderClass, loader_kwargs), ...])
         """
         self._validate_loaders_kwargs(**loaders_kwargs)
         loaders_kwargs = {
@@ -428,8 +476,6 @@ class IntervalPlotter(VerticalConnectorMixin):
                     f"to extract the interval from the provided interval dict."
                 )
 
-            data = DataBundle(interval=component_interval)
-
             # parse component-specific kwargs
             runtime_component_specific_overrides = extract_class_specific_overrides(
                 loaders_kwargs,
@@ -443,32 +489,101 @@ class IntervalPlotter(VerticalConnectorMixin):
             }
 
             tasks.append(
-                (component, data, component_loader_kwargs)
+                (component, component_interval, component.resolve_loader_kwargs(**component_loader_kwargs))
             )
+        return tasks
 
-        n_cpus = min(n_cpus, len(tasks))
-        results = [None] * len(tasks)
-        if n_cpus == 1:
-            for i, (component, data, kwargs) in enumerate(tqdm(tasks, desc="Loading data")):
-                results[i] = component.load_data(data, **kwargs)
+    @staticmethod
+    def resolve_loaders_caching(tasks, use_loaders_cache=True):
+        """
+        Find the loader calls shared between components. Nothing is loaded.
+        Each component is a path: its interval, then its loader calls. Paths with a common
+        beginning share it in the prefix tree, so each shared loader call runs once.
+        Intervals and loader kwargs are compared as objects (by id); `calls` holds them,
+        so the compared ids stay unique while it exists.
+        If use_loaders_cache is False, every component gets its own path.
+
+        Returns
+        -------
+        tree : nx.DiGraph
+            `nx.prefix_tree` of the paths: root 0, intervals are its children,
+            node attribute 'source' is the path element.
+        calls : dict
+            path element -> interval, or (component, LoaderClass, loader_kwargs).
+        paths : list
+            Path of each component.
+        """
+        calls = {}
+        paths = []
+        for i, (component, component_interval, resolved) in enumerate(tasks):
+            start = ('interval', id(component_interval) if use_loaders_cache else i)
+            calls[start] = component_interval
+            path = [start]
+            for LoaderClass, loader_kwargs in resolved:
+                call = (LoaderClass, tuple((k, id(v)) for k, v in sorted(loader_kwargs.items())))
+                calls.setdefault(call, (component, LoaderClass, loader_kwargs))
+                path.append(call)
+            paths.append(path)
+        return nx.prefix_tree(paths), calls, paths
+
+    def _load_data(self, tree, calls, paths, n_cpus=1):
+        """
+        Run the loader calls from `resolve_loaders_caching`.
+        Returns the data of each component, in the order of paths.
+        """
+        data = {}
+        jobs = []
+        for interval_node in tree.successors(0):
+            data[interval_node] = DataBundle(interval=calls[tree.nodes[interval_node]['source']])
+            # each first loader call is loaded together with the calls that follow it;
+            # a job gets only its part of the tree and its calls (sent to another process with n_cpus > 1)
+            for first in tree.successors(interval_node):
+                if first == -1:  # end of a path
+                    continue
+                subtree = tree.subgraph({first, *nx.descendants(tree, first)}).copy()
+                subtree_calls = {
+                    subtree.nodes[node]['source']: calls[subtree.nodes[node]['source']]
+                    for node in subtree if node != -1
+                }
+                jobs.append((subtree, subtree_calls, first, data[interval_node]))
+
+        n_cpus = min(n_cpus, len(jobs))
+        if n_cpus <= 1:
+            for job in tqdm(jobs, desc="Loading data"):
+                data.update(self._load_data_from_tree(*job))
         else:
             with ProcessPoolExecutor(max_workers=n_cpus) as executor:
-                futures = {}
-                for i, (component, data, kwargs) in enumerate(tasks):
-
-                    future = executor.submit(
-                        component.load_data,
-                        data,
-                        **kwargs
-                    )
-                    futures[future] = i
-
+                futures = [executor.submit(self._load_data_from_tree, *job) for job in jobs]
                 for future in tqdm(as_completed(futures), total=len(futures), desc="Loading data"):
-                    i = futures[future]
-                    results[i] = future.result()
+                    data.update(future.result())
 
-        return self.CompTuple(*results)
-    
+        results = []
+        handed_out = set()
+        for path in paths:
+            node = 0
+            for element in path:
+                node = next(child for child in tree.successors(node) if tree.nodes[child]['source'] == element)
+            # components with the same path get their own copy
+            results.append(data[node].copy() if node in handed_out else data[node])
+            handed_out.add(node)
+        return results
+
+    @staticmethod
+    def _load_data_from_tree(tree, calls, first, interval_data):
+        """
+        Run the loader call `first` on interval_data, then the calls that follow it.
+        Returns {tree node: DataBundle}.
+        """
+        data = {}
+        for node in nx.dfs_preorder_nodes(tree, first):
+            if node == -1:  # end of a path
+                continue
+            component, LoaderClass, loader_kwargs = calls[tree.nodes[node]['source']]
+            previous = interval_data if node == first else data[next(tree.predecessors(node))]
+            # copy, so the result of the previous loader call is not modified
+            data[node] = component.run_loader(previous.copy(), LoaderClass, loader_kwargs)
+        return data
+
     def _validate_loaders_kwargs(self, **loaders_kwargs):
         common_kwargs = set(loaders_kwargs) & set(self.loaders_kwargs)
         if common_kwargs:
@@ -557,7 +672,7 @@ class IntervalPlotter(VerticalConnectorMixin):
 
         return component_axes
     
-    def plot(self, interval: GenomicInterval, n_cpus=1, fig_width=None, fig_height=None, height_scale=None, loaders_kwargs=None, **plot_kwargs):
+    def plot(self, interval: GenomicInterval, n_cpus=1, fig_width=None, fig_height=None, height_scale=None, loaders_kwargs=None, use_loaders_cache=True, **plot_kwargs):
         """
         Plot the genomic interval with all the provided vertical plot components.
         Convenience method that combines `get_interval_data` and `plot_interval`.
@@ -585,6 +700,9 @@ class IntervalPlotter(VerticalConnectorMixin):
         loaders_kwargs : dict, optional
             Keyword arguments to pass to the loaders.
 
+        use_loaders_cache : bool, optional
+            If True (default), shared loader calls run once. See `get_interval_data`.
+
         Returns
         -------
         component_axes : Iter[Axes]
@@ -604,7 +722,7 @@ class IntervalPlotter(VerticalConnectorMixin):
         if isinstance(interval, DataBundle):
             raise ValueError("Expected interval to be a GenomicInterval or dict of GenomicIntervals, got DataBundle. Use plot_interval method instead.")
         
-        data = self.get_interval_data(interval, n_cpus=n_cpus, **loaders_kwargs)
+        data = self.get_interval_data(interval, n_cpus=n_cpus, use_loaders_cache=use_loaders_cache, **loaders_kwargs)
         component_axes = self.plot_interval(
             data,
             fig_width=fig_width,

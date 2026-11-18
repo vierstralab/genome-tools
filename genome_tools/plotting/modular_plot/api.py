@@ -1,3 +1,4 @@
+import html
 import inspect
 import sys
 
@@ -10,7 +11,7 @@ import warnings
 from genome_tools.plotting.utils import format_axes_to_interval, add_axes_at_intervals
 from genome_tools import GenomicInterval
 
-from genome_tools.plotting.modular_plot.utils import LoggerMixin, DataBundle, RequiredArgument
+from genome_tools.plotting.modular_plot.utils import LoggerMixin, DataBundle, RequiredArgument, markdown_value, markdown_table
 
 
 class PlotDataLoader(LoggerMixin):
@@ -144,13 +145,69 @@ class PlotComponent(LoggerMixin):
             k: kwargs.pop(k) for k in list(kwargs)
             if k in self.__class__.__loader_kwargs_signature__
         }
+        # drop loader args not set on the component (defaults filled in by the generated __init__)
+        self.loader_kwargs = {
+            k: v for k, v in self.loader_kwargs.items()
+            if not isinstance(v, SignatureDefault)
+        }
         self._validate_loader_arg_sources()
 
         self.plot_kwargs = kwargs
 
     def __repr__(self):
         return f"{self.__class__.__name__}(name={self.name}, loaders={[loader.__name__ for loader in self.__required_loaders__]})"
-    
+
+    def _markdown_header(self):
+        # inline HTML: also rendered inside <summary> of collapsed blocks
+        return [f"<code>{self.__class__.__name__}</code>"]
+
+    def _repr_markdown_(self, interval_plotter_kwargs=None):
+        """
+        Notebook display: loaders with their arguments, and plot kwargs.
+        With interval_plotter_kwargs (from IntervalPlotter), shows the resolved values.
+        """
+        summary, body = self._markdown_parts(interval_plotter_kwargs)
+        text = f"<b>{html.escape(self.name)}</b> · {summary}"
+        return text if body is None else f"{text}\n\n{body}"
+
+    def _markdown_parts(self, interval_plotter_kwargs=None):
+        """
+        One-line summary (inline HTML) and markdown body (None if empty) for notebook display.
+        """
+        rows = []
+        for LoaderClass, loader_kwargs in self.resolve_loader_kwargs(interval_plotter_kwargs=interval_plotter_kwargs):
+            loader_name = f"`{LoaderClass.__name__}`"
+            if not loader_kwargs:
+                rows.append([loader_name, '—', '', ''])
+            for i, (arg, value) in enumerate(loader_kwargs.items()):
+                rows.append([
+                    loader_name if i == 0 else '',
+                    f"`{arg}`",
+                    markdown_value(value),
+                    self._loader_arg_source(LoaderClass, arg, value, interval_plotter_kwargs),
+                ])
+        body = []
+        if rows:
+            body.append(markdown_table(['Attached loader', 'Argument', 'Value', 'Set in'], rows))
+        if self.plot_kwargs:
+            body.append('Plot kwargs: ' + ', '.join(f"`{k}`={markdown_value(v)}" for k, v in self.plot_kwargs.items()))
+        return ' · '.join(self._markdown_header()), '\n\n'.join(body) or None
+
+    def _loader_arg_source(self, LoaderClass, arg, value, interval_plotter_kwargs):
+        """
+        Where the resolved loader arg value comes from (see `resolve_loader_kwargs`).
+        """
+        if isinstance(value, RequiredArgument):
+            return ''
+        loader_overrides = self.loader_overrides.get(LoaderClass.__name__, {})
+        if arg in loader_overrides and loader_overrides[arg] is value:
+            return f"component (`{LoaderClass.__name__}` override)"
+        if arg in self.loader_kwargs and self.loader_kwargs[arg] is value:
+            return 'component'
+        if interval_plotter_kwargs and arg in interval_plotter_kwargs and interval_plotter_kwargs[arg] is value:
+            return 'plotter'
+        return 'default'
+
     def _validate_loader_arg_sources(self):
         """
         Validate that the loader arg sources are consistent with the required loaders.
@@ -201,9 +258,9 @@ class PlotComponent(LoggerMixin):
         new_class.__module__ = cls.__module__
         return new_class
     
-    def load_data(self, data: DataBundle, *, interval_plotter_kwargs=None, **runtime_overrides):
+    def resolve_loader_kwargs(self, *, interval_plotter_kwargs=None, **runtime_overrides):
         """
-        Modifies data for the plot component using the required loaders.
+        Resolve the kwargs each required loader is called with. Nothing is loaded.
 
         Merge priority:
             1. loader defaults     (lowest)
@@ -212,29 +269,33 @@ class PlotComponent(LoggerMixin):
             4. runtime overrides   (**runtime_loader_kwargs)
             5. component loader-specific overrides (self.loader_overrides)
             6. runtime loader-specific overrides (_extract_loader_specific_overrides(runtime_overrides)) (highest)
+
+        Returns
+        -------
+        list of (LoaderClass, dict) in the order the loaders run.
         """
         if interval_plotter_kwargs is None:
             interval_plotter_kwargs = {}
 
+        runtime_loader_specific_overrides = extract_class_specific_overrides(
+            runtime_overrides,
+            classes=self.__required_loaders__
+        )
+        component_overrides = {
+            x: y for x, y in self.loader_kwargs.items()
+            if not isinstance(y, RequiredArgument)
+        }
+
+        resolved = []
         for LoaderClass in self.__required_loaders__:
             loader_defaults = LoaderClass.get_fullargspec()
-            component_overrides = {
-                x: y for x, y in self.loader_kwargs.items() 
-                if not isinstance(y, RequiredArgument)
-            }
-            component_loader_specific_overrides = self.loader_overrides.get(LoaderClass.__name__, {})
-            runtime_loader_specific_overrides = extract_class_specific_overrides(
-                runtime_overrides,
-                classes=[LoaderClass]
-            ).get(LoaderClass.__name__, {})
-
             kwargs_for_loader = {
                 **loader_defaults,
                 **interval_plotter_kwargs, # specified during IntervalPlotter.__init__
                 **component_overrides, # specified during component.__init__
                 **runtime_overrides, # specified during IntervalPlotter.get_interval_data
-                **component_loader_specific_overrides, # specified during component.__init__
-                **runtime_loader_specific_overrides, # specified during IntervalPlotter.get_interval_data
+                **self.loader_overrides.get(LoaderClass.__name__, {}), # specified during component.__init__
+                **runtime_loader_specific_overrides.get(LoaderClass.__name__, {}), # specified during IntervalPlotter.get_interval_data
             }
 
             # Keep only args that loader actually accepts
@@ -242,13 +303,32 @@ class PlotComponent(LoggerMixin):
                 k: v for k, v in kwargs_for_loader.items()
                 if k in loader_defaults
             }
+            resolved.append((LoaderClass, kwargs_for_loader))
+        return resolved
 
-            loader = LoaderClass(
-                logger_level=self.logger.level,
-                plot_component_name=self.name,
-            )
-            data = loader.load(data, **kwargs_for_loader)
-            data.processed_loaders.append(LoaderClass)
+    def run_loader(self, data: DataBundle, LoaderClass: Type[PlotDataLoader], loader_kwargs: dict):
+        """
+        Run one loader with resolved kwargs (see `resolve_loader_kwargs`).
+        """
+        loader = LoaderClass(
+            logger_level=self.logger.level,
+            plot_component_name=self.name,
+        )
+        data = loader.load(data, **loader_kwargs)
+        data.processed_loaders.append(LoaderClass)
+        return data
+
+    def load_data(self, data: DataBundle, *, interval_plotter_kwargs=None, **runtime_overrides):
+        """
+        Modifies data for the plot component using the required loaders.
+        See `resolve_loader_kwargs` for how the loader kwargs are merged.
+        """
+        resolved = self.resolve_loader_kwargs(
+            interval_plotter_kwargs=interval_plotter_kwargs,
+            **runtime_overrides
+        )
+        for LoaderClass, loader_kwargs in resolved:
+            data = self.run_loader(data, LoaderClass, loader_kwargs)
         return data
 
     def plot(self, data: DataBundle, ax: plt.Axes, **plot_kwargs):
@@ -304,6 +384,15 @@ class IntervalPlotComponent(PlotComponent):
         self.interval_key = interval_key
 
         super().__init__(name=name, logger_level=logger_level, **kwargs)
+
+    def _markdown_header(self):
+        header = super()._markdown_header() + [
+            f"height {self.height:.3g}",
+            f"margins {self.margin_top:.3g} / {self.margin_bottom:.3g}",
+        ]
+        if self.interval_key is not None:
+            header.append(f"interval_key <code>{html.escape(str(self.interval_key))}</code>")
+        return header
 
     @property
     def full_height(self):
@@ -430,6 +519,19 @@ def _collect_all_kwargs(*loaders):
     return loader_kwargs, args_info
 
 
+class SignatureDefault:
+    """
+    Default of a loader arg in the generated component __init__ signature.
+    Shown as the loader default (help, inspect.signature); PlotComponent.__init__ drops it,
+    so only the args set on the component override IntervalPlotter kwargs.
+    """
+    def __init__(self, value):
+        self.value = value
+
+    def __repr__(self):
+        return repr(self.value)
+
+
 def _update_signature(original_init, loader_kwargs: dict):
     """
     A decorator to dynamically update the init signature of a class
@@ -441,7 +543,7 @@ def _update_signature(original_init, loader_kwargs: dict):
         'kwargs'
     )
     params = [
-        inspect.Parameter(arg, inspect.Parameter.KEYWORD_ONLY, default=value)
+        inspect.Parameter(arg, inspect.Parameter.KEYWORD_ONLY, default=SignatureDefault(value))
         for arg, value in loader_kwargs.items()
     ]
     signature = add_signature_parameters(

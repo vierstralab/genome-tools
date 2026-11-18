@@ -23,7 +23,8 @@ dependencies = [
     "shapely>=2.0.5",
     "makefun",
     "tqdm",
-    "pyarrow"
+    "pyarrow",
+    "networkx"
 ]
 
 [project.optional-dependencies]

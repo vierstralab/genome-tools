@@ -55,10 +55,13 @@ class GenomicInterval:
         extra_fields = f", extra_fields={tuple(self.extra_fields)}" if len(self.extra_fields) > 0 else ""
         return f'{self.__class__.__name__}({self.to_ucsc()}{extra_fields})'
 
-    def to_ucsc(self):
+    def to_ucsc(self, commas=False):
         """Prints out a UCSC version of interval. Note
         that the start coordinate is shifted by 1 to
-        reflect 1-based"""
+        reflect 1-based
+        commas=True adds thousands separators (chr1:1,000-2,000), readable by `from_ucsc`."""
+        if commas:
+            return f"{self.chrom}:{self.start:,}-{self.end:,}"
         return f"{self.chrom}:{self.start}-{self.end}"
 
     def to_str(self):
