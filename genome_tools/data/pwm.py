@@ -119,7 +119,15 @@ def get_allelic_scores(
     alt: str,
     offset: int,
     orient: str,
+    **kwargs,
 ):
+    """
+    Calculate ref and alt allele scores for a motif hit. Sequence and offset
+    are given on the forward strand; reverse-complemented if orient is '-'.
+
+    **kwargs
+        Additional keyword arguments passed to seq_logp (e.g. bg, weights).
+    """
     if orient == "-":
         seq = reverse_complement(sequence)
         ref = complement(ref)
@@ -132,4 +140,4 @@ def get_allelic_scores(
         offset = offset
 
         # Then return these three columns
-    return calc_ddg(seq, ref, alt, offset, pfm_matrix)
+    return calc_ddg(seq, ref, alt, offset, pfm_matrix, **kwargs)
