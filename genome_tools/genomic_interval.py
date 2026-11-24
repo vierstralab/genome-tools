@@ -164,7 +164,6 @@ class GenomicInterval:
     
     def to_variant_interval(self, ref=None, alt=None):
         kwargs = {"ref": ref, "alt": alt}
-        assert len(self) == 1, "Can only convert to VariantInterval if length is 1"
 
         for key, val in kwargs.items():
             if val is None:
@@ -173,11 +172,8 @@ class GenomicInterval:
                 else:
                     raise ValueError(f"Cannot convert to VariantInterval without {key} specified")
 
-        return VariantInterval(
-            **self._all_kwargs,
-            ref=kwargs["ref"],
-            alt=kwargs["alt"],
-        )
+        all_kwargs = {**self._all_kwargs, **kwargs}
+        return VariantInterval(**all_kwargs)
     
     def to_genomic_interval(self):
         """Returns self"""
@@ -213,16 +209,39 @@ class GenomicInterval:
     
 
 class VariantInterval(GenomicInterval):
+    """
+    Variant with VCF-style explicit alleles: replaces reference bases `[start, end)` with `alt`.
+    The interval spans the reference allele (`end - start == len(ref)`), so SNVs are 1 bp and
+    indels/MNVs span their (normalized, anchor-padded) `ref`. `pos` is the 1-based VCF POS.
+    Symbolic alleles (`<DEL>`, `<INV>`, ...) are not supported.
+    """
     required_fields = GenomicInterval.required_fields + ["ref", "alt"]
 
     def __init__(self, chrom, start, end, ref, alt, **kwargs):
-        assert end - start == 1
+        assert end - start == len(str(ref)), f"VariantInterval must span the ref allele (end - start == len(ref)); got start={start}, end={end}, ref={ref}"
         super().__init__(chrom, start, end, **kwargs)
         super().__setattr__('_initialized', False)
         self.ref = str(ref)
         self.alt = str(alt)
-        self.pos = end
+        self.pos = self.start + 1
         super().__setattr__('_initialized', True)
+
+    @property
+    def ref_len(self):
+        return len(self.ref)
+
+    @property
+    def alt_len(self):
+        return len(self.alt)
+
+    @property
+    def length_change(self):
+        """alt_len - ref_len: < 0 for deletions, > 0 for insertions, 0 for substitutions"""
+        return self.alt_len - self.ref_len
+
+    @property
+    def is_snv(self):
+        return self.ref_len == 1 and self.alt_len == 1
 
     def to_str(self):
         return f"{self.chrom}:{self.pos}:{self.ref}:{self.alt}"
@@ -230,7 +249,8 @@ class VariantInterval(GenomicInterval):
     @classmethod
     def from_str(cls, variant_str: str):
         chrom, pos, ref, alt = variant_str.split(":")
-        return cls(chrom, int(pos) - 1, int(pos), ref, alt)
+        start = int(pos) - 1
+        return cls(chrom, start, start + len(ref), ref, alt)
     
     def to_genomic_interval(self):
         return GenomicInterval(**self._all_kwargs)

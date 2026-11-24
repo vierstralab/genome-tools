@@ -41,7 +41,10 @@ public names and signatures stable, and keep the core light (see "Dependencies")
 - `resize(n)`: window of length n around the center. `center`: 1 bp interval at the middle.
 - `widen` clips start at 0 and doesn't know chromosome sizes.
 - `GenomicInterval.from_ucsc('chr1:1,000-2,000')` accepts commas.
-- `VariantInterval(chrom, pos, pos + 1, ref, alt)` is a 1 bp interval; `widen`/`shift`/`zoom` on it raise, convert with `.gi()` first.
+- `VariantInterval(chrom, start, start + len(ref), ref, alt)` spans the ref allele (1 bp for SNVs; indels/MNVs
+  with VCF-style explicit, anchor-padded alleles; no symbolic `<DEL>` etc.). `pos` is the 1-based VCF POS (`start + 1`).
+  `ref_len`, `alt_len`, `length_change` (`alt_len - ref_len`) and `is_snv` are computed properties, not extra fields.
+  `widen`/`shift`/`zoom` on it raise, convert with `.gi()` first.
 - `df_to_genomic_intervals(df, interval=None, extra_columns=())` expects `#chr`/`chrom`, `start`, `end` columns; passing `interval` keeps only rows overlapping it.
   Only these columns and `extra_columns` are carried over.
 - `df_to_variant_intervals(df, interval=None, extra_columns=())` also needs `ref` and `alt`; with a

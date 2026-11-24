@@ -81,7 +81,7 @@ iv.shift(100)          # shift coordinates
 iv.overlaps(other_iv)  # bool
 ```
 
-`VariantInterval` is a 1bp specialization carrying `ref`/`alt`/`pos`; Helpers `df_to_genomic_intervals`, `df_to_variant_intervals`, `intervals_to_df`, and `filter_df_to_interval` convert between pandas DataFrames and lists of intervals.
+`VariantInterval` carries `ref`/`alt`/`pos` and spans the ref allele (1 bp for SNVs, `len(ref)` for VCF-style indels/MNVs); Helpers `df_to_genomic_intervals`, `df_to_variant_intervals`, `intervals_to_df`, and `filter_df_to_interval` convert between pandas DataFrames and lists of intervals.
 
 ### Overlaps between interval tables
 

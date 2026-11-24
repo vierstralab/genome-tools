@@ -226,6 +226,9 @@ class AllelicReadsExtractor(BaseExtractor):
         assert isinstance(variant_interval, VariantInterval), (
             "variant_interval must be an instance of genome_tools.VariantInterval"
         )
+        assert variant_interval.is_snv, (
+            f"Allelic reads extraction supports only SNVs, got {variant_interval.to_str()}"
+        )
 
         # Go into BAM file and get the reads
         for pileupcolumn in self.cram.pileup(
