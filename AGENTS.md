@@ -23,6 +23,7 @@ public names and signatures stable, and keep the core light (see "Dependencies")
 | Open local/remote/gz files, write tabix | `genome_tools/helpers.py` |
 | Overlap flags / distance to closest between BED-like DataFrames (`overlaps_any`, `distance_to_closest`, `to_pyranges`) | `genome_tools/bed_overlaps.py` |
 | Backed AnnData from zarr | `genome_tools/data/anndata.py` |
+| Genotyping QC: KING relatedness matrix, `bcftools stats` per-sample counts, clustering samples into individuals; relatedness heatmap | `genome_tools/data/genotypes.py`, `genome_tools/plotting/relatedness.py` |
 | Single plot functions (`signal_plot`, `gene_annotation_plot`, `ideogram_plot`, `seq_plot`, `plot_motif_logo`) | `genome_tools/plotting/` |
 | Axis helpers (`format_axes_to_interval`, `clear_spines`, `cm2inch`) | `genome_tools/plotting/utils.py` |
 | Multi-track figures | `genome_tools/plotting/modular_plot/` (user guide: `README.md`, writing components: `README_develop.md`, notebooks: `examples/`) |
